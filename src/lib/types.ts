@@ -7,15 +7,35 @@ export interface Card extends Record<string, unknown> {
   title: string;
   body: string;
   position: { x: number; y: number };
+  width?: number;
+  height?: number;
   collapsed: boolean;
   hasDoc: boolean;
   docContent: string;
 }
 
+export type EdgeType = "hierarchy" | "flow" | "reference";
+export type ReferenceScope = "title" | "summary" | "section" | "full";
+
 export interface Edge {
   id: string;
   source: string;
   target: string;
+  edgeType: EdgeType;
+  sourceArrow?: boolean;
+  targetArrow?: boolean;
+  referenceScope?: ReferenceScope;
+  referenceSectionHint?: string;
+}
+
+export interface GovernorWarning {
+  id: string;
+  severity: "error" | "warning" | "info";
+  cardId?: string;
+  edgeId?: string;
+  message: string;
+  detail: string;
+  fix?: { label: string; action: "set-scope" | "remove-edge" | "convert-type" | "merge-cards" };
 }
 
 export interface ProjectMeta {
