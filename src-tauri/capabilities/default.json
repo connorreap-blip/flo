@@ -11,12 +11,13 @@
     "dialog:allow-save",
     "fs:default",
     "fs:allow-read-file",
+    "fs:allow-read-text-file",
     "fs:allow-write-file",
+    "fs:allow-write-text-file",
     "fs:allow-read-dir",
-    "fs:allow-create-dir",
+    "fs:allow-mkdir",
     "fs:allow-exists",
     "fs:allow-rename",
-    "fs:allow-remove",
-    "fs:scope-home-recursive"
+    "fs:allow-remove"
   ]
 }
