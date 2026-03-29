@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { useCanvasStore } from "../store/canvas-store";
-import { serializeCardToMarkdown } from "./markdown";
+import { serializeCardToMarkdown, deserializeMarkdown } from "./markdown";
 
 export async function saveProject(): Promise<void> {
   const store = useCanvasStore.getState();
@@ -79,7 +79,7 @@ export async function loadProject(): Promise<void> {
     position: c.position,
     collapsed: c.collapsed,
     hasDoc: c.has_doc,
-    docContent: c.doc_content,
+    docContent: c.has_doc && c.doc_content ? deserializeMarkdown(c.doc_content).htmlContent : "",
   }));
 
   store.setProject({ name: result.canvas.map_name, dirPath: result.dir_path });
