@@ -3,6 +3,7 @@ import {
   ReactFlow,
   Background,
   BackgroundVariant,
+  ConnectionMode,
   MiniMap,
   type Node,
   type Edge as RFEdge,
@@ -109,6 +110,7 @@ export function Canvas() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        connectionMode={ConnectionMode.Loose}
         snapToGrid={snapToGrid}
         snapGrid={[GRID_SIZE, GRID_SIZE]}
         fitView={false}

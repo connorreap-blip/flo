@@ -43,7 +43,7 @@ export function Toolbar() {
               background: "var(--color-surface-high)",
               color: "var(--color-text-primary)",
               borderColor: "var(--color-card-border)",
-              fontFamily: "var(--font-pixel)",
+              fontFamily: "var(--font-mono)",
             }}
             onMouseEnter={(e) => {
               (e.target as HTMLButtonElement).style.background = "var(--color-surface-highest)";

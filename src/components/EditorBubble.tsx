@@ -105,9 +105,11 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
             {card.title || "Untitled"}
           </span>
           <span
-            className="text-[7px]"
             style={{
-              fontFamily: "var(--font-pixel)",
+              fontFamily: "var(--font-mono)",
+              fontSize: "9px",
+              fontWeight: 600,
+              letterSpacing: "0.05em",
               color: "var(--color-text-muted)",
             }}
           >

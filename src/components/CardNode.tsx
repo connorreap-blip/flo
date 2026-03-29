@@ -40,6 +40,18 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
     openEditor(id, { x: 100, y: 100 });
   }, [id, data.hasDoc, updateCard, openEditor]);
 
+  const typeBadgeStyle = {
+    fontFamily: "var(--font-mono)",
+    fontSize: "9px",
+    fontWeight: 600,
+    letterSpacing: "0.05em",
+    backgroundColor: typeStyle.bg,
+    color: typeStyle.text,
+    borderStyle: typeStyle.borderStyle,
+    borderWidth: "1px",
+    borderColor: typeStyle.text + "40",
+  };
+
   if (data.collapsed) {
     return (
       <ContextMenu>
@@ -50,24 +62,21 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
               borderColor: selected ? "#FFFFFF" : undefined,
             }}
           >
-            <Handle type="target" position={Position.Top} className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" />
+            <Handle type="target" position={Position.Top} id="top-target" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" style={{ left: "40%" }} />
+            <Handle type="source" position={Position.Top} id="top-source" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" style={{ left: "60%" }} />
+            <Handle type="target" position={Position.Right} id="right-target" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" style={{ top: "40%" }} />
+            <Handle type="source" position={Position.Right} id="right-source" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" style={{ top: "60%" }} />
+            <Handle type="target" position={Position.Bottom} id="bottom-target" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" style={{ left: "40%" }} />
+            <Handle type="source" position={Position.Bottom} id="bottom-source" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" style={{ left: "60%" }} />
+            <Handle type="target" position={Position.Left} id="left-target" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" style={{ top: "40%" }} />
+            <Handle type="source" position={Position.Left} id="left-source" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" style={{ top: "60%" }} />
             <span className="text-[var(--color-text-primary)] text-xs truncate flex-1">{data.title || "Untitled"}</span>
-            <span
-              className="text-[7px] px-1.5 py-0.5 tracking-wider"
-              style={{
-                fontFamily: "var(--font-pixel)",
-                backgroundColor: typeStyle.bg,
-                color: typeStyle.text,
-                borderStyle: typeStyle.borderStyle,
-                borderWidth: "1px",
-                borderColor: typeStyle.text + "40",
-              }}
-            >
+            <span className="px-1.5 py-0.5" style={typeBadgeStyle}>
               {typeLabel}
             </span>
             <button
               onClick={handleDocClick}
-              className="text-[10px] hover:opacity-80"
+              className="nodrag text-[10px] hover:opacity-80"
               title={data.hasDoc ? "Open document" : "Create document"}
             >
               {data.hasDoc ? (
@@ -76,7 +85,6 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
                 <span className="text-[var(--color-text-muted)]">🗎</span>
               )}
             </button>
-            <Handle type="source" position={Position.Bottom} className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" />
           </div>
         </ContextMenuTrigger>
         <ContextMenuContent
@@ -113,7 +121,7 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
                   className="text-xs"
                   style={{ color: "var(--color-text-primary)" }}
                 >
-                  <span style={{ fontFamily: "var(--font-pixel)", fontSize: "7px", marginRight: "0.5rem" }}>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "9px", fontWeight: 600, letterSpacing: "0.05em", marginRight: "0.5rem" }}>
                     [{CARD_TYPE_LABELS[t]}]
                   </span>
                   {t}
@@ -142,34 +150,30 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
             borderColor: selected ? "#FFFFFF" : undefined,
           }}
         >
-          <Handle type="target" position={Position.Top} className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" />
+          <Handle type="target" position={Position.Top} id="top-target" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" style={{ left: "40%" }} />
+          <Handle type="source" position={Position.Top} id="top-source" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" style={{ left: "60%" }} />
+          <Handle type="target" position={Position.Right} id="right-target" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" style={{ top: "40%" }} />
+          <Handle type="source" position={Position.Right} id="right-source" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" style={{ top: "60%" }} />
+          <Handle type="target" position={Position.Bottom} id="bottom-target" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" style={{ left: "40%" }} />
+          <Handle type="source" position={Position.Bottom} id="bottom-source" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" style={{ left: "60%" }} />
+          <Handle type="target" position={Position.Left} id="left-target" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" style={{ top: "40%" }} />
+          <Handle type="source" position={Position.Left} id="left-source" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" style={{ top: "60%" }} />
 
           {/* Top bar */}
           <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--color-card-border)]">
             <button
               className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] text-xs w-5 h-5 flex items-center justify-center"
-              style={{ fontFamily: "var(--font-pixel)" }}
               title="Branch"
             >
               +
             </button>
             <div className="flex items-center gap-1.5">
-              <span
-                className="text-[7px] px-1.5 py-0.5 tracking-wider"
-                style={{
-                  fontFamily: "var(--font-pixel)",
-                  backgroundColor: typeStyle.bg,
-                  color: typeStyle.text,
-                  borderStyle: typeStyle.borderStyle,
-                  borderWidth: "1px",
-                  borderColor: typeStyle.text + "40",
-                }}
-              >
+              <span className="px-1.5 py-0.5" style={typeBadgeStyle}>
                 {typeLabel}
               </span>
               <button
                 onClick={handleDocClick}
-                className="text-[10px] hover:opacity-80"
+                className="nodrag text-[10px] hover:opacity-80"
                 title={data.hasDoc ? "Open document" : "Create document"}
               >
                 {data.hasDoc ? (
@@ -186,17 +190,20 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
             {editingTitle ? (
               <input
                 ref={titleRef}
-                className="bg-transparent text-[var(--color-text-primary)] text-sm font-semibold w-full outline-none border-b border-[var(--color-text-muted)] pb-0.5"
+                className="nodrag bg-transparent text-sm font-semibold w-full outline-none border-b border-[var(--color-text-muted)] pb-0.5"
+                style={{ color: data.type === "project" ? "#C9A84C" : "var(--color-text-primary)" }}
                 value={data.title}
                 onChange={(e) => updateCard(id, { title: e.target.value })}
                 onBlur={() => setEditingTitle(false)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === "Escape") setEditingTitle(false);
                 }}
+                onMouseDown={(e) => e.stopPropagation()}
               />
             ) : (
               <div
-                className="text-[var(--color-text-primary)] text-sm font-semibold cursor-text truncate"
+                className="text-sm font-semibold cursor-text truncate"
+                style={{ color: data.type === "project" ? "#C9A84C" : "var(--color-text-primary)" }}
                 onDoubleClick={() => setEditingTitle(true)}
               >
                 {data.title || "Untitled"}
@@ -209,7 +216,7 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
             {editingBody ? (
               <textarea
                 ref={bodyRef}
-                className="bg-transparent text-[var(--color-text-secondary)] text-xs w-full outline-none resize-none"
+                className="nodrag bg-transparent text-[var(--color-text-secondary)] text-xs w-full outline-none resize-none"
                 rows={3}
                 value={data.body}
                 onChange={(e) => updateCard(id, { body: e.target.value })}
@@ -217,18 +224,17 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
                 onKeyDown={(e) => {
                   if (e.key === "Escape") setEditingBody(false);
                 }}
+                onMouseDown={(e) => e.stopPropagation()}
               />
             ) : (
               <div
                 className="text-[var(--color-text-secondary)] text-xs cursor-text min-h-[2rem] line-clamp-3"
                 onDoubleClick={() => setEditingBody(true)}
               >
-                {data.body || "Double-click to add text..."}
+                {data.body}
               </div>
             )}
           </div>
-
-          <Handle type="source" position={Position.Bottom} className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" />
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent
@@ -265,7 +271,7 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
                 className="text-xs"
                 style={{ color: "var(--color-text-primary)" }}
               >
-                <span style={{ fontFamily: "var(--font-pixel)", fontSize: "7px", marginRight: "0.5rem" }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "9px", fontWeight: 600, letterSpacing: "0.05em", marginRight: "0.5rem" }}>
                   [{CARD_TYPE_LABELS[t]}]
                 </span>
                 {t}

@@ -92,7 +92,7 @@ export function NewCardDialog({ open, onClose }: Props) {
             >
               {CARD_TYPES.map((t) => (
                 <SelectItem key={t} value={t} style={{ color: "var(--color-text-primary)" }}>
-                  <span style={{ fontFamily: "var(--font-pixel)", fontSize: "8px", marginRight: "0.5rem" }}>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "9px", fontWeight: 600, letterSpacing: "0.05em", marginRight: "0.5rem" }}>
                     [{CARD_TYPE_LABELS[t]}]
                   </span>
                   {t}
