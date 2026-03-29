@@ -12,6 +12,7 @@ import {
   type OnEdgesChange,
   type NodeTypes,
   type EdgeTypes,
+  type Viewport,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useCanvasStore } from "../store/canvas-store";
@@ -91,6 +92,13 @@ export function Canvas() {
     [storeAddEdge]
   );
 
+  const onMoveEnd = useCallback(
+    (_: MouseEvent | TouchEvent | null, viewport: Viewport) => {
+      setViewport(viewport);
+    },
+    [setViewport]
+  );
+
   return (
     <div className="w-full h-full">
       <ReactFlow
@@ -108,7 +116,7 @@ export function Canvas() {
         minZoom={0.25}
         maxZoom={4}
         proOptions={{ hideAttribution: true }}
-        onMoveEnd={(_, viewport) => setViewport(viewport)}
+        onMoveEnd={onMoveEnd}
         className="canvas-grid-bg"
       >
         {showGrid && (
