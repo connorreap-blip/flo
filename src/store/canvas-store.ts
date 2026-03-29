@@ -1,12 +1,7 @@
 import { create } from "zustand";
 import { v4 as uuid } from "uuid";
-import type { Card, Edge, CanvasViewport, ProjectMeta } from "../lib/types";
+import type { Card, Edge, CanvasViewport, ProjectMeta, EditorState } from "../lib/types";
 import type { CardType } from "../lib/constants";
-
-interface EditorState {
-  cardId: string;
-  position: { x: number; y: number };
-}
 
 interface CanvasStore {
   // Project

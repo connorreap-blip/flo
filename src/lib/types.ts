@@ -27,3 +27,8 @@ export interface CanvasViewport {
   y: number;
   zoom: number;
 }
+
+export interface EditorState {
+  cardId: string;
+  position: { x: number; y: number };
+}
