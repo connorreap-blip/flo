@@ -17,8 +17,13 @@ interface CanvasStore {
 
   // Edges
   edges: Edge[];
-  addEdge: (source: string, target: string) => void;
+  addEdge: (source: string, target: string, edgeType?: import("../lib/types").EdgeType, referenceScope?: import("../lib/types").ReferenceScope, referenceSectionHint?: string) => void;
   removeEdge: (id: string) => void;
+  updateEdge: (id: string, updates: Partial<Edge>) => void;
+
+  // Editor mode
+  editorMode: "select" | "pan" | "delete";
+  setEditorMode: (mode: "select" | "pan" | "delete") => void;
 
   // Editor
   openEditors: EditorState[];
@@ -40,6 +45,15 @@ interface CanvasStore {
   // Dirty flag
   isDirty: boolean;
   markClean: () => void;
+
+  // View
+  activeView: "canvas" | "kanban";
+  setActiveView: (view: "canvas" | "kanban") => void;
+
+  // Helpers
+  dismissedHelpers: string[];
+  dismissHelper: (helperId: string) => void;
+  resetHelpers: () => void;
 
   // Bulk load (for loading from disk)
   loadState: (cards: Card[], edges: Edge[], viewport: CanvasViewport) => void;
@@ -81,15 +95,33 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   getCard: (id) => get().cards.find((c) => c.id === id),
 
   edges: [],
-  addEdge: (source, target) => {
+  addEdge: (source, target, edgeType = "hierarchy", referenceScope, referenceSectionHint) => {
     const id = uuid();
-    set((s) => ({ edges: [...s.edges, { id, source, target }], isDirty: true }));
+    const edge: Edge = {
+      id,
+      source,
+      target,
+      edgeType,
+      sourceArrow: edgeType === "reference" ? false : undefined,
+      targetArrow: edgeType === "reference" ? false : true,
+      referenceScope: edgeType === "reference" ? (referenceScope ?? "summary") : undefined,
+      referenceSectionHint: edgeType === "reference" ? referenceSectionHint : undefined,
+    };
+    set((s) => ({ edges: [...s.edges, edge], isDirty: true }));
   },
   removeEdge: (id) =>
     set((s) => ({
       edges: s.edges.filter((e) => e.id !== id),
       isDirty: true,
     })),
+  updateEdge: (id, updates) =>
+    set((s) => ({
+      edges: s.edges.map((e) => (e.id === id ? { ...e, ...updates } : e)),
+      isDirty: true,
+    })),
+
+  editorMode: "select",
+  setEditorMode: (mode) => set({ editorMode: mode }),
 
   openEditors: [],
   openEditor: (cardId, position) =>
@@ -115,6 +147,16 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   isDirty: false,
   markClean: () => set({ isDirty: false }),
 
+  activeView: "canvas",
+  setActiveView: (view) => set({ activeView: view }),
+
+  dismissedHelpers: [],
+  dismissHelper: (helperId) =>
+    set((s) => ({
+      dismissedHelpers: [...s.dismissedHelpers, helperId],
+    })),
+  resetHelpers: () => set({ dismissedHelpers: [] }),
+
   loadState: (cards, edges, viewport) => set({ cards, edges, viewport, isDirty: false }),
   clearAll: () =>
     set({
@@ -124,5 +166,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       viewport: { x: 0, y: 0, zoom: 1 },
       isDirty: false,
       project: { name: "Untitled Map", dirPath: null },
+      activeView: "canvas",
+      dismissedHelpers: [],
     }),
 }));
