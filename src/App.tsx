@@ -4,6 +4,7 @@ import { Canvas } from "./components/Canvas";
 import { Toolbar } from "./components/Toolbar";
 import { EditorBubble } from "./components/EditorBubble";
 import { HomeScreen } from "./components/HomeScreen";
+import { KanbanView } from "./components/KanbanView";
 import { useCanvasStore } from "./store/canvas-store";
 import { useKeyboardShortcuts } from "./hooks/use-keyboard-shortcuts";
 import { HelperToast } from "./components/HelperToast";
@@ -14,6 +15,7 @@ export default function App() {
   const isDirty = useCanvasStore((s) => s.isDirty);
   const openEditors = useCanvasStore((s) => s.openEditors);
   const setProject = useCanvasStore((s) => s.setProject);
+  const activeView = useCanvasStore((s) => s.activeView);
 
   // Show home screen until user starts a map
   const [started, setStarted] = useState(false);
@@ -46,12 +48,23 @@ export default function App() {
     <div className="h-screen w-screen flex flex-col overflow-hidden" style={{ background: "var(--color-canvas-bg)" }}>
       <Toolbar />
       <div className="flex-1 relative">
-        <ReactFlowProvider>
-          <Canvas />
-        </ReactFlowProvider>
-        {openEditors.map((editor) => (
-          <EditorBubble key={editor.cardId} cardId={editor.cardId} initialPosition={editor.position} />
-        ))}
+        {activeView === "canvas" ? (
+          <>
+            <ReactFlowProvider>
+              <Canvas />
+            </ReactFlowProvider>
+            {openEditors.map((editor) => (
+              <EditorBubble key={editor.cardId} cardId={editor.cardId} initialPosition={editor.position} />
+            ))}
+          </>
+        ) : (
+          <>
+            <KanbanView />
+            {openEditors.map((editor) => (
+              <EditorBubble key={editor.cardId} cardId={editor.cardId} initialPosition={editor.position} />
+            ))}
+          </>
+        )}
       </div>
       <footer
         className="h-6 flex items-center justify-between px-4 shrink-0 border-t text-[10px]"
