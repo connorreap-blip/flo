@@ -20,20 +20,35 @@ import { CARD_TYPES, CARD_TYPE_LABELS, type CardType } from "../lib/constants";
 interface Props {
   open: boolean;
   onClose: () => void;
+  /** When set, the new card will be connected to this card and positioned below it */
+  parentCardId?: string;
+  parentPosition?: { x: number; y: number };
 }
 
-export function NewCardDialog({ open, onClose }: Props) {
+export function NewCardDialog({ open, onClose, parentCardId, parentPosition }: Props) {
   const [title, setTitle] = useState("");
   const [type, setType] = useState<CardType>("process");
   const addCard = useCanvasStore((s) => s.addCard);
+  const addEdge = useCanvasStore((s) => s.addEdge);
   const viewport = useCanvasStore((s) => s.viewport);
 
   const handleCreate = () => {
     if (!title.trim()) return;
-    // Place new card near center of current viewport
-    const x = -viewport.x / viewport.zoom + 400;
-    const y = -viewport.y / viewport.zoom + 300;
-    addCard(type, title.trim(), { x, y });
+    let x: number;
+    let y: number;
+    if (parentPosition) {
+      // Place below the parent card
+      x = parentPosition.x;
+      y = parentPosition.y + 160;
+    } else {
+      // Place near center of current viewport
+      x = -viewport.x / viewport.zoom + 400;
+      y = -viewport.y / viewport.zoom + 300;
+    }
+    const newId = addCard(type, title.trim(), { x, y });
+    if (parentCardId) {
+      addEdge(parentCardId, newId, "hierarchy");
+    }
     setTitle("");
     setType("process");
     onClose();
@@ -54,7 +69,7 @@ export function NewCardDialog({ open, onClose }: Props) {
             className="text-sm uppercase tracking-wider"
             style={{ fontFamily: "var(--font-headline)" }}
           >
-            New Card
+            {parentCardId ? "Branch Card" : "New Card"}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 pt-2">
@@ -105,7 +120,7 @@ export function NewCardDialog({ open, onClose }: Props) {
             className="w-full bg-white text-black font-bold hover:opacity-90"
             disabled={!title.trim()}
           >
-            Create
+            {parentCardId ? "Branch" : "Create"}
           </Button>
         </div>
       </DialogContent>

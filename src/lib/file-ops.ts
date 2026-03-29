@@ -34,7 +34,16 @@ export async function saveProject(): Promise<void> {
       map_name: store.project.name,
       viewport: store.viewport,
       cards: cardsForSave,
-      edges: store.edges,
+      edges: store.edges.map((e) => ({
+        id: e.id,
+        source: e.source,
+        target: e.target,
+        edge_type: e.edgeType,
+        source_arrow: e.sourceArrow,
+        target_arrow: e.targetArrow,
+        reference_scope: e.referenceScope,
+        reference_section_hint: e.referenceSectionHint,
+      })),
     },
     dir_path: dirPath,
   };
@@ -64,7 +73,7 @@ export async function loadProject(): Promise<void> {
         has_doc: boolean;
         doc_content: string;
       }>;
-      edges: Array<{ id: string; source: string; target: string }>;
+      edges: Array<{ id: string; source: string; target: string; edgeType?: string; sourceArrow?: boolean; targetArrow?: boolean; referenceScope?: string; referenceSectionHint?: string }>;
     };
     dir_path: string;
   }>("load_project", { dirPath: selected });
@@ -82,6 +91,17 @@ export async function loadProject(): Promise<void> {
     docContent: c.has_doc && c.doc_content ? deserializeMarkdown(c.doc_content).htmlContent : "",
   }));
 
+  const mappedEdges = result.canvas.edges.map((e) => ({
+    id: e.id,
+    source: e.source,
+    target: e.target,
+    edgeType: (e.edgeType ?? "hierarchy") as import("../lib/types").EdgeType,
+    sourceArrow: e.sourceArrow,
+    targetArrow: e.targetArrow,
+    referenceScope: e.referenceScope as import("../lib/types").ReferenceScope | undefined,
+    referenceSectionHint: e.referenceSectionHint,
+  }));
+
   store.setProject({ name: result.canvas.map_name, dirPath: result.dir_path });
-  store.loadState(cards, result.canvas.edges, result.canvas.viewport);
+  store.loadState(cards, mappedEdges, result.canvas.viewport);
 }
