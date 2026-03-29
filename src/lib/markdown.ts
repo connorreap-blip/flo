@@ -73,7 +73,7 @@ export function deserializeMarkdown(raw: string): {
 } {
   const { data, content } = matter(raw);
   // Strip the leading # Title line if present
-  const bodyContent = content.replace(/^#\s+.*\n\n?/, "").trim();
+  const bodyContent = content.replace(/^#\s+.*\n\n/, "").trim();
   return {
     frontmatter: data as CardFrontmatter,
     htmlContent: markdownToHtml(bodyContent),
