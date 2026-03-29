@@ -56,7 +56,17 @@ function CardNodeComponent({ data, id }: NodeProps) {
         >
           {typeLabel}
         </span>
-        {d.hasDoc && <span className="text-[var(--color-text-secondary)] text-[10px]">📄</span>}
+        <button
+          onClick={handleDocClick}
+          className="text-[10px] hover:opacity-80"
+          title={d.hasDoc ? "Open document" : "Create document"}
+        >
+          {d.hasDoc ? (
+            <span className="text-[var(--color-text-primary)]">📄</span>
+          ) : (
+            <span className="text-[var(--color-text-muted)]">🗎</span>
+          )}
+        </button>
         <Handle type="source" position={Position.Bottom} className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" />
       </div>
     );
