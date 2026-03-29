@@ -4,6 +4,8 @@ import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import { useCanvasStore } from "../store/canvas-store";
 
+const EDITOR_EXTENSIONS = [StarterKit, Underline];
+
 interface Props {
   cardId: string;
   initialPosition: { x: number; y: number };
@@ -18,9 +20,11 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
   const [size, setSize] = useState({ width: 600, height: 500 });
   const [dragging, setDragging] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
+  const [resizing, setResizing] = useState(false);
+  const resizeStart = useRef({ x: 0, y: 0, w: 0, h: 0 });
 
   const editor = useEditor({
-    extensions: [StarterKit, Underline],
+    extensions: EDITOR_EXTENSIONS,
     content: card?.docContent || "",
     onUpdate: ({ editor }) => {
       updateCard(cardId, { docContent: editor.getHTML() });
@@ -55,6 +59,23 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
       window.removeEventListener("mouseup", handleUp);
     };
   }, [dragging]);
+
+  useEffect(() => {
+    if (!resizing) return;
+    const handleMove = (e: MouseEvent) => {
+      setSize({
+        width: Math.max(400, resizeStart.current.w + e.clientX - resizeStart.current.x),
+        height: Math.max(300, resizeStart.current.h + e.clientY - resizeStart.current.y),
+      });
+    };
+    const handleUp = () => setResizing(false);
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mouseup", handleUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mouseup", handleUp);
+    };
+  }, [resizing]);
 
   if (!card) return null;
 
@@ -169,22 +190,13 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
         className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize"
         onMouseDown={(e) => {
           e.stopPropagation();
-          const startX = e.clientX;
-          const startY = e.clientY;
-          const startW = size.width;
-          const startH = size.height;
-          const handleMove = (ev: MouseEvent) => {
-            setSize({
-              width: Math.max(400, startW + ev.clientX - startX),
-              height: Math.max(300, startH + ev.clientY - startY),
-            });
+          resizeStart.current = {
+            x: e.clientX,
+            y: e.clientY,
+            w: size.width,
+            h: size.height,
           };
-          const handleUp = () => {
-            window.removeEventListener("mousemove", handleMove);
-            window.removeEventListener("mouseup", handleUp);
-          };
-          window.addEventListener("mousemove", handleMove);
-          window.addEventListener("mouseup", handleUp);
+          setResizing(true);
         }}
       >
         <svg
