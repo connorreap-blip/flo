@@ -73,7 +73,7 @@
     --chart-3: oklch(0.439 0 0);
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
-    --radius: 0.625rem;
+    --radius: 0px;
     --sidebar: oklch(0.985 0 0);
     --sidebar-foreground: oklch(0.145 0 0);
     --sidebar-primary: oklch(0.205 0 0);
@@ -170,39 +170,40 @@ html, body, #root {
   height: 100%;
   margin: 0;
   padding: 0;
-  background: #0A0A0A;
-  color: #E0E0E0;
+  background: var(--color-canvas-bg);
+  color: var(--color-text-primary);
   font-family: "Inter", system-ui, sans-serif;
   overflow: hidden;
 }
 
 /* Canvas grid background utility */
 .canvas-grid-bg {
-  background-image: radial-gradient(circle, #1A1A1A 1px, transparent 1px);
+  background-image: radial-gradient(circle, var(--color-grid-dot) 1px, transparent 1px);
   background-size: 20px 20px;
 }
 
 /* Pixel-style card border */
 .pixel-border {
-  border: 2px solid #2A2A2A;
+  border: 2px solid var(--color-card-border);
+  image-rendering: pixelated;
 }
 
 .pixel-border-selected {
-  border: 2px solid #FFFFFF;
+  border: 2px solid var(--color-card-border-selected);
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: #131313; }
-::-webkit-scrollbar-thumb { background: #393939; }
+::-webkit-scrollbar-track { background: var(--color-surface); }
+::-webkit-scrollbar-thumb { background: var(--color-surface-highest); }
 
 /* React Flow overrides */
 .react-flow__background {
-  background: #0A0A0A !important;
+  background: var(--color-canvas-bg) !important;
 }
 .react-flow__minimap {
-  background: #131313 !important;
-  border: 1px solid #2A2A2A !important;
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-card-border) !important;
 }
 .react-flow__node {
   border-radius: 0 !important;
@@ -216,7 +217,7 @@ html, body, #root {
   font-family: "Inter", system-ui, sans-serif;
   font-size: 14px;
   line-height: 1.6;
-  color: #E0E0E0;
+  color: var(--color-text-primary);
 }
 .tiptap p { margin: 0.5em 0; }
 .tiptap:focus { outline: none; }
