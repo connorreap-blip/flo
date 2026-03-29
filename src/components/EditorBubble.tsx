@@ -180,6 +180,37 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
         >
           U
         </button>
+        <div style={{ width: 1, height: 16, background: "var(--color-card-border)", margin: "0 4px" }} />
+        <button
+          onClick={() => editor?.chain().focus().toggleBulletList().run()}
+          className="px-2 py-1 text-xs"
+          style={{
+            color: editor?.isActive("bulletList")
+              ? "var(--color-text-primary)"
+              : "var(--color-text-muted)",
+            background: editor?.isActive("bulletList")
+              ? "var(--color-surface-high)"
+              : "transparent",
+          }}
+          title="Bullet list"
+        >
+          •—
+        </button>
+        <button
+          onClick={() => editor?.chain().focus().toggleOrderedList().run()}
+          className="px-2 py-1 text-xs"
+          style={{
+            color: editor?.isActive("orderedList")
+              ? "var(--color-text-primary)"
+              : "var(--color-text-muted)",
+            background: editor?.isActive("orderedList")
+              ? "var(--color-surface-high)"
+              : "transparent",
+          }}
+          title="Numbered list"
+        >
+          1—
+        </button>
       </div>
 
       {/* Editor content */}
