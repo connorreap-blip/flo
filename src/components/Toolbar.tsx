@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useCanvasStore } from "../store/canvas-store";
 import { NewCardDialog } from "./NewCardDialog";
+import { HealthCheckDialog } from "./HealthCheckDialog";
 import { saveProject, loadProject } from "../lib/file-ops";
 
 export function Toolbar() {
   const [showNewCard, setShowNewCard] = useState(false);
   const [editingName, setEditingName] = useState(false);
+  const [showHealthCheck, setShowHealthCheck] = useState(false);
   const project = useCanvasStore((s) => s.project);
   const isDirty = useCanvasStore((s) => s.isDirty);
   const setProject = useCanvasStore((s) => s.setProject);
@@ -88,6 +90,18 @@ export function Toolbar() {
             Open
           </button>
           <button
+            onClick={() => setShowHealthCheck(true)}
+            className="text-xs px-3 py-1.5 border"
+            style={{
+              background: "var(--color-surface-high)",
+              color: "var(--color-text-primary)",
+              borderColor: "var(--color-card-border)",
+              fontFamily: "var(--font-mono)",
+            }}
+          >
+            Check
+          </button>
+          <button
             onClick={() => saveProject()}
             className="text-xs font-bold px-3 py-1.5 uppercase tracking-wider bg-white text-black hover:opacity-90"
             style={{ fontFamily: "var(--font-headline)" }}
@@ -97,6 +111,11 @@ export function Toolbar() {
         </div>
       </header>
       <NewCardDialog open={showNewCard} onClose={() => setShowNewCard(false)} />
+      <HealthCheckDialog
+        open={showHealthCheck}
+        onClose={() => setShowHealthCheck(false)}
+        onSave={() => saveProject()}
+      />
     </>
   );
 }
