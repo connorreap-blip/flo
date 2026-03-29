@@ -5,8 +5,10 @@ import { saveProject, loadProject } from "../lib/file-ops";
 
 export function Toolbar() {
   const [showNewCard, setShowNewCard] = useState(false);
+  const [editingName, setEditingName] = useState(false);
   const project = useCanvasStore((s) => s.project);
   const isDirty = useCanvasStore((s) => s.isDirty);
+  const setProject = useCanvasStore((s) => s.setProject);
 
   return (
     <>
@@ -24,16 +26,35 @@ export function Toolbar() {
           >
             flo
           </span>
-          <span
-            className="text-xs"
-            style={{
-              color: "var(--color-text-muted)",
-              fontFamily: "var(--font-mono)",
-            }}
-          >
-            {project.name}
-            {isDirty && " *"}
-          </span>
+          {editingName ? (
+            <input
+              className="bg-transparent text-xs outline-none border-b"
+              style={{
+                color: "var(--color-text-muted)",
+                borderColor: "var(--color-text-muted)",
+                fontFamily: "var(--font-mono)",
+                width: "140px",
+              }}
+              defaultValue={project.name}
+              autoFocus
+              onBlur={(e) => {
+                setProject({ ...project, name: e.target.value.trim() || project.name });
+                setEditingName(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === "Escape") e.currentTarget.blur();
+              }}
+            />
+          ) : (
+            <span
+              className="text-xs cursor-pointer hover:opacity-70"
+              style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+              onClick={() => setEditingName(true)}
+              title="Click to rename"
+            >
+              {project.name}{isDirty && " *"}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <button
