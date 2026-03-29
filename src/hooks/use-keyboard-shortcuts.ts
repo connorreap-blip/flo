@@ -1,0 +1,66 @@
+import { useEffect } from "react";
+import { useCanvasStore } from "../store/canvas-store";
+import { saveProject, loadProject, exportContext } from "../lib/file-ops";
+
+export function useKeyboardShortcuts() {
+  const toggleShowGrid = useCanvasStore((s) => s.toggleShowGrid);
+  const toggleMinimap = useCanvasStore((s) => s.toggleMinimap);
+  const setActiveView = useCanvasStore((s) => s.setActiveView);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const meta = e.metaKey || e.ctrlKey;
+
+      // Cmd+S — Save
+      if (meta && e.key === "s") {
+        e.preventDefault();
+        saveProject();
+      }
+
+      // Cmd+O — Open
+      if (meta && e.key === "o") {
+        e.preventDefault();
+        loadProject();
+      }
+
+      // Cmd+E — Export context.md
+      if (meta && e.key === "e") {
+        e.preventDefault();
+        exportContext();
+      }
+
+      // Cmd+G — Toggle grid
+      if (meta && e.key === "g") {
+        e.preventDefault();
+        toggleShowGrid();
+      }
+
+      // Cmd+M — Toggle minimap
+      if (meta && e.key === "m") {
+        e.preventDefault();
+        toggleMinimap();
+      }
+
+      // Cmd+1 — Canvas view
+      if (meta && e.key === "1") {
+        e.preventDefault();
+        setActiveView("canvas");
+      }
+
+      // Cmd+2 — Kanban view
+      if (meta && e.key === "2") {
+        e.preventDefault();
+        setActiveView("kanban");
+      }
+
+      // Escape — Close all editors
+      if (e.key === "Escape") {
+        const store = useCanvasStore.getState();
+        store.openEditors.forEach((ed) => store.closeEditor(ed.cardId));
+      }
+    };
+
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [toggleShowGrid, toggleMinimap, setActiveView]);
+}
