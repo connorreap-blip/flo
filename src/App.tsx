@@ -6,6 +6,7 @@ import { EditorBubble } from "./components/EditorBubble";
 import { HomeScreen } from "./components/HomeScreen";
 import { useCanvasStore } from "./store/canvas-store";
 import { useKeyboardShortcuts } from "./hooks/use-keyboard-shortcuts";
+import { HelperToast } from "./components/HelperToast";
 
 export default function App() {
   const project = useCanvasStore((s) => s.project);
@@ -64,6 +65,7 @@ export default function App() {
         <span>{cards.length} cards</span>
         <span>{isDirty ? "unsaved" : "saved"}</span>
       </footer>
+      <HelperToast />
     </div>
   );
 }
