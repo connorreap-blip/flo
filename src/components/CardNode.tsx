@@ -2,12 +2,9 @@ import { memo, useState, useCallback, useRef, useEffect } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { useCanvasStore } from "../store/canvas-store";
 import { CARD_TYPE_LABELS, CARD_TYPE_STYLES } from "../lib/constants";
-import type { Card } from "../lib/types";
+import type { CardNodeType } from "../lib/types";
 
-type CardNodeData = Card & { selected?: boolean };
-
-function CardNodeComponent({ data, id }: NodeProps) {
-  const d = data as unknown as CardNodeData;
+function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
   const updateCard = useCanvasStore((s) => s.updateCard);
   const openEditor = useCanvasStore((s) => s.openEditor);
   const [editingTitle, setEditingTitle] = useState(false);
@@ -15,8 +12,8 @@ function CardNodeComponent({ data, id }: NodeProps) {
   const titleRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
 
-  const typeStyle = CARD_TYPE_STYLES[d.type];
-  const typeLabel = CARD_TYPE_LABELS[d.type];
+  const typeStyle = CARD_TYPE_STYLES[data.type];
+  const typeLabel = CARD_TYPE_LABELS[data.type];
 
   useEffect(() => {
     if (editingTitle && titleRef.current) titleRef.current.focus();
@@ -27,22 +24,22 @@ function CardNodeComponent({ data, id }: NodeProps) {
   }, [editingBody]);
 
   const handleDocClick = useCallback(() => {
-    if (!d.hasDoc) {
+    if (!data.hasDoc) {
       updateCard(id, { hasDoc: true });
     }
     openEditor(id, { x: 100, y: 100 });
-  }, [id, d.hasDoc, updateCard, openEditor]);
+  }, [id, data.hasDoc, updateCard, openEditor]);
 
-  if (d.collapsed) {
+  if (data.collapsed) {
     return (
       <div
         className="pixel-border bg-[var(--color-card-bg)] px-3 py-2 flex items-center justify-between gap-2 min-w-[200px]"
         style={{
-          borderColor: d.selected ? "#FFFFFF" : undefined,
+          borderColor: selected ? "#FFFFFF" : undefined,
         }}
       >
         <Handle type="target" position={Position.Top} className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" />
-        <span className="text-[var(--color-text-primary)] text-xs truncate flex-1">{d.title || "Untitled"}</span>
+        <span className="text-[var(--color-text-primary)] text-xs truncate flex-1">{data.title || "Untitled"}</span>
         <span
           className="text-[7px] px-1.5 py-0.5 tracking-wider"
           style={{
@@ -59,9 +56,9 @@ function CardNodeComponent({ data, id }: NodeProps) {
         <button
           onClick={handleDocClick}
           className="text-[10px] hover:opacity-80"
-          title={d.hasDoc ? "Open document" : "Create document"}
+          title={data.hasDoc ? "Open document" : "Create document"}
         >
-          {d.hasDoc ? (
+          {data.hasDoc ? (
             <span className="text-[var(--color-text-primary)]">📄</span>
           ) : (
             <span className="text-[var(--color-text-muted)]">🗎</span>
@@ -76,7 +73,7 @@ function CardNodeComponent({ data, id }: NodeProps) {
     <div
       className="pixel-border bg-[var(--color-card-bg)] min-w-[200px] max-w-[300px] select-none"
       style={{
-        borderColor: d.selected ? "#FFFFFF" : undefined,
+        borderColor: selected ? "#FFFFFF" : undefined,
       }}
     >
       <Handle type="target" position={Position.Top} className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" />
@@ -107,9 +104,9 @@ function CardNodeComponent({ data, id }: NodeProps) {
           <button
             onClick={handleDocClick}
             className="text-[10px] hover:opacity-80"
-            title={d.hasDoc ? "Open document" : "Create document"}
+            title={data.hasDoc ? "Open document" : "Create document"}
           >
-            {d.hasDoc ? (
+            {data.hasDoc ? (
               <span className="text-[var(--color-text-primary)]">📄</span>
             ) : (
               <span className="text-[var(--color-text-muted)]">🗎</span>
@@ -124,7 +121,7 @@ function CardNodeComponent({ data, id }: NodeProps) {
           <input
             ref={titleRef}
             className="bg-transparent text-[var(--color-text-primary)] text-sm font-semibold w-full outline-none border-b border-[var(--color-text-muted)] pb-0.5"
-            value={d.title}
+            value={data.title}
             onChange={(e) => updateCard(id, { title: e.target.value })}
             onBlur={() => setEditingTitle(false)}
             onKeyDown={(e) => {
@@ -136,7 +133,7 @@ function CardNodeComponent({ data, id }: NodeProps) {
             className="text-[var(--color-text-primary)] text-sm font-semibold cursor-text truncate"
             onDoubleClick={() => setEditingTitle(true)}
           >
-            {d.title || "Untitled"}
+            {data.title || "Untitled"}
           </div>
         )}
       </div>
@@ -148,7 +145,7 @@ function CardNodeComponent({ data, id }: NodeProps) {
             ref={bodyRef}
             className="bg-transparent text-[var(--color-text-secondary)] text-xs w-full outline-none resize-none"
             rows={3}
-            value={d.body}
+            value={data.body}
             onChange={(e) => updateCard(id, { body: e.target.value })}
             onBlur={() => setEditingBody(false)}
             onKeyDown={(e) => {
@@ -160,7 +157,7 @@ function CardNodeComponent({ data, id }: NodeProps) {
             className="text-[var(--color-text-secondary)] text-xs cursor-text min-h-[2rem] line-clamp-3"
             onDoubleClick={() => setEditingBody(true)}
           >
-            {d.body || "Double-click to add text..."}
+            {data.body || "Double-click to add text..."}
           </div>
         )}
       </div>

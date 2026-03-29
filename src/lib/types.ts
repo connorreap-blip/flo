@@ -1,6 +1,7 @@
+import type { Node } from "@xyflow/react";
 import type { CardType } from "./constants";
 
-export interface Card {
+export interface Card extends Record<string, unknown> {
   id: string;
   type: CardType;
   title: string;
@@ -32,3 +33,5 @@ export interface EditorState {
   cardId: string;
   position: { x: number; y: number };
 }
+
+export type CardNodeType = Node<Card, "card">;
