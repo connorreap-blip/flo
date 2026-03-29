@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useCanvasStore } from "../store/canvas-store";
 import { NewCardDialog } from "./NewCardDialog";
 import { HealthCheckDialog } from "./HealthCheckDialog";
-import { saveProject, loadProject } from "../lib/file-ops";
+import { saveProject, loadProject, exportContext } from "../lib/file-ops";
 
 export function Toolbar() {
   const [showNewCard, setShowNewCard] = useState(false);
@@ -100,6 +100,18 @@ export function Toolbar() {
             }}
           >
             Check
+          </button>
+          <button
+            onClick={() => exportContext()}
+            className="text-xs px-3 py-1.5 border"
+            style={{
+              background: "var(--color-surface-high)",
+              color: "var(--color-text-primary)",
+              borderColor: "var(--color-card-border)",
+              fontFamily: "var(--font-mono)",
+            }}
+          >
+            Export
           </button>
           <button
             onClick={() => saveProject()}

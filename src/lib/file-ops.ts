@@ -1,7 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
+import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { useCanvasStore } from "../store/canvas-store";
 import { serializeCardToMarkdown, deserializeMarkdown } from "./markdown";
+import { generateContextMd } from "./export-context";
 
 export async function saveProject(): Promise<void> {
   const store = useCanvasStore.getState();
@@ -104,4 +106,18 @@ export async function loadProject(): Promise<void> {
 
   store.setProject({ name: result.canvas.map_name, dirPath: result.dir_path });
   store.loadState(cards, mappedEdges, result.canvas.viewport);
+}
+
+export async function exportContext(): Promise<void> {
+  const store = useCanvasStore.getState();
+  const contextMd = generateContextMd(store.project.name, store.cards, store.edges);
+
+  const selected = await save({
+    title: "Export context.md",
+    defaultPath: "context.md",
+    filters: [{ name: "Markdown", extensions: ["md"] }],
+  });
+  if (!selected) return;
+
+  await writeTextFile(selected, contextMd);
 }
