@@ -23,8 +23,8 @@ interface CanvasStore {
   updateEdge: (id: string, updates: Partial<Edge>) => void;
 
   // Editor mode
-  editorMode: "select" | "pan" | "delete";
-  setEditorMode: (mode: "select" | "pan" | "delete") => void;
+  editorMode: "select" | "pan";
+  setEditorMode: (mode: "select" | "pan") => void;
 
   // Editor
   openEditors: EditorState[];

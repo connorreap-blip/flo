@@ -15,8 +15,6 @@ import {
   type NodeTypes,
   type EdgeTypes,
   type Viewport,
-  type NodeMouseHandler,
-  type EdgeMouseHandler,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useCanvasStore } from "../store/canvas-store";
@@ -38,7 +36,6 @@ export function Canvas() {
   const updateCard = useCanvasStore((s) => s.updateCard);
   const storeAddEdge = useCanvasStore((s) => s.addEdge);
   const removeEdge = useCanvasStore((s) => s.removeEdge);
-  const removeCard = useCanvasStore((s) => s.removeCard);
   const setViewport = useCanvasStore((s) => s.setViewport);
   const editorMode = useCanvasStore((s) => s.editorMode);
 
@@ -119,24 +116,10 @@ export function Canvas() {
     [setViewport]
   );
 
-  const onNodeClick: NodeMouseHandler = useCallback(
-    (_, node) => {
-      if (editorMode === "delete") removeCard(node.id);
-    },
-    [editorMode, removeCard]
-  );
-
-  const onEdgeClick: EdgeMouseHandler = useCallback(
-    (_, edge) => {
-      if (editorMode === "delete") removeEdge(edge.id);
-    },
-    [editorMode, removeEdge]
-  );
-
   const isPanMode = editorMode === "pan";
 
   return (
-    <div className="w-full h-full relative" style={{ cursor: editorMode === "delete" ? "crosshair" : undefined }}>
+    <div className="w-full h-full relative">
       <ReactFlow
         nodes={nodes}
         edges={rfEdges}
@@ -145,8 +128,6 @@ export function Canvas() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        onNodeClick={onNodeClick}
-        onEdgeClick={onEdgeClick}
         connectionMode={ConnectionMode.Loose}
         snapToGrid={snapToGrid}
         snapGrid={[GRID_SIZE, GRID_SIZE]}
