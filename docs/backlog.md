@@ -84,6 +84,9 @@ Vercel (website)          GitHub Releases (binaries)        User's machine
 | Plugin / Extension System | Custom card types, edge types, export formats, governor rules |
 | Cross-Map References | Cards in one map reference cards in another |
 | Image / Attachment Support | Cards can hold images, PDFs, files |
+| Card Tags | Tags addable to cards for filtering, categorization |
+| Card Attachments | Attach files, images, PDFs to individual cards |
+| Card Comments | Comment threads on cards — comments excluded from agent export (like brainstorm cards) |
 
 ### UX Improvements (ongoing)
 

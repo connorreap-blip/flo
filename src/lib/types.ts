@@ -26,6 +26,7 @@ export interface Edge {
   targetArrow?: boolean;
   referenceScope?: ReferenceScope;
   referenceSectionHint?: string;
+  label?: string;
 }
 
 export interface GovernorWarning {

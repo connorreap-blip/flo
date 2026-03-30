@@ -29,13 +29,18 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
   const [editingBody, setEditingBody] = useState(false);
   const [showBranch, setShowBranch] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const [menuHovered, setMenuHovered] = useState(false);
   const [showConnectMenu, setShowConnectMenu] = useState(false);
+  const [showTypeMenu, setShowTypeMenu] = useState(false);
   const [branchEdgeType, setBranchEdgeType] = useState<EdgeType>("hierarchy");
   const titleRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   const typeStyle = CARD_TYPE_STYLES[data.type];
   const typeLabel = CARD_TYPE_LABELS[data.type];
+
+  // Show menu if card OR menu is hovered
+  const showHoverMenu = (hovered || menuHovered) && !editingTitle && !editingBody;
 
   useEffect(() => {
     if (editingTitle && titleRef.current) titleRef.current.focus();
@@ -73,11 +78,13 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
     </>
   );
 
-  // Hover action menu — positioned top-right outside the card
-  const hoverMenu = hovered && !editingTitle && !editingBody && (
+  // Hover action menu — positioned top-right, with its own hover zone
+  const hoverMenu = showHoverMenu && (
     <div
       className="absolute flex flex-col gap-1 nodrag"
       style={{ top: 0, right: -40, zIndex: 10 }}
+      onMouseEnter={() => setMenuHovered(true)}
+      onMouseLeave={() => { setMenuHovered(false); setShowConnectMenu(false); }}
     >
       {/* + Connect button with submenu */}
       <div className="relative">
@@ -139,6 +146,8 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
           borderRadius: "6px",
         }}
         title={data.hasDoc ? "Open document" : "Add document"}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#FFFFFF"; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-muted)"; }}
       >
         <Pencil size={13} />
       </button>
@@ -214,26 +223,62 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
     </ContextMenuContent>
   );
 
+  // Type badge dropdown for inline type changing
+  const typeBadgeWithDropdown = (
+    <div className="relative">
+      <button
+        className="px-1.5 py-0.5 nodrag cursor-pointer hover:opacity-80"
+        style={typeBadgeStyle}
+        onClick={() => setShowTypeMenu(!showTypeMenu)}
+        title="Click to change type"
+      >
+        {typeLabel}
+      </button>
+      {showTypeMenu && (
+        <div
+          className="absolute right-0 top-7 flex flex-col gap-0.5 p-1 nodrag"
+          style={{
+            background: "var(--color-surface)",
+            border: "1px solid var(--color-card-border)",
+            borderRadius: "4px",
+            zIndex: 30,
+          }}
+        >
+          {CARD_TYPES.map((t) => (
+            <button
+              key={t}
+              onClick={() => { updateCard(id, { type: t }); setShowTypeMenu(false); }}
+              className="flex items-center gap-2 px-2 py-1 text-[10px] transition-colors whitespace-nowrap hover:bg-[var(--color-surface-high)]"
+              style={{
+                color: data.type === t ? "#FFFFFF" : "var(--color-text-muted)",
+                fontFamily: "var(--font-mono)",
+                borderRadius: "3px",
+              }}
+            >
+              [{CARD_TYPE_LABELS[t]}] {t}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   if (data.collapsed) {
     return (
       <div
         onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => { setHovered(false); setShowConnectMenu(false); }}
+        onMouseLeave={() => { setHovered(false); if (!menuHovered) setShowConnectMenu(false); }}
         className="relative"
       >
         <ContextMenu>
           <ContextMenuTrigger asChild>
             <div
               className="pixel-border bg-[var(--color-card-bg)] px-3 py-2 flex items-center justify-between gap-2 min-w-[200px]"
-              style={{
-                borderColor: selected ? "#FFFFFF" : undefined,
-              }}
+              style={{ borderColor: selected ? "#FFFFFF" : undefined }}
             >
               {handles}
               <span className="text-[var(--color-text-primary)] text-xs truncate flex-1">{data.title || "Untitled"}</span>
-              <span className="px-1.5 py-0.5" style={typeBadgeStyle}>
-                {typeLabel}
-              </span>
+              {typeBadgeWithDropdown}
             </div>
           </ContextMenuTrigger>
           {contextMenuContent}
@@ -253,7 +298,7 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
   return (
     <div
       onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => { setHovered(false); setShowConnectMenu(false); }}
+      onMouseLeave={() => { setHovered(false); if (!menuHovered) setShowConnectMenu(false); }}
       className="relative"
     >
       <ContextMenu>
@@ -278,11 +323,9 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
             />
             {handles}
 
-            {/* Top bar — type badge only */}
+            {/* Top bar — clickable type badge */}
             <div className="flex items-center justify-end px-3 py-2 border-b border-[var(--color-card-border)]">
-              <span className="px-1.5 py-0.5" style={typeBadgeStyle}>
-                {typeLabel}
-              </span>
+              {typeBadgeWithDropdown}
             </div>
 
             {/* Title */}
@@ -331,7 +374,7 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
                   className="text-[var(--color-text-secondary)] text-xs cursor-text min-h-[2rem] line-clamp-3"
                   onDoubleClick={() => setEditingBody(true)}
                 >
-                  {data.body || <span className="opacity-30 italic">double-click to add notes</span>}
+                  {data.body || <span className="opacity-30 italic">double-click to add summary</span>}
                 </div>
               )}
             </div>

@@ -73,6 +73,7 @@ export function Canvas() {
           edgeType: edge.edgeType ?? "hierarchy",
           sourceArrow: edge.sourceArrow ?? false,
           targetArrow: edge.targetArrow ?? (edge.edgeType === "reference" ? false : true),
+          label: edge.label ?? "",
         },
       })),
     [edges]
