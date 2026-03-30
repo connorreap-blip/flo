@@ -29,6 +29,7 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
   const dragOffset = useRef({ x: 0, y: 0 });
   const [resizing, setResizing] = useState(false);
   const resizeStart = useRef({ x: 0, y: 0, w: 0, h: 0 });
+  const [fullscreen, setFullscreen] = useState(false);
 
   const editor = useEditor({
     extensions: EDITOR_EXTENSIONS,
@@ -84,12 +85,26 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
     };
   }, [resizing]);
 
+  useEffect(() => {
+    if (!fullscreen) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        setFullscreen(false);
+      }
+    };
+    window.addEventListener("keydown", handler, true);
+    return () => window.removeEventListener("keydown", handler, true);
+  }, [fullscreen]);
+
   if (!card) return null;
 
   return (
     <div
-      className="absolute z-40 pixel-border shadow-2xl flex flex-col"
-      style={{
+      className={`${fullscreen ? "fixed inset-0 z-[100]" : "absolute z-40 pixel-border shadow-2xl"} flex flex-col`}
+      style={fullscreen ? {
+        background: "var(--color-canvas-bg)",
+      } : {
         left: position.x,
         top: position.y,
         width: size.width,
@@ -123,21 +138,35 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
             {card.type.toUpperCase()}
           </span>
         </div>
-        <button
-          onClick={() => closeEditor(cardId)}
-          className="text-sm px-1"
-          style={{ color: "var(--color-text-muted)" }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.color =
-              "var(--color-text-primary)";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.color =
-              "var(--color-text-muted)";
-          }}
-        >
-          ×
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setFullscreen(!fullscreen)}
+            className="text-[10px] px-1.5 py-0.5"
+            style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+            title={fullscreen ? "Exit Zen Mode (Escape)" : "Zen Mode — full screen"}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-primary)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-muted)";
+            }}
+          >
+            {fullscreen ? "EXIT" : "ZEN"}
+          </button>
+          <button
+            onClick={() => closeEditor(cardId)}
+            className="text-sm px-1"
+            style={{ color: "var(--color-text-muted)" }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-primary)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-muted)";
+            }}
+          >
+            ×
+          </button>
+        </div>
       </div>
 
       {/* Formatting toolbar */}
@@ -226,7 +255,7 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
       </div>
 
       {/* Resize handle (bottom-right corner) */}
-      <div
+      {!fullscreen && <div
         className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize"
         onMouseDown={(e) => {
           e.stopPropagation();
@@ -251,7 +280,7 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
             strokeWidth="1"
           />
         </svg>
-      </div>
+      </div>}
     </div>
   );
 }
