@@ -1,11 +1,9 @@
 import { useState } from "react";
 import { useCanvasStore } from "../store/canvas-store";
-import { NewCardDialog } from "./NewCardDialog";
 import { HealthCheckDialog } from "./HealthCheckDialog";
 import { saveProject, loadProject, exportContext } from "../lib/file-ops";
 
 export function Toolbar() {
-  const [showNewCard, setShowNewCard] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [showHealthCheck, setShowHealthCheck] = useState(false);
   const project = useCanvasStore((s) => s.project);
@@ -60,24 +58,6 @@ export function Toolbar() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setShowNewCard(true)}
-            className="text-xs px-3 py-1.5 border"
-            style={{
-              background: "var(--color-surface-high)",
-              color: "var(--color-text-primary)",
-              borderColor: "var(--color-card-border)",
-              fontFamily: "var(--font-mono)",
-            }}
-            onMouseEnter={(e) => {
-              (e.target as HTMLButtonElement).style.background = "var(--color-surface-highest)";
-            }}
-            onMouseLeave={(e) => {
-              (e.target as HTMLButtonElement).style.background = "var(--color-surface-high)";
-            }}
-          >
-            + NEW
-          </button>
-          <button
             onClick={() => loadProject()}
             className="text-xs px-3 py-1.5 border"
             style={{
@@ -122,7 +102,6 @@ export function Toolbar() {
           </button>
         </div>
       </header>
-      <NewCardDialog open={showNewCard} onClose={() => setShowNewCard(false)} />
       <HealthCheckDialog
         open={showHealthCheck}
         onClose={() => setShowHealthCheck(false)}

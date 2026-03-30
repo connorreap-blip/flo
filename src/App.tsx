@@ -8,6 +8,7 @@ import { KanbanView } from "./components/KanbanView";
 import { useCanvasStore } from "./store/canvas-store";
 import { useKeyboardShortcuts } from "./hooks/use-keyboard-shortcuts";
 import { HelperToast } from "./components/HelperToast";
+import { BottomActionBar } from "./components/BottomActionBar";
 
 export default function App() {
   const project = useCanvasStore((s) => s.project);
@@ -65,6 +66,7 @@ export default function App() {
             ))}
           </>
         )}
+        <BottomActionBar />
       </div>
       <footer
         className="h-6 flex items-center justify-between px-4 shrink-0 border-t text-[10px]"

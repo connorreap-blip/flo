@@ -1,10 +1,10 @@
 import { memo, useState, useCallback, useRef, useEffect } from "react";
 import { Handle, Position, NodeResizer, type NodeProps } from "@xyflow/react";
+import { Plus, Pencil, Trash2, GitBranch, ArrowRight, Link } from "lucide-react";
 import { useCanvasStore } from "../store/canvas-store";
 import { CARD_TYPE_LABELS, CARD_TYPE_STYLES, CARD_TYPES } from "../lib/constants";
-import type { CardNodeType } from "../lib/types";
+import type { CardNodeType, EdgeType } from "../lib/types";
 import { NewCardDialog } from "./NewCardDialog";
-import { HandleHover } from "./HandleHover";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -15,6 +15,12 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 
+const CONNECT_OPTIONS: { type: EdgeType; Icon: typeof Link; label: string }[] = [
+  { type: "hierarchy", Icon: GitBranch, label: "Owns" },
+  { type: "flow", Icon: ArrowRight, label: "Then" },
+  { type: "reference", Icon: Link, label: "Ref" },
+];
+
 function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
   const updateCard = useCanvasStore((s) => s.updateCard);
   const openEditor = useCanvasStore((s) => s.openEditor);
@@ -22,9 +28,11 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
   const [editingTitle, setEditingTitle] = useState(false);
   const [editingBody, setEditingBody] = useState(false);
   const [showBranch, setShowBranch] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [showConnectMenu, setShowConnectMenu] = useState(false);
+  const [branchEdgeType, setBranchEdgeType] = useState<EdgeType>("hierarchy");
   const titleRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
-  const [hoveredHandle, setHoveredHandle] = useState<{ id: string; x: number; y: number } | null>(null);
 
   const typeStyle = CARD_TYPE_STYLES[data.type];
   const typeLabel = CARD_TYPE_LABELS[data.type];
@@ -56,18 +64,101 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
     borderColor: typeStyle.text + "40",
   };
 
-  const handleMouseEnter = (e: React.MouseEvent, handleId: string) => {
-    const rect = (e.target as HTMLElement).getBoundingClientRect();
-    setHoveredHandle({ id: handleId, x: rect.left, y: rect.top });
-  };
-
   const handles = (
     <>
-      <Handle type="source" position={Position.Top} id="top" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" onMouseEnter={(e) => handleMouseEnter(e, "top")} />
-      <Handle type="source" position={Position.Right} id="right" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" onMouseEnter={(e) => handleMouseEnter(e, "right")} />
-      <Handle type="source" position={Position.Bottom} id="bottom" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" onMouseEnter={(e) => handleMouseEnter(e, "bottom")} />
-      <Handle type="source" position={Position.Left} id="left" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" onMouseEnter={(e) => handleMouseEnter(e, "left")} />
+      <Handle type="source" position={Position.Top} id="top" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" />
+      <Handle type="source" position={Position.Right} id="right" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" />
+      <Handle type="source" position={Position.Bottom} id="bottom" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" />
+      <Handle type="source" position={Position.Left} id="left" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" />
     </>
+  );
+
+  // Hover action menu — positioned top-right outside the card
+  const hoverMenu = hovered && !editingTitle && !editingBody && (
+    <div
+      className="absolute flex flex-col gap-1 nodrag"
+      style={{ top: 0, right: -40, zIndex: 10 }}
+    >
+      {/* + Connect button with submenu */}
+      <div className="relative">
+        <button
+          onClick={() => setShowConnectMenu(!showConnectMenu)}
+          className="w-8 h-8 flex items-center justify-center transition-colors"
+          style={{
+            background: "var(--color-surface-high)",
+            color: showConnectMenu ? "#FFFFFF" : "var(--color-text-muted)",
+            borderRadius: "6px",
+          }}
+          title="Connect — create linked card"
+        >
+          <Plus size={14} />
+        </button>
+        {showConnectMenu && (
+          <div
+            className="absolute right-0 top-9 flex flex-col gap-0.5 p-1"
+            style={{
+              background: "var(--color-surface)",
+              border: "1px solid var(--color-card-border)",
+              borderRadius: "6px",
+              zIndex: 20,
+            }}
+          >
+            {CONNECT_OPTIONS.map(({ type, Icon, label }) => (
+              <button
+                key={type}
+                onClick={() => {
+                  setBranchEdgeType(type);
+                  setShowConnectMenu(false);
+                  setShowBranch(true);
+                }}
+                className="flex items-center gap-2 px-2.5 py-1.5 text-[10px] transition-colors whitespace-nowrap hover:bg-[var(--color-surface-high)]"
+                style={{
+                  color: "var(--color-text-muted)",
+                  fontFamily: "var(--font-mono)",
+                  borderRadius: "4px",
+                }}
+                title={label}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#FFFFFF"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-muted)"; }}
+              >
+                <Icon size={11} />
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Edit button */}
+      <button
+        onClick={handleDocClick}
+        className="w-8 h-8 flex items-center justify-center transition-colors"
+        style={{
+          background: "var(--color-surface-high)",
+          color: "var(--color-text-muted)",
+          borderRadius: "6px",
+        }}
+        title={data.hasDoc ? "Open document" : "Add document"}
+      >
+        <Pencil size={13} />
+      </button>
+
+      {/* Delete button */}
+      <button
+        onClick={() => removeCard(id)}
+        className="w-8 h-8 flex items-center justify-center transition-colors"
+        style={{
+          background: "var(--color-surface-high)",
+          color: "var(--color-text-muted)",
+          borderRadius: "6px",
+        }}
+        title="Delete card"
+        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--color-accent-error)"; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-muted)"; }}
+      >
+        <Trash2 size={13} />
+      </button>
+    </div>
   );
 
   const contextMenuContent = (
@@ -125,7 +216,11 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
 
   if (data.collapsed) {
     return (
-      <>
+      <div
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => { setHovered(false); setShowConnectMenu(false); }}
+        className="relative"
+      >
         <ContextMenu>
           <ContextMenuTrigger asChild>
             <div
@@ -139,24 +234,28 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
               <span className="px-1.5 py-0.5" style={typeBadgeStyle}>
                 {typeLabel}
               </span>
-              <button
-                onClick={handleDocClick}
-                className="nodrag text-[10px] hover:opacity-80 px-1"
-                title={data.hasDoc ? "Open document" : "Add document"}
-                style={{ color: data.hasDoc ? "var(--color-text-primary)" : "var(--color-text-muted)" }}
-              >
-                {data.hasDoc ? "📄" : "○"}
-              </button>
             </div>
           </ContextMenuTrigger>
           {contextMenuContent}
         </ContextMenu>
-      </>
+        {hoverMenu}
+        <NewCardDialog
+          open={showBranch}
+          onClose={() => setShowBranch(false)}
+          parentCardId={id}
+          parentPosition={data.position}
+          edgeType={branchEdgeType}
+        />
+      </div>
     );
   }
 
   return (
-    <>
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => { setHovered(false); setShowConnectMenu(false); }}
+      className="relative"
+    >
       <ContextMenu>
         <ContextMenuTrigger asChild>
           <div
@@ -179,32 +278,11 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
             />
             {handles}
 
-            {/* Top bar */}
-            <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--color-card-border)]">
-              <button
-                className="nodrag text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] text-xs w-5 h-5 flex items-center justify-center"
-                title="Branch — create connected card"
-                onClick={() => setShowBranch(true)}
-              >
-                +
-              </button>
-              <div className="flex items-center gap-1.5">
-                <span className="px-1.5 py-0.5" style={typeBadgeStyle}>
-                  {typeLabel}
-                </span>
-                <button
-                  onClick={handleDocClick}
-                  className="nodrag text-[10px] hover:opacity-80 px-1 flex items-center gap-0.5"
-                  title={data.hasDoc ? "Open document" : "Add document"}
-                  style={{ color: data.hasDoc ? "var(--color-text-primary)" : "var(--color-text-muted)" }}
-                >
-                  {data.hasDoc ? (
-                    <span>📄</span>
-                  ) : (
-                    <span className="text-[9px] border border-current px-1 py-0.5" style={{ fontFamily: "var(--font-mono)", letterSpacing: "0.05em" }}>DOC</span>
-                  )}
-                </button>
-              </div>
+            {/* Top bar — type badge only */}
+            <div className="flex items-center justify-end px-3 py-2 border-b border-[var(--color-card-border)]">
+              <span className="px-1.5 py-0.5" style={typeBadgeStyle}>
+                {typeLabel}
+              </span>
             </div>
 
             {/* Title */}
@@ -262,23 +340,16 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
         {contextMenuContent}
       </ContextMenu>
 
+      {hoverMenu}
+
       <NewCardDialog
         open={showBranch}
         onClose={() => setShowBranch(false)}
         parentCardId={id}
         parentPosition={data.position}
+        edgeType={branchEdgeType}
       />
-
-      {hoveredHandle && (
-        <HandleHover
-          position={{ x: hoveredHandle.x, y: hoveredHandle.y }}
-          onSelect={(_edgeType) => {
-            setHoveredHandle(null);
-          }}
-          onClose={() => setHoveredHandle(null)}
-        />
-      )}
-    </>
+    </div>
   );
 }
 

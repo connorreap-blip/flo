@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCanvasStore } from "../store/canvas-store";
 import { CARD_TYPES, CARD_TYPE_LABELS, type CardType } from "../lib/constants";
+import type { EdgeType } from "../lib/types";
 
 interface Props {
   open: boolean;
@@ -23,9 +24,10 @@ interface Props {
   /** When set, the new card will be connected to this card and positioned below it */
   parentCardId?: string;
   parentPosition?: { x: number; y: number };
+  edgeType?: EdgeType;
 }
 
-export function NewCardDialog({ open, onClose, parentCardId, parentPosition }: Props) {
+export function NewCardDialog({ open, onClose, parentCardId, parentPosition, edgeType = "hierarchy" }: Props) {
   const [title, setTitle] = useState("");
   const [type, setType] = useState<CardType>("process");
   const addCard = useCanvasStore((s) => s.addCard);
@@ -47,7 +49,7 @@ export function NewCardDialog({ open, onClose, parentCardId, parentPosition }: P
     }
     const newId = addCard(type, title.trim(), { x, y });
     if (parentCardId) {
-      addEdge(parentCardId, newId, "hierarchy");
+      addEdge(parentCardId, newId, edgeType);
     }
     setTitle("");
     setType("process");
