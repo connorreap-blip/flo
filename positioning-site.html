@@ -3,10 +3,9 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>flo — Spatial thinking meets agent-native structure</title>
+<title>flo — Structure your thinking. Let AI read it.</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=VT323&display=swap" rel="stylesheet"/>
 <style>
-  /* ─── Reset & Base ─── */
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
   :root {
@@ -38,12 +37,6 @@
 
   ::selection { background: var(--white); color: var(--black); }
 
-  /* ─── Typography ─── */
-  .font-headline { font-family: 'Space Grotesk', sans-serif; }
-  .font-mono { font-family: 'IBM Plex Mono', monospace; }
-  .font-terminal { font-family: 'VT323', monospace; }
-
-  /* ─── Grid Background ─── */
   .grid-bg {
     background-image: radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px);
     background-size: 24px 24px;
@@ -56,30 +49,58 @@
     background-size: 80px 80px;
   }
 
-  /* ─── Macron styling for the o in flo ─── */
-  .macron::after {
+  /* ─── Logo: fl + raised bar + o ─── */
+  .logo {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    color: var(--white);
+    display: inline-flex;
+    align-items: baseline;
+  }
+
+  .logo-o {
+    position: relative;
+    display: inline-block;
+  }
+
+  .logo-o::before {
     content: "";
     position: absolute;
-    top: -0.06em;
+    top: -0.18em;
     left: 50%;
     transform: translateX(-50%);
-    width: 0.65em;
-    height: 3px;
+    width: 0.62em;
+    height: 0.09em;
+    min-height: 3px;
     background: currentColor;
+    border-radius: 1px;
   }
 
-  /* ─── Pixel border utility ─── */
-  .pixel-border {
-    border: 2px solid var(--surface-highest);
-    image-rendering: pixelated;
+  .logo-hero {
+    font-size: clamp(8rem, 18vw, 16rem);
+    line-height: 0.85;
   }
 
-  .pixel-border-white {
-    border: 2px solid rgba(255,255,255,0.2);
-    image-rendering: pixelated;
+  .logo-hero .logo-o::before {
+    top: -0.14em;
+    height: 0.07em;
+    min-height: 5px;
   }
 
-  /* ─── Section label ─── */
+  .logo-nav { font-size: 1.5rem; }
+
+  .logo-cta {
+    font-size: clamp(6rem, 14vw, 12rem);
+    line-height: 0.85;
+  }
+
+  .logo-cta .logo-o::before {
+    top: -0.14em;
+    height: 0.07em;
+    min-height: 5px;
+  }
+
   .section-label {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 10px;
@@ -90,7 +111,7 @@
 
   /* ─── Animations ─── */
   @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(30px); }
+    from { opacity: 0; transform: translateY(40px); }
     to { opacity: 1; transform: translateY(0); }
   }
 
@@ -100,13 +121,48 @@
   }
 
   @keyframes slideInLeft {
-    from { opacity: 0; transform: translateX(-40px); }
+    from { opacity: 0; transform: translateX(-60px); }
     to { opacity: 1; transform: translateX(0); }
   }
 
+  @keyframes slideInRight {
+    from { opacity: 0; transform: translateX(60px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.85); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes drawLineH {
+    from { width: 0; }
+    to { width: 100%; }
+  }
+
+  @keyframes drawLineV {
+    from { height: 0; }
+    to { height: 100%; }
+  }
+
+  @keyframes countUp {
+    from { opacity: 0; transform: translateY(20px) scale(0.8); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
   @keyframes pulseGlow {
-    0%, 100% { opacity: 0.4; }
-    50% { opacity: 1; }
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+    50% { box-shadow: 0 0 30px 4px rgba(255,255,255,0.08); }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
   }
 
   @keyframes typewriter {
@@ -119,84 +175,72 @@
     50% { opacity: 0; }
   }
 
-  @keyframes drawLine {
-    from { stroke-dashoffset: 200; }
+  @keyframes nodeAppear {
+    0% { opacity: 0; transform: scale(0.5) translateY(20px); }
+    60% { opacity: 1; transform: scale(1.05) translateY(-4px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  @keyframes edgeDraw {
+    from { stroke-dashoffset: 300; }
     to { stroke-dashoffset: 0; }
   }
 
-  .animate-fade-in-up {
-    animation: fadeInUp 0.8s ease-out both;
+  @keyframes arrowPulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
   }
 
-  .animate-fade-in {
-    animation: fadeIn 1s ease-out both;
-  }
+  .anim-fade-up { animation: fadeInUp 0.8s ease-out both; }
+  .anim-fade { animation: fadeIn 0.9s ease-out both; }
+  .anim-slide-left { animation: slideInLeft 0.8s ease-out both; }
+  .anim-slide-right { animation: slideInRight 0.8s ease-out both; }
+  .anim-scale { animation: scaleIn 0.6s ease-out both; }
+  .anim-count { animation: countUp 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
 
-  .delay-1 { animation-delay: 0.1s; }
-  .delay-2 { animation-delay: 0.2s; }
-  .delay-3 { animation-delay: 0.3s; }
-  .delay-4 { animation-delay: 0.4s; }
-  .delay-5 { animation-delay: 0.5s; }
-  .delay-6 { animation-delay: 0.6s; }
-  .delay-7 { animation-delay: 0.7s; }
-  .delay-8 { animation-delay: 0.8s; }
-  .delay-9 { animation-delay: 0.9s; }
-  .delay-10 { animation-delay: 1.0s; }
+  .d1 { animation-delay: 0.1s; }
+  .d2 { animation-delay: 0.2s; }
+  .d3 { animation-delay: 0.3s; }
+  .d4 { animation-delay: 0.4s; }
+  .d5 { animation-delay: 0.5s; }
+  .d6 { animation-delay: 0.6s; }
+  .d7 { animation-delay: 0.7s; }
+  .d8 { animation-delay: 0.8s; }
+  .d9 { animation-delay: 0.9s; }
+  .d10 { animation-delay: 1.0s; }
+  .d12 { animation-delay: 1.2s; }
+  .d14 { animation-delay: 1.4s; }
+  .d16 { animation-delay: 1.6s; }
+  .d18 { animation-delay: 1.8s; }
+  .d20 { animation-delay: 2.0s; }
 
   /* ─── Navigation ─── */
   nav {
-    position: fixed;
-    top: 0;
-    width: 100%;
-    z-index: 100;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 3rem;
-    height: 64px;
+    position: fixed; top: 0; width: 100%; z-index: 100;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 3rem; height: 64px;
     background: rgba(10,10,10,0.85);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--border);
   }
 
-  nav .wordmark {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 1.5rem;
-    font-weight: 700;
-    letter-spacing: -0.04em;
-    color: var(--white);
-  }
-
   nav .nav-links {
-    display: flex;
-    gap: 2.5rem;
-    align-items: center;
+    display: flex; gap: 2.5rem; align-items: center;
   }
 
   nav .nav-links a {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--text-muted);
-    text-decoration: none;
-    transition: color 0.2s;
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--text-muted); text-decoration: none; transition: color 0.2s;
   }
 
   nav .nav-links a:hover { color: var(--white); }
 
   nav .cta-btn {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    background: var(--white);
-    color: var(--black);
-    padding: 10px 24px;
-    border: none;
-    cursor: pointer;
-    font-weight: 600;
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.12em;
+    background: var(--white); color: var(--black);
+    padding: 10px 24px; border: none; cursor: pointer; font-weight: 600;
     transition: opacity 0.2s, transform 0.1s;
   }
 
@@ -205,272 +249,220 @@
 
   /* ─── Hero ─── */
   .hero {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 0 3rem;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .hero-wordmark {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: clamp(8rem, 18vw, 16rem);
-    font-weight: 700;
-    letter-spacing: -0.06em;
-    line-height: 0.85;
-    color: var(--white);
-    margin-bottom: 2rem;
+    min-height: 100vh; display: flex; flex-direction: column; justify-content: center;
+    padding: 0 3rem; position: relative; overflow: hidden;
   }
 
   .hero-tagline {
     font-family: 'VT323', monospace;
     font-size: clamp(1.2rem, 2.5vw, 1.8rem);
-    text-transform: uppercase;
-    letter-spacing: 0.5em;
+    text-transform: uppercase; letter-spacing: 0.5em;
     color: var(--text-secondary);
     background: rgba(255,255,255,0.03);
-    display: inline-block;
-    padding: 0.5rem 1.5rem;
+    display: inline-block; padding: 0.5rem 1.5rem;
     border: 1px solid var(--border);
     margin-bottom: 3rem;
   }
 
   .hero-description {
     font-size: clamp(1.1rem, 1.8vw, 1.4rem);
-    color: var(--text-secondary);
-    max-width: 640px;
-    line-height: 1.7;
+    color: var(--text-secondary); max-width: 640px; line-height: 1.7;
   }
 
-  .hero-canvas-decoration {
-    position: absolute;
-    right: -5%;
-    top: 15%;
-    width: 55%;
-    height: 70%;
-    opacity: 0.06;
-    pointer-events: none;
-  }
-
-  /* ─── Problem Section ─── */
-  .problem-section {
-    padding: 10rem 3rem;
-    border-top: 1px solid var(--border);
-    position: relative;
-  }
-
-  .problem-headline {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: clamp(2.5rem, 5vw, 4.5rem);
-    font-weight: 700;
-    letter-spacing: -0.03em;
-    line-height: 1.05;
-    color: var(--white);
-    max-width: 900px;
-    margin-bottom: 3rem;
-  }
-
-  .problem-body {
-    font-size: 1.15rem;
-    color: var(--text-secondary);
-    max-width: 640px;
-    line-height: 1.8;
-  }
-
-  .problem-body strong {
-    color: var(--white);
-    font-weight: 500;
-  }
-
-  /* ─── How It Works ─── */
-  .how-section {
-    padding: 8rem 3rem;
-    border-top: 1px solid var(--border);
-  }
+  /* ─── How It Works — animated step cards ─── */
+  .how-section { padding: 8rem 3rem; border-top: 1px solid var(--border); }
 
   .how-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1px;
-    background: var(--border-strong);
-    border: 1px solid var(--border-strong);
-    margin-top: 4rem;
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 0; margin-top: 4rem; position: relative;
   }
 
   .how-card {
-    background: var(--surface);
-    padding: 3rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    transition: background 0.3s;
+    background: var(--surface); padding: 3rem;
+    display: flex; flex-direction: column; gap: 1.5rem;
+    border: 1px solid var(--border);
+    position: relative; overflow: hidden;
+    transition: background 0.3s, border-color 0.3s;
   }
 
-  .how-card:hover { background: var(--surface-raised); }
+  .how-card:hover {
+    background: var(--surface-raised);
+    border-color: var(--border-strong);
+  }
 
+  /* Animated step number */
   .how-card .step-number {
-    font-family: 'VT323', monospace;
-    font-size: 3rem;
-    color: var(--text-ghost);
-    line-height: 1;
+    font-family: 'VT323', monospace; font-size: 4rem;
+    color: var(--text-ghost); line-height: 1;
+    transition: color 0.3s, transform 0.3s;
+  }
+
+  .how-card:hover .step-number {
+    color: var(--white);
+    transform: scale(1.1);
+  }
+
+  /* Animated icon inside each step */
+  .how-card .step-icon {
+    width: 48px; height: 48px; margin-bottom: 0.5rem;
+    position: relative; opacity: 0.4;
+    transition: opacity 0.4s, transform 0.4s;
+  }
+
+  .how-card:hover .step-icon {
+    opacity: 1;
+    transform: translateY(-4px);
   }
 
   .how-card h3 {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: var(--white);
-    letter-spacing: -0.02em;
+    font-family: 'Space Grotesk', sans-serif; font-size: 1.5rem;
+    font-weight: 600; color: var(--white); letter-spacing: -0.02em;
   }
 
   .how-card p {
-    font-size: 0.95rem;
-    color: var(--text-secondary);
-    line-height: 1.7;
+    font-size: 0.95rem; color: var(--text-secondary); line-height: 1.7;
   }
 
-  /* ─── Card Types Section ─── */
-  .types-section {
-    padding: 8rem 3rem;
-    border-top: 1px solid var(--border);
+  /* Connecting arrow between how-cards */
+  .how-arrow {
+    position: absolute; top: 50%; z-index: 5;
+    width: 32px; height: 2px; background: var(--white);
+    transform: translateY(-50%);
   }
+
+  .how-arrow::after {
+    content: ""; position: absolute; right: -1px; top: -4px;
+    border-left: 8px solid var(--white);
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+  }
+
+  .how-arrow-1 { left: calc(33.33% - 16px); animation: fadeIn 0.5s ease-out 1.2s both; }
+  .how-arrow-2 { left: calc(66.66% - 16px); animation: fadeIn 0.5s ease-out 1.8s both; }
+
+  /* Animated mini-canvas inside step 1 */
+  .step-mini-canvas {
+    margin-top: 1rem; height: 120px; position: relative;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .mini-card {
+    position: absolute; padding: 6px 10px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+    background: var(--surface-container);
+    border: 1px solid var(--border-strong);
+    color: var(--text-primary);
+    animation: nodeAppear 0.6s ease-out both;
+  }
+
+  .mini-edge {
+    position: absolute; height: 1px;
+    animation: fadeIn 0.4s ease-out both;
+  }
+
+  /* Animated editor inside step 2 */
+  .step-mini-editor {
+    margin-top: 1rem; padding: 12px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+    color: var(--text-secondary);
+    overflow: hidden;
+  }
+
+  .editor-line {
+    height: 10px; margin: 6px 0; background: rgba(255,255,255,0.06);
+    animation: drawLineH 0.8s ease-out both;
+    transform-origin: left;
+  }
+
+  /* Animated export inside step 3 */
+  .step-mini-export {
+    margin-top: 1rem; padding: 12px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    font-family: 'VT323', monospace; font-size: 14px;
+    color: var(--text-muted);
+    overflow: hidden;
+  }
+
+  .export-line {
+    overflow: hidden; white-space: nowrap;
+    animation: typewriter 0.6s steps(30) both;
+  }
+
+  /* ─── Card Types ─── */
+  .types-section { padding: 8rem 3rem; border-top: 1px solid var(--border); }
 
   .types-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 2rem;
-    margin-top: 4rem;
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 2rem; margin-top: 4rem;
   }
 
   .type-card {
-    padding: 2.5rem 2rem;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    transition: transform 0.2s, border-color 0.3s;
+    padding: 2.5rem 2rem; position: relative;
+    display: flex; flex-direction: column; gap: 1rem;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.3s, box-shadow 0.4s;
   }
 
-  .type-card:hover { transform: translateY(-4px); }
+  .type-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  }
 
   .type-card .badge {
-    font-family: 'VT323', monospace;
-    font-size: 1.4rem;
-    letter-spacing: 0.15em;
-    display: inline-block;
-    padding: 0.15rem 0.6rem;
-    width: fit-content;
+    font-family: 'VT323', monospace; font-size: 1.4rem; letter-spacing: 0.15em;
+    display: inline-block; padding: 0.15rem 0.6rem; width: fit-content;
   }
 
-  .type-card h4 {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: var(--white);
-  }
+  .type-card h4 { font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; font-weight: 600; color: var(--white); }
+  .type-card p { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6; }
 
-  .type-card p {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    line-height: 1.6;
-  }
-
-  .type-project {
-    background: var(--black);
-    border: 2px solid rgba(255,255,255,0.2);
-  }
+  .type-project { background: var(--black); border: 2px solid rgba(255,255,255,0.2); }
   .type-project .badge { color: #FFD700; background: rgba(255,215,0,0.1); }
-
-  .type-process {
-    background: #1E1E1E;
-    border: 2px solid var(--surface-highest);
-  }
+  .type-process { background: #1E1E1E; border: 2px solid var(--surface-highest); }
   .type-process .badge { color: #888; background: rgba(136,136,136,0.1); }
-
-  .type-reference {
-    background: var(--surface-highest);
-    border: 2px solid #3A3A3A;
-  }
+  .type-reference { background: var(--surface-highest); border: 2px solid #3A3A3A; }
   .type-reference .badge { color: #AAA; background: rgba(170,170,170,0.1); }
-
-  .type-brainstorm {
-    background: var(--surface-highest);
-    border: 2px dashed rgba(255,255,255,0.3);
-  }
+  .type-brainstorm { background: var(--surface-highest); border: 2px dashed rgba(255,255,255,0.3); }
   .type-brainstorm .badge { color: #FFF; background: rgba(255,255,255,0.08); }
 
-  /* ─── Connections Section ─── */
-  .connections-section {
-    padding: 8rem 3rem;
-    border-top: 1px solid var(--border);
-  }
+  /* ─── Connections ─── */
+  .connections-section { padding: 8rem 3rem; border-top: 1px solid var(--border); }
 
   .connections-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 3rem;
-    margin-top: 4rem;
-  }
-
-  .connection-demo {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 3rem; margin-top: 4rem;
   }
 
   .connection-visual {
-    height: 140px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0;
-    position: relative;
-    background: var(--surface-raised);
-    border: 1px solid var(--border);
-    padding: 0 2rem;
+    height: 140px; display: flex; align-items: center; justify-content: center;
+    position: relative; background: var(--surface-raised); border: 1px solid var(--border); padding: 0 2rem;
   }
 
   .connection-node {
-    width: 100px;
-    padding: 0.6rem 0;
-    text-align: center;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    color: var(--text-primary);
-    background: var(--surface-container);
-    border: 1px solid var(--border-strong);
-    position: relative;
-    z-index: 2;
+    width: 100px; padding: 0.6rem 0; text-align: center;
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+    color: var(--text-primary); background: var(--surface-container);
+    border: 1px solid var(--border-strong); position: relative; z-index: 2;
   }
 
   .connection-line {
-    flex: 1;
-    height: 2px;
-    position: relative;
-    z-index: 1;
+    flex: 1; height: 2px; position: relative; z-index: 1;
   }
 
   .connection-line-hierarchy { background: #444; }
   .connection-line-flow { background: #FFF; }
   .connection-line-reference {
-    background: repeating-linear-gradient(
-      to right,
-      #555 0px, #555 6px,
-      transparent 6px, transparent 12px
-    );
+    background: repeating-linear-gradient(to right, #555 0px, #555 6px, transparent 6px, transparent 12px);
     height: 1px;
   }
 
   .connection-line::after {
-    content: "";
-    position: absolute;
-    right: -1px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 0;
-    height: 0;
+    content: ""; position: absolute; right: -1px; top: 50%; transform: translateY(-50%);
+    width: 0; height: 0;
     border-left: 6px solid currentColor;
     border-top: 4px solid transparent;
     border-bottom: 4px solid transparent;
@@ -480,560 +472,292 @@
   .connection-line-flow::after { color: #FFF; }
   .connection-line-reference::after { display: none; }
 
-  .connection-label {
-    font-family: 'VT323', monospace;
-    font-size: 1.2rem;
-    letter-spacing: 0.1em;
-  }
+  .connection-label { font-family: 'VT323', monospace; font-size: 1.2rem; letter-spacing: 0.1em; }
+  .connection-description { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6; }
 
-  .connection-description {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    line-height: 1.6;
-  }
-
-  /* ─── Scoping Section ─── */
-  .scoping-section {
-    padding: 8rem 3rem;
-    border-top: 1px solid var(--border);
-    position: relative;
-  }
+  /* ─── Scoping ─── */
+  .scoping-section { padding: 8rem 3rem; border-top: 1px solid var(--border); }
 
   .scoping-row {
-    display: grid;
-    grid-template-columns: 200px 1fr;
-    gap: 0;
-    margin-top: 4rem;
-    border: 1px solid var(--border-strong);
-  }
-
-  .scope-item {
-    display: contents;
+    display: grid; grid-template-columns: 200px 1fr;
+    margin-top: 4rem; border: 1px solid var(--border-strong);
   }
 
   .scope-label {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--white);
-    padding: 1.5rem 2rem;
-    background: var(--surface-raised);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
+    font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 500;
+    color: var(--white); padding: 1.5rem 2rem; background: var(--surface-raised);
+    border-bottom: 1px solid var(--border); display: flex; align-items: center;
   }
 
   .scope-detail {
-    padding: 1.5rem 2rem;
-    font-size: 0.95rem;
-    color: var(--text-secondary);
-    line-height: 1.6;
-    border-bottom: 1px solid var(--border);
-    border-left: 1px solid var(--border);
+    padding: 1.5rem 2rem; font-size: 0.95rem; color: var(--text-secondary); line-height: 1.6;
+    border-bottom: 1px solid var(--border); border-left: 1px solid var(--border);
   }
 
   .scope-bar {
-    display: inline-block;
-    height: 4px;
-    background: var(--white);
-    margin-right: 1rem;
-    vertical-align: middle;
+    display: inline-block; height: 4px; background: var(--white);
+    margin-right: 1rem; vertical-align: middle;
+    transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
-  /* ─── Feature Matrix ─── */
-  .matrix-section {
-    padding: 8rem 3rem;
-    border-top: 1px solid var(--border);
-  }
+  /* ─── Context Health (renamed from Governor) ─── */
+  .health-section { padding: 8rem 3rem; border-top: 1px solid var(--border); }
 
-  .matrix-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 4rem;
-    font-size: 0.9rem;
-  }
-
-  .matrix-table th {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--text-muted);
-    text-align: left;
-    padding: 1rem 1.5rem;
-    border-bottom: 2px solid var(--border-strong);
-    font-weight: 500;
-  }
-
-  .matrix-table th:first-child { padding-left: 0; }
-
-  .matrix-table td {
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid var(--border);
-    color: var(--text-secondary);
-    vertical-align: top;
-  }
-
-  .matrix-table td:first-child {
-    font-family: 'Space Grotesk', sans-serif;
-    font-weight: 500;
-    color: var(--white);
-    padding-left: 0;
-  }
-
-  .matrix-table tr:hover td { background: rgba(255,255,255,0.015); }
-
-  .check {
-    display: inline-block;
-    width: 18px;
-    height: 18px;
-    border: 2px solid var(--white);
-    position: relative;
-    margin-right: 0.25rem;
-  }
-
-  .check::after {
-    content: "";
-    position: absolute;
-    top: 2px;
-    left: 5px;
-    width: 4px;
-    height: 8px;
-    border: solid var(--white);
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
-  }
-
-  .dash {
-    display: inline-block;
-    width: 18px;
-    height: 18px;
-    border: 2px solid var(--text-ghost);
-    position: relative;
-    margin-right: 0.25rem;
-  }
-
-  .dash::after {
-    content: "";
-    position: absolute;
-    top: 6px;
-    left: 3px;
-    width: 8px;
-    height: 2px;
-    background: var(--text-ghost);
-  }
-
-  .none-mark {
-    display: inline-block;
-    width: 18px;
-    height: 2px;
-    background: var(--text-ghost);
-    margin-right: 0.25rem;
-    vertical-align: middle;
-  }
-
-  /* ─── Value Props ─── */
-  .value-section {
-    padding: 8rem 3rem;
-    border-top: 1px solid var(--border);
-  }
-
-  .value-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1px;
-    background: var(--border-strong);
-    border: 1px solid var(--border-strong);
-    margin-top: 4rem;
-  }
-
-  .value-card {
-    background: var(--surface);
-    padding: 3.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-    transition: background 0.3s;
-  }
-
-  .value-card:hover { background: var(--surface-raised); }
-
-  .value-card .audience {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.2em;
-    color: var(--text-muted);
-  }
-
-  .value-card h3 {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 1.35rem;
-    font-weight: 600;
-    color: var(--white);
-    letter-spacing: -0.02em;
-    line-height: 1.3;
-  }
-
-  .value-card p {
-    font-size: 0.95rem;
-    color: var(--text-secondary);
-    line-height: 1.7;
-  }
-
-  .value-card ul {
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .value-card ul li {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 12px;
-    color: var(--text-secondary);
-    padding-left: 1.25rem;
-    position: relative;
-  }
-
-  .value-card ul li::before {
-    content: ">";
-    position: absolute;
-    left: 0;
-    color: var(--text-muted);
-  }
-
-  /* ─── Specs Section ─── */
-  .specs-section {
-    padding: 8rem 3rem;
-    border-top: 1px solid var(--border);
-  }
-
-  .specs-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1px;
-    background: var(--border-strong);
-    border: 1px solid var(--border-strong);
-    margin-top: 4rem;
-  }
-
-  .spec-item {
-    background: var(--surface);
-    padding: 2.5rem;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.75rem;
-  }
-
-  .spec-value {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 3rem;
-    font-weight: 700;
-    color: var(--white);
-    letter-spacing: -0.04em;
-    line-height: 1;
-  }
-
-  .spec-unit {
-    font-family: 'VT323', monospace;
-    font-size: 1.2rem;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-  }
-
-  .spec-label {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-  }
-
-  /* ─── Governance Section ─── */
-  .governance-section {
-    padding: 8rem 3rem;
-    border-top: 1px solid var(--border);
-  }
-
-  .governance-rules {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0;
-    margin-top: 4rem;
+  .health-rules {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: 0; margin-top: 4rem;
   }
 
   .rule-item {
-    padding: 2rem 2.5rem;
-    border: 1px solid var(--border);
-    display: flex;
-    gap: 1.5rem;
-    align-items: flex-start;
-    transition: background 0.2s;
+    padding: 2rem 2.5rem; border: 1px solid var(--border);
+    display: flex; gap: 1.5rem; align-items: flex-start;
+    transition: background 0.2s, transform 0.2s;
   }
 
-  .rule-item:hover { background: var(--surface-raised); }
+  .rule-item:hover {
+    background: var(--surface-raised);
+    transform: translateX(4px);
+  }
 
   .rule-number {
-    font-family: 'VT323', monospace;
-    font-size: 2rem;
-    color: var(--text-ghost);
-    line-height: 1;
-    min-width: 2rem;
-    text-align: center;
+    font-family: 'VT323', monospace; font-size: 2rem;
+    color: var(--text-ghost); line-height: 1; min-width: 2rem; text-align: center;
   }
 
   .rule-content h4 {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--white);
-    margin-bottom: 0.35rem;
+    font-family: 'Space Grotesk', sans-serif; font-size: 1rem;
+    font-weight: 600; color: var(--white); margin-bottom: 0.35rem;
   }
 
-  .rule-content p {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    line-height: 1.5;
-  }
+  .rule-content p { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; }
 
   .rule-severity {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 9px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    padding: 2px 8px;
-    display: inline-block;
-    margin-bottom: 0.35rem;
+    font-family: 'IBM Plex Mono', monospace; font-size: 9px;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    padding: 2px 8px; display: inline-block; margin-bottom: 0.35rem;
   }
 
   .severity-error { color: #FF4444; border: 1px solid rgba(255,68,68,0.3); }
   .severity-warning { color: #FFA500; border: 1px solid rgba(255,165,0,0.3); }
   .severity-info { color: #888; border: 1px solid rgba(136,136,136,0.3); }
 
-  /* ─── CTA Section ─── */
-  .cta-section {
-    padding: 12rem 3rem;
-    border-top: 1px solid var(--border);
-    text-align: center;
-    position: relative;
-    overflow: hidden;
+  /* ─── Who It's For ─── */
+  .value-section { padding: 8rem 3rem; border-top: 1px solid var(--border); }
+
+  .value-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 1px; background: var(--border-strong);
+    border: 1px solid var(--border-strong); margin-top: 4rem;
   }
 
-  .cta-wordmark {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: clamp(6rem, 14vw, 12rem);
-    font-weight: 700;
-    letter-spacing: -0.06em;
-    color: var(--white);
-    line-height: 0.85;
-    margin-bottom: 2rem;
+  .value-card {
+    background: var(--surface); padding: 3.5rem;
+    display: flex; flex-direction: column; gap: 1.25rem;
+    transition: background 0.3s;
+  }
+
+  .value-card:hover { background: var(--surface-raised); }
+
+  .value-card .audience {
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.2em; color: var(--text-muted);
+  }
+
+  .value-card h3 {
+    font-family: 'Space Grotesk', sans-serif; font-size: 1.35rem;
+    font-weight: 600; color: var(--white); letter-spacing: -0.02em; line-height: 1.3;
+  }
+
+  .value-card p { font-size: 0.95rem; color: var(--text-secondary); line-height: 1.7; }
+
+  .value-card ul { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+
+  .value-card ul li {
+    font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+    color: var(--text-secondary); padding-left: 1.25rem; position: relative;
+  }
+
+  .value-card ul li::before {
+    content: ">"; position: absolute; left: 0; color: var(--text-muted);
+  }
+
+  /* ─── Specs ─── */
+  .specs-section { padding: 8rem 3rem; border-top: 1px solid var(--border); }
+
+  .specs-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 1px; background: var(--border-strong);
+    border: 1px solid var(--border-strong); margin-top: 4rem;
+  }
+
+  .spec-item {
+    background: var(--surface); padding: 2.5rem; text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: 0.75rem;
+  }
+
+  .spec-value {
+    font-family: 'Space Grotesk', sans-serif; font-size: 3rem;
+    font-weight: 700; color: var(--white); letter-spacing: -0.04em; line-height: 1;
+  }
+
+  .spec-unit {
+    font-family: 'VT323', monospace; font-size: 1.2rem;
+    color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.15em;
+  }
+
+  .spec-label {
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+    color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.1em;
+  }
+
+  /* ─── CTA ─── */
+  .cta-section {
+    padding: 12rem 3rem; border-top: 1px solid var(--border);
+    text-align: center; position: relative; overflow: hidden;
   }
 
   .cta-tagline {
-    font-family: 'VT323', monospace;
-    font-size: 1.5rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5em;
-    color: var(--text-secondary);
-    margin-bottom: 4rem;
+    font-family: 'VT323', monospace; font-size: 1.5rem;
+    text-transform: uppercase; letter-spacing: 0.5em;
+    color: var(--text-secondary); margin-bottom: 4rem;
   }
 
   .cta-button {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 13px;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    background: var(--white);
-    color: var(--black);
-    padding: 16px 48px;
-    border: none;
-    cursor: pointer;
-    font-weight: 600;
+    font-family: 'IBM Plex Mono', monospace; font-size: 13px;
+    text-transform: uppercase; letter-spacing: 0.15em;
+    background: var(--white); color: var(--black);
+    padding: 16px 48px; border: none; cursor: pointer; font-weight: 600;
     transition: opacity 0.2s, transform 0.1s;
-    display: inline-block;
-    text-decoration: none;
+    display: inline-block; text-decoration: none;
   }
 
   .cta-button:hover { opacity: 0.9; }
   .cta-button:active { transform: scale(0.97); }
 
   .cta-subtext {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    color: var(--text-ghost);
-    margin-top: 1.5rem;
-    letter-spacing: 0.05em;
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+    color: var(--text-ghost); margin-top: 1.5rem; letter-spacing: 0.05em;
   }
 
-  /* ─── Footer ─── */
   footer {
-    padding: 3rem;
-    border-top: 1px solid var(--border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    padding: 3rem; border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
   }
 
-  footer .footer-left {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    color: var(--text-ghost);
+  footer .footer-left, footer .footer-right {
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-ghost);
   }
 
-  footer .footer-right {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    color: var(--text-ghost);
-    display: flex;
-    gap: 2rem;
-  }
+  footer .footer-right { display: flex; gap: 2rem; }
 
-  /* ─── Canvas illustration (SVG inline) ─── */
+  /* Canvas illustration */
   .canvas-illustration {
-    margin-top: 4rem;
-    padding: 3rem;
-    background: var(--surface-raised);
-    border: 1px solid var(--border);
-    position: relative;
-    overflow: hidden;
-    min-height: 400px;
+    margin-top: 4rem; padding: 3rem;
+    background: var(--surface-raised); border: 1px solid var(--border);
+    position: relative; overflow: hidden; min-height: 400px;
   }
 
   .canvas-illustration::before {
-    content: "";
-    position: absolute;
-    inset: 0;
+    content: ""; position: absolute; inset: 0;
     background-image: radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px);
-    background-size: 20px 20px;
-    pointer-events: none;
+    background-size: 20px 20px; pointer-events: none;
   }
 
   .canvas-card-mock {
-    position: absolute;
-    background: #141414;
+    position: absolute; background: #141414;
     border: 2px solid var(--surface-highest);
-    padding: 1rem 1.25rem;
-    font-family: 'Inter', sans-serif;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    z-index: 2;
-    transition: border-color 0.3s;
+    padding: 1rem 1.25rem; font-family: 'Inter', sans-serif;
+    display: flex; flex-direction: column; gap: 0.5rem; z-index: 2;
+    transition: border-color 0.3s, box-shadow 0.4s;
+    animation: nodeAppear 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   }
 
-  .canvas-card-mock:hover { border-color: rgba(255,255,255,0.3); }
-
-  .canvas-card-mock .mock-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  .canvas-card-mock:hover {
+    border-color: rgba(255,255,255,0.3);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
   }
 
   .canvas-card-mock .mock-badge {
-    font-family: 'VT323', monospace;
-    font-size: 14px;
-    letter-spacing: 0.1em;
-    padding: 1px 6px;
+    font-family: 'VT323', monospace; font-size: 14px; letter-spacing: 0.1em; padding: 1px 6px;
   }
 
   .canvas-card-mock .mock-title {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-primary);
+    font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 600; color: var(--text-primary);
   }
 
-  .canvas-card-mock .mock-body {
-    font-size: 12px;
-    color: var(--text-secondary);
-    line-height: 1.4;
-  }
+  .canvas-card-mock .mock-body { font-size: 12px; color: var(--text-secondary); line-height: 1.4; }
 
   /* ─── Responsive ─── */
   @media (max-width: 1024px) {
-    .how-grid { grid-template-columns: 1fr; }
+    .how-grid, .connections-grid { grid-template-columns: 1fr; }
     .types-grid { grid-template-columns: repeat(2, 1fr); }
-    .connections-grid { grid-template-columns: 1fr; }
     .value-grid { grid-template-columns: 1fr; }
     .specs-grid { grid-template-columns: repeat(2, 1fr); }
-    .governance-rules { grid-template-columns: 1fr; }
-    .matrix-table { font-size: 0.8rem; }
+    .health-rules { grid-template-columns: 1fr; }
     .scoping-row { grid-template-columns: 160px 1fr; }
+    .how-arrow { display: none; }
   }
 
   @media (max-width: 640px) {
     nav { padding: 0 1.5rem; }
     nav .nav-links { display: none; }
-    .hero, .problem-section, .how-section, .types-section,
-    .connections-section, .scoping-section, .matrix-section,
-    .value-section, .specs-section, .governance-section,
-    .cta-section { padding-left: 1.5rem; padding-right: 1.5rem; }
-    .hero-wordmark { font-size: 5rem; }
-    .types-grid { grid-template-columns: 1fr; }
-    .specs-grid { grid-template-columns: 1fr 1fr; }
+    section { padding-left: 1.5rem !important; padding-right: 1.5rem !important; }
+    .logo-hero { font-size: 5rem !important; }
+    .types-grid, .specs-grid { grid-template-columns: 1fr; }
     .scoping-row { grid-template-columns: 1fr; }
-    .scope-label { border-bottom: none; }
     .scope-detail { border-left: none; }
-    .matrix-table { display: block; overflow-x: auto; }
   }
 </style>
 </head>
 <body>
 
-<!-- ═══════ Navigation ═══════ -->
+<!-- ═══ Nav ═══ -->
 <nav>
-  <div class="wordmark">fl<span class="macron" style="position:relative">o</span></div>
+  <div class="logo logo-nav">fl<span class="logo-o">o</span></div>
   <div class="nav-links">
     <a href="#how">How It Works</a>
     <a href="#features">Features</a>
-    <a href="#matrix">Compare</a>
     <a href="#for-whom">Who It's For</a>
   </div>
   <button class="cta-btn">Download Alpha</button>
 </nav>
 
-<!-- ═══════ Hero ═══════ -->
+<!-- ═══ Hero ═══ -->
 <section class="hero grid-bg">
-  <!-- Decorative canvas grid lines -->
-  <div class="hero-canvas-decoration grid-lines-bg" style="opacity: 0.08;"></div>
+  <div class="hero-canvas-decoration grid-lines-bg" style="position:absolute;right:-5%;top:15%;width:55%;height:70%;opacity:0.08;pointer-events:none;"></div>
 
   <div style="position: relative; z-index: 2;">
-    <span class="section-label animate-fade-in delay-1">Knowledge Architecture</span>
+    <span class="section-label anim-fade d1">Structure your thinking</span>
     <div style="height: 1.5rem;"></div>
-    <h1 class="hero-wordmark animate-fade-in-up delay-2">
-      fl<span class="macron" style="position:relative">o</span>
+    <h1 class="logo logo-hero anim-fade-up d2" style="margin-bottom: 2rem;">
+      fl<span class="logo-o">o</span>
     </h1>
-    <div class="hero-tagline animate-fade-in delay-4">reach flostate</div>
-    <p class="hero-description animate-fade-in-up delay-5">
-      A canvas-based knowledge architect where spatial thinking meets agent-native file hierarchy. Cards for humans. Markdown for agents.
+    <div class="hero-tagline anim-fade d5">reach flostate</div>
+    <p class="hero-description anim-fade-up d6">
+      A visual canvas for organizing your ideas into structured knowledge that AI agents can actually understand. No file management required. Just think spatially.
     </p>
   </div>
 </section>
 
-<!-- ═══════ Problem ═══════ -->
-<section class="problem-section grid-lines-bg">
+<!-- ═══ Problem ═══ -->
+<section class="problem-section grid-lines-bg" style="padding: 10rem 3rem; border-top: 1px solid var(--border);">
   <span class="section-label">The Problem</span>
   <div style="height: 2rem;"></div>
-  <h2 class="problem-headline">
-    Your AI agent can't think<br/>in hierarchies.
+  <h2 style="font-family: 'Space Grotesk', sans-serif; font-size: clamp(2.5rem, 5vw, 4.5rem); font-weight: 700; letter-spacing: -0.03em; line-height: 1.05; color: var(--white); max-width: 900px; margin-bottom: 3rem;">
+    You have ideas everywhere.<br/>Your AI has no idea where to find them.
   </h2>
-  <p class="problem-body">
-    You dump an entire knowledge base into a prompt and hope for the best. Context windows overflow.
-    Relationships disappear. Your agent sees a wall of text where you see a structured system.<br/><br/>
-    <strong>Spatial tools</strong> are great for thinking but terrible for producing structured output.
-    <strong>Document tools</strong> are great for depth but terrible for seeing the big picture.<br/><br/>
-    fl<span class="macron" style="position:relative">o</span> bridges both.
-    Sketch fast on the canvas. Attach documents only where depth is needed.
-    Export a single structured context file that your agent actually understands.
-    <strong>The visual map and the agent's context are the same thing.</strong>
+  <p style="font-size: 1.15rem; color: var(--text-secondary); max-width: 640px; line-height: 1.8;">
+    Notes in one app. Documents in another. A folder of files you forgot about. When you ask AI for help, you end up copying and pasting random context and hoping for the best.<br/><br/>
+    <strong style="color: var(--white); font-weight: 500;">Whiteboards</strong> are great for brainstorming but produce nothing structured.
+    <strong style="color: var(--white); font-weight: 500;">Document editors</strong> are great for writing but terrible for seeing how ideas connect.<br/><br/>
+    <span class="logo" style="font-size: inherit; letter-spacing: normal;">fl<span class="logo-o">o</span></span> bridges both.
+    Think visually on a canvas. Add detail only where it's needed.
+    Export everything as a single structured file your AI actually understands.
+    <strong style="color: var(--white); font-weight: 500;">No folder management. No file juggling. Just your ideas, organized.</strong>
   </p>
 </section>
 
-<!-- ═══════ How It Works ═══════ -->
+<!-- ═══ How It Works ═══ -->
 <section class="how-section" id="how">
   <span class="section-label">How It Works</span>
   <div style="height: 1rem;"></div>
@@ -1042,239 +766,311 @@
   </h2>
 
   <div class="how-grid">
-    <div class="how-card">
+    <!-- Arrow connectors -->
+    <div class="how-arrow how-arrow-1"></div>
+    <div class="how-arrow how-arrow-2"></div>
+
+    <!-- Step 1 -->
+    <div class="how-card anim-slide-left d3">
       <div class="step-number">01</div>
-      <h3>Map it spatially</h3>
+      <!-- Mini animated canvas -->
+      <div class="step-icon">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+          <rect x="4" y="4" width="16" height="12" stroke="white" stroke-width="1.5" opacity="0.6">
+            <animate attributeName="opacity" values="0.3;0.8;0.3" dur="3s" repeatCount="indefinite"/>
+          </rect>
+          <rect x="28" y="8" width="16" height="12" stroke="white" stroke-width="1.5" opacity="0.4">
+            <animate attributeName="opacity" values="0.2;0.6;0.2" dur="3s" begin="0.5s" repeatCount="indefinite"/>
+          </rect>
+          <rect x="14" y="28" width="16" height="12" stroke="white" stroke-width="1.5" opacity="0.5">
+            <animate attributeName="opacity" values="0.3;0.7;0.3" dur="3s" begin="1s" repeatCount="indefinite"/>
+          </rect>
+          <line x1="20" y1="16" x2="22" y2="28" stroke="white" stroke-width="1" opacity="0.3">
+            <animate attributeName="opacity" values="0.1;0.5;0.1" dur="3s" begin="1.5s" repeatCount="indefinite"/>
+          </line>
+          <line x1="28" y1="14" x2="30" y2="28" stroke="white" stroke-width="1" opacity="0.3" stroke-dasharray="3 3">
+            <animate attributeName="opacity" values="0.1;0.4;0.1" dur="3s" begin="2s" repeatCount="indefinite"/>
+          </line>
+        </svg>
+      </div>
+      <h3>Drop cards on the canvas</h3>
       <p>
-        Drop cards on an infinite canvas. Name them, type them (Project, Process, Reference, Brainstorm),
-        connect them with typed arrows. Think fast. Structure emerges visually.
+        Create cards for your ideas, projects, processes, and references. Connect them with arrows to show how they relate. The structure builds itself as you think.
       </p>
+      <!-- Mini canvas animation -->
+      <div class="step-mini-canvas">
+        <div class="mini-card" style="top:12px; left:16px; animation-delay: 0.8s;">[PRJ] Product</div>
+        <div class="mini-card" style="top:12px; left:160px; animation-delay: 1.2s;">[REF] Research</div>
+        <div class="mini-card" style="top:60px; left:60px; animation-delay: 1.6s;">[PRC] Launch</div>
+        <div class="mini-edge" style="top:24px; left:108px; width:48px; background:#444; animation-delay: 2.0s;"></div>
+        <div class="mini-edge" style="top:46px; left:52px; width:30px; background:#FFF; transform:rotate(45deg); animation-delay: 2.4s;"></div>
+      </div>
     </div>
-    <div class="how-card">
+
+    <!-- Step 2 -->
+    <div class="how-card anim-fade-up d6">
       <div class="step-number">02</div>
-      <h3>Add depth where needed</h3>
+      <div class="step-icon">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+          <rect x="4" y="4" width="40" height="40" rx="2" stroke="white" stroke-width="1.5" opacity="0.4"/>
+          <line x1="12" y1="16" x2="36" y2="16" stroke="white" stroke-width="1.5" opacity="0.6">
+            <animate attributeName="x2" values="12;36;36" dur="2s" begin="0.5s" fill="freeze"/>
+          </line>
+          <line x1="12" y1="24" x2="30" y2="24" stroke="white" stroke-width="1.5" opacity="0.4">
+            <animate attributeName="x2" values="12;30;30" dur="2s" begin="1s" fill="freeze"/>
+          </line>
+          <line x1="12" y1="32" x2="24" y2="32" stroke="white" stroke-width="1.5" opacity="0.3">
+            <animate attributeName="x2" values="12;24;24" dur="2s" begin="1.5s" fill="freeze"/>
+          </line>
+        </svg>
+      </div>
+      <h3>Add detail where it matters</h3>
       <p>
-        Any card can have a markdown document attached. A floating editor bubble opens inline.
-        Write detail where it matters. Leave other cards as lightweight nodes. Not every thought needs a document.
+        Click any card to open a rich document editor. Write notes, plans, or specs right there. Not every idea needs a document — only add depth when you need it.
       </p>
+      <div class="step-mini-editor">
+        <div style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">--- frontmatter ---</div>
+        <div class="editor-line" style="width:85%; animation-delay:1.0s;"></div>
+        <div class="editor-line" style="width:70%; animation-delay:1.3s;"></div>
+        <div class="editor-line" style="width:90%; animation-delay:1.6s;"></div>
+        <div class="editor-line" style="width:50%; animation-delay:1.9s;"></div>
+      </div>
     </div>
-    <div class="how-card">
+
+    <!-- Step 3 -->
+    <div class="how-card anim-slide-right d9">
       <div class="step-number">03</div>
-      <h3>Export for agents</h3>
+      <div class="step-icon">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+          <path d="M12 8 L36 8 L36 40 L12 40 Z" stroke="white" stroke-width="1.5" opacity="0.4"/>
+          <path d="M20 20 L28 24 L20 28 Z" fill="white" opacity="0.6">
+            <animate attributeName="opacity" values="0.3;0.9;0.3" dur="2s" repeatCount="indefinite"/>
+          </path>
+        </svg>
+      </div>
+      <h3>Export for AI</h3>
       <p>
-        One click generates context.md — a structured export with rules, hierarchy, workflows,
-        scoped references, and documents. Your agent reads it directly. No API. No integration. Just files.
+        One click generates a structured context file. Your hierarchy, workflows, references, and documents — all in one place. Hand it to any AI and get dramatically better results.
       </p>
+      <div class="step-mini-export">
+        <div class="export-line" style="animation-delay:1.2s;">## Structure</div>
+        <div class="export-line" style="animation-delay:1.6s; color:var(--text-ghost);">├── Product Launch [PRJ]</div>
+        <div class="export-line" style="animation-delay:2.0s; color:var(--text-ghost);">│   ├── Research [REF]</div>
+        <div class="export-line" style="animation-delay:2.4s; color:var(--text-ghost);">│   └── Launch Plan [PRC]</div>
+        <div class="export-line" style="animation-delay:2.8s;">## Workflows</div>
+        <div class="export-line" style="animation-delay:3.2s; color:var(--text-ghost);">1. Research → Launch Plan</div>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- ═══════ Canvas Illustration ═══════ -->
+<!-- ═══ Canvas Illustration ═══ -->
 <section style="padding: 0 3rem 8rem; border-top: none;">
   <div class="canvas-illustration">
-    <!-- Mock cards -->
-    <div class="canvas-card-mock" style="top: 40px; left: 60px; width: 220px;">
-      <div class="mock-header">
+    <div class="canvas-card-mock" style="top: 40px; left: 60px; width: 220px; animation-delay: 0.2s;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
         <span class="mock-badge" style="color: #FFD700; background: rgba(255,215,0,0.1);">[PRJ]</span>
         <span style="font-size: 12px; color: var(--text-ghost);">+</span>
       </div>
       <div class="mock-title">Product Launch</div>
-      <div class="mock-body">Q2 2026 go-to-market strategy and execution plan</div>
+      <div class="mock-body">Q2 go-to-market strategy</div>
     </div>
 
-    <div class="canvas-card-mock" style="top: 200px; left: 120px; width: 200px;">
-      <div class="mock-header">
+    <div class="canvas-card-mock" style="top: 200px; left: 120px; width: 200px; animation-delay: 0.5s;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
         <span class="mock-badge" style="color: #888; background: rgba(136,136,136,0.1);">[PRC]</span>
       </div>
       <div class="mock-title">User Research</div>
       <div class="mock-body">Interview pipeline</div>
     </div>
 
-    <div class="canvas-card-mock" style="top: 200px; left: 400px; width: 200px;">
-      <div class="mock-header">
+    <div class="canvas-card-mock" style="top: 200px; left: 400px; width: 200px; animation-delay: 0.8s;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
         <span class="mock-badge" style="color: #888; background: rgba(136,136,136,0.1);">[PRC]</span>
       </div>
       <div class="mock-title">Pricing Model</div>
       <div class="mock-body">Tiered pricing analysis</div>
     </div>
 
-    <div class="canvas-card-mock" style="top: 80px; left: 480px; width: 190px;">
-      <div class="mock-header">
+    <div class="canvas-card-mock" style="top: 80px; left: 480px; width: 190px; animation-delay: 1.1s;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
         <span class="mock-badge" style="color: #AAA; background: rgba(170,170,170,0.1);">[REF]</span>
       </div>
       <div class="mock-title">Competitor Audit</div>
-      <div class="mock-body">Landscape analysis Q1</div>
+      <div class="mock-body">Landscape analysis</div>
     </div>
 
-    <div class="canvas-card-mock" style="top: 320px; left: 300px; width: 180px; border-style: dashed; border-color: rgba(255,255,255,0.3);">
-      <div class="mock-header">
+    <div class="canvas-card-mock" style="top: 320px; left: 300px; width: 180px; border-style: dashed; border-color: rgba(255,255,255,0.3); animation-delay: 1.4s;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
         <span class="mock-badge" style="color: #FFF; background: rgba(255,255,255,0.08);">[BRN]</span>
       </div>
       <div class="mock-title">Naming Ideas</div>
-      <div class="mock-body">Brainstorm session notes</div>
+      <div class="mock-body">Brainstorm notes</div>
     </div>
 
-    <!-- Connection lines (SVG overlay) -->
     <svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1;">
-      <!-- Product Launch → User Research (hierarchy) -->
-      <line x1="170" y1="130" x2="220" y2="200" stroke="#444" stroke-width="1.5"/>
-      <polygon points="220,200 214,192 226,192" fill="#444"/>
+      <line x1="170" y1="130" x2="220" y2="200" stroke="#444" stroke-width="1.5"
+        stroke-dasharray="200" stroke-dashoffset="200">
+        <animate attributeName="stroke-dashoffset" from="200" to="0" dur="0.6s" begin="1.8s" fill="freeze"/>
+      </line>
+      <polygon points="220,200 214,192 226,192" fill="#444" opacity="0">
+        <animate attributeName="opacity" from="0" to="1" dur="0.3s" begin="2.4s" fill="freeze"/>
+      </polygon>
 
-      <!-- Product Launch → Pricing Model (hierarchy) -->
-      <line x1="260" y1="110" x2="400" y2="210" stroke="#444" stroke-width="1.5"/>
-      <polygon points="400,210 392,204 398,198" fill="#444"/>
+      <line x1="260" y1="110" x2="400" y2="210" stroke="#444" stroke-width="1.5"
+        stroke-dasharray="200" stroke-dashoffset="200">
+        <animate attributeName="stroke-dashoffset" from="200" to="0" dur="0.6s" begin="2.2s" fill="freeze"/>
+      </line>
+      <polygon points="400,210 392,204 398,198" fill="#444" opacity="0">
+        <animate attributeName="opacity" from="0" to="1" dur="0.3s" begin="2.8s" fill="freeze"/>
+      </polygon>
 
-      <!-- Pricing Model → Naming Ideas (flow) -->
-      <line x1="480" y1="260" x2="420" y2="320" stroke="#FFF" stroke-width="1.5"/>
-      <polygon points="420,320 416,310 426,312" fill="#FFF"/>
+      <line x1="480" y1="260" x2="420" y2="320" stroke="#FFF" stroke-width="1.5"
+        stroke-dasharray="200" stroke-dashoffset="200">
+        <animate attributeName="stroke-dashoffset" from="200" to="0" dur="0.6s" begin="2.6s" fill="freeze"/>
+      </line>
+      <polygon points="420,320 416,310 426,312" fill="#FFF" opacity="0">
+        <animate attributeName="opacity" from="0" to="1" dur="0.3s" begin="3.2s" fill="freeze"/>
+      </polygon>
 
-      <!-- Competitor Audit → Product Launch (reference) -->
-      <line x1="480" y1="100" x2="280" y2="80" stroke="#555" stroke-width="1" stroke-dasharray="6 6"/>
+      <line x1="480" y1="100" x2="280" y2="80" stroke="#555" stroke-width="1" stroke-dasharray="6 6"
+        opacity="0">
+        <animate attributeName="opacity" from="0" to="0.6" dur="0.5s" begin="3.0s" fill="freeze"/>
+      </line>
     </svg>
 
-    <!-- Mock minimap -->
-    <div style="position: absolute; bottom: 16px; right: 16px; width: 120px; height: 80px; background: var(--surface); border: 1px solid var(--border-strong); padding: 8px; z-index: 3;">
-      <div style="width: 20px; height: 12px; background: rgba(255,255,255,0.2); position: absolute; top: 12px; left: 16px;"></div>
-      <div style="width: 16px; height: 10px; background: rgba(255,255,255,0.12); position: absolute; top: 38px; left: 24px;"></div>
-      <div style="width: 16px; height: 10px; background: rgba(255,255,255,0.12); position: absolute; top: 38px; left: 56px;"></div>
-      <div style="width: 14px; height: 8px; background: rgba(255,255,255,0.08); position: absolute; top: 56px; left: 42px;"></div>
-      <span style="position: absolute; bottom: 2px; right: 4px; font-family: 'IBM Plex Mono', monospace; font-size: 8px; color: var(--text-ghost);">MAP</span>
-    </div>
-
-    <!-- Mock toolbar -->
+    <!-- Mini toolbar -->
     <div style="position: absolute; bottom: 16px; left: 16px; display: flex; gap: 1px; background: var(--border-strong); border: 1px solid var(--border-strong); z-index: 3;">
       <div style="background: var(--white); color: var(--black); padding: 6px 12px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600;">SEL</div>
       <div style="background: var(--surface); color: var(--text-muted); padding: 6px 12px; font-family: 'IBM Plex Mono', monospace; font-size: 10px;">PAN</div>
       <div style="background: var(--surface); color: var(--text-muted); padding: 6px 12px; font-family: 'IBM Plex Mono', monospace; font-size: 10px;">DEL</div>
     </div>
+
+    <!-- Minimap -->
+    <div style="position: absolute; bottom: 16px; right: 16px; width: 120px; height: 80px; background: var(--surface); border: 1px solid var(--border-strong); z-index: 3; overflow: hidden;">
+      <div style="width: 20px; height: 12px; background: rgba(255,255,255,0.2); position: absolute; top: 12px; left: 16px;"></div>
+      <div style="width: 16px; height: 10px; background: rgba(255,255,255,0.12); position: absolute; top: 38px; left: 24px;"></div>
+      <div style="width: 16px; height: 10px; background: rgba(255,255,255,0.12); position: absolute; top: 38px; left: 56px;"></div>
+      <span style="position: absolute; bottom: 2px; right: 4px; font-family: 'IBM Plex Mono', monospace; font-size: 8px; color: var(--text-ghost);">MAP</span>
+    </div>
   </div>
 </section>
 
-<!-- ═══════ Card Types ═══════ -->
+<!-- ═══ Card Types ═══ -->
 <section class="types-section" id="features">
   <span class="section-label">Card System</span>
   <div style="height: 1rem;"></div>
   <h2 style="font-family: 'Space Grotesk', sans-serif; font-size: clamp(2rem, 4vw, 3.5rem); font-weight: 700; letter-spacing: -0.03em; color: var(--white);">
-    Four card types. Semantic meaning.
+    Four card types. Each one means something.
   </h2>
   <p style="color: var(--text-secondary); font-size: 1.1rem; margin-top: 1rem; max-width: 600px; line-height: 1.7;">
-    Cards are not generic sticky notes. Each type carries meaning that flows through to the file system, the hierarchy, and the agent export.
+    Cards aren't generic sticky notes. Each type tells <span class="logo" style="font-size:inherit;letter-spacing:normal;">fl<span class="logo-o">o</span></span> — and your AI — what kind of information it holds.
   </p>
 
   <div class="types-grid">
-    <div class="type-card type-project">
+    <div class="type-card type-project anim-fade-up d1">
       <span class="badge">[PRJ]</span>
       <h4>Project</h4>
-      <p>Top-level containers. Creates a folder in the file system. Requires a hierarchy document. The structural root of every initiative.</p>
+      <p>Top-level containers for initiatives. The big ideas. Everything else nests under these.</p>
     </div>
-    <div class="type-card type-process">
+    <div class="type-card type-process anim-fade-up d2">
       <span class="badge">[PRC]</span>
       <h4>Process</h4>
-      <p>Sequential workflows and procedures. Lives under a project. Connect with THEN edges to define order. The backbone of execution.</p>
+      <p>Steps, workflows, and procedures. Connect them in order to show how things get done.</p>
     </div>
-    <div class="type-card type-reference">
+    <div class="type-card type-reference anim-fade-up d3">
       <span class="badge">[REF]</span>
       <h4>Reference</h4>
-      <p>Supporting material and cross-links. Accounts, policies, specs. Connected with scoped references that control how much context is surfaced.</p>
+      <p>Supporting material. Specs, links, research. Connected with fine-grained control over how much your AI sees.</p>
     </div>
-    <div class="type-card type-brainstorm">
+    <div class="type-card type-brainstorm anim-fade-up d4">
       <span class="badge">[BRN]</span>
       <h4>Brainstorm</h4>
-      <p>Ideas in progress. Automatically excluded from agent exports. Safe space for rough thinking that won't pollute your agent's context.</p>
+      <p>Ideas in progress. Rough thinking that's automatically hidden from AI exports. Safe space to be messy.</p>
     </div>
   </div>
 </section>
 
-<!-- ═══════ Connections ═══════ -->
+<!-- ═══ Connections ═══ -->
 <section class="connections-section">
-  <span class="section-label">Connection System</span>
+  <span class="section-label">Connections</span>
   <div style="height: 1rem;"></div>
   <h2 style="font-family: 'Space Grotesk', sans-serif; font-size: clamp(2rem, 4vw, 3.5rem); font-weight: 700; letter-spacing: -0.03em; color: var(--white);">
-    Three edge types. Not just arrows.
+    Arrows that mean something.
   </h2>
 
   <div class="connections-grid">
-    <div class="connection-demo">
+    <div style="display:flex; flex-direction:column; gap:1.5rem;">
       <div class="connection-visual">
         <div class="connection-node">Parent</div>
         <div class="connection-line connection-line-hierarchy"></div>
         <div class="connection-node">Child</div>
       </div>
-      <span class="connection-label" style="color: #666;">OWNS &mdash; Hierarchy</span>
-      <p class="connection-description">Parent-child ownership. Creates folder nesting in the file system. The structural skeleton of your knowledge map.</p>
+      <span class="connection-label" style="color: #666;">OWNS — Hierarchy</span>
+      <p class="connection-description">Parent-child relationships. Creates the tree structure that organizes your knowledge.</p>
     </div>
-
-    <div class="connection-demo">
+    <div style="display:flex; flex-direction:column; gap:1.5rem;">
       <div class="connection-visual">
         <div class="connection-node">Step A</div>
         <div class="connection-line connection-line-flow"></div>
         <div class="connection-node">Step B</div>
       </div>
-      <span class="connection-label" style="color: #FFF;">THEN &mdash; Flow</span>
-      <p class="connection-description">Sequential process chains. Exported as numbered workflow steps. Defines the order things happen in.</p>
+      <span class="connection-label" style="color: #FFF;">THEN — Flow</span>
+      <p class="connection-description">Sequential steps. Show the order things happen. Exported as numbered workflows.</p>
     </div>
-
-    <div class="connection-demo">
+    <div style="display:flex; flex-direction:column; gap:1.5rem;">
       <div class="connection-visual">
         <div class="connection-node">Card A</div>
         <div class="connection-line connection-line-reference"></div>
         <div class="connection-node">Card B</div>
       </div>
-      <span class="connection-label" style="color: #555;">REF &mdash; Reference</span>
-      <p class="connection-description">Cross-links with scoped context. Control exactly how much of the target card your agent sees. The precision tool.</p>
+      <span class="connection-label" style="color: #555;">REF — Reference</span>
+      <p class="connection-description">Cross-links between ideas. You choose exactly how much detail your AI sees through each link.</p>
     </div>
   </div>
 </section>
 
-<!-- ═══════ Reference Scoping ═══════ -->
+<!-- ═══ Scoping ═══ -->
 <section class="scoping-section">
   <span class="section-label">Context Scoping</span>
   <div style="height: 1rem;"></div>
   <h2 style="font-family: 'Space Grotesk', sans-serif; font-size: clamp(2rem, 4vw, 3rem); font-weight: 700; letter-spacing: -0.03em; color: var(--white);">
-    Control what your agent sees.
+    You decide what your AI sees.
   </h2>
   <p style="color: var(--text-secondary); font-size: 1.1rem; margin-top: 1rem; max-width: 640px; line-height: 1.7;">
-    Every reference edge has a scope. You decide the granularity. No other tool gives you this level of precision over agent context.
+    Every reference link has a scope. Instead of dumping everything into a prompt, you control the granularity. <span class="logo" style="font-size:inherit;letter-spacing:normal;">fl<span class="logo-o">o</span></span> handles the rest.
   </p>
 
   <div class="scoping-row">
-    <div class="scope-item">
-      <div class="scope-label"><span class="scope-bar" style="width: 20px;"></span>Title only</div>
-      <div class="scope-detail">Just the card name in a "See also" list. Minimal context. Maximum brevity.</div>
-    </div>
-    <div class="scope-item">
-      <div class="scope-label"><span class="scope-bar" style="width: 40px;"></span>Summary</div>
-      <div class="scope-detail">Card title + body text (what's visible on the card face). Enough for orientation without the full document.</div>
-    </div>
-    <div class="scope-item">
-      <div class="scope-label"><span class="scope-bar" style="width: 60px;"></span>Specific section</div>
-      <div class="scope-detail">A targeted heading from the card's document. Surgical precision &mdash; pull exactly the section your agent needs.</div>
-    </div>
-    <div class="scope-item">
-      <div class="scope-label"><span class="scope-bar" style="width: 100px;"></span>Full card</div>
-      <div class="scope-detail">Complete card including the full markdown document. Use sparingly &mdash; this is the maximum context injection.</div>
-    </div>
+    <div class="scope-label"><span class="scope-bar" style="width: 20px;"></span>Title only</div>
+    <div class="scope-detail">Just the card name. A quick "see also" mention. Minimal context.</div>
+    <div class="scope-label"><span class="scope-bar" style="width: 40px;"></span>Summary</div>
+    <div class="scope-detail">Card title + the short text on its face. Enough for orientation.</div>
+    <div class="scope-label"><span class="scope-bar" style="width: 60px;"></span>Specific section</div>
+    <div class="scope-detail">A targeted heading from the card's document. Surgical precision.</div>
+    <div class="scope-label"><span class="scope-bar" style="width: 100px;"></span>Full card</div>
+    <div class="scope-detail">Everything — the complete card and its full document. Use sparingly.</div>
   </div>
 </section>
 
-<!-- ═══════ Governance ═══════ -->
-<section class="governance-section">
-  <span class="section-label">Context Governance</span>
+<!-- ═══ Context Health ═══ -->
+<section class="health-section">
+  <span class="section-label">Built-in Guardrails</span>
   <div style="height: 1rem;"></div>
   <h2 style="font-family: 'Space Grotesk', sans-serif; font-size: clamp(2rem, 4vw, 3rem); font-weight: 700; letter-spacing: -0.03em; color: var(--white);">
-    The Governor catches bloat before your agent does.
+    <span class="logo" style="font-size:inherit;letter-spacing:inherit;">fl<span class="logo-o">o</span></span> catches problems before your AI does.
   </h2>
   <p style="color: var(--text-secondary); font-size: 1.1rem; margin-top: 1rem; max-width: 640px; line-height: 1.7;">
-    Eight validation rules analyze your map in real time. Context word estimation shows exactly how much your agent will consume. Auto-fix suggestions keep your structure clean.
+    Built-in quality checks analyze your map in real time. Context size estimation shows exactly how much your AI will consume. One-click fixes keep things clean.
   </p>
 
-  <div class="governance-rules">
+  <div class="health-rules">
     <div class="rule-item">
       <div class="rule-number">01</div>
       <div class="rule-content">
         <span class="rule-severity severity-warning">Warning</span>
         <h4>Body Length</h4>
-        <p>Cards with >3 lines should move detail to an attached document</p>
+        <p>Cards with too much text get flagged — move the detail into a document</p>
       </div>
     </div>
     <div class="rule-item">
@@ -1282,7 +1078,7 @@
       <div class="rule-content">
         <span class="rule-severity severity-warning">Warning</span>
         <h4>Unscoped Reference</h4>
-        <p>Reference edges without an explicit scope inject unpredictable context</p>
+        <p>Reference links without a scope send unpredictable amounts of context</p>
       </div>
     </div>
     <div class="rule-item">
@@ -1290,7 +1086,7 @@
       <div class="rule-content">
         <span class="rule-severity severity-error">Error</span>
         <h4>Circular References</h4>
-        <p>A&rarr;B&rarr;...&rarr;A cycles create infinite loops in agent traversal</p>
+        <p>A links to B links back to A — creates infinite loops</p>
       </div>
     </div>
     <div class="rule-item">
@@ -1298,23 +1094,23 @@
       <div class="rule-content">
         <span class="rule-severity severity-warning">Warning</span>
         <h4>Hierarchy Depth</h4>
-        <p>Nesting deeper than 3 levels increases cognitive and agent complexity</p>
+        <p>Nesting too deep makes things harder to follow for you and your AI</p>
       </div>
     </div>
     <div class="rule-item">
       <div class="rule-number">05</div>
       <div class="rule-content">
         <span class="rule-severity severity-info">Info</span>
-        <h4>Redundant Body</h4>
-        <p>Cards with >60% text overlap may be candidates for merging</p>
+        <h4>Redundant Content</h4>
+        <p>Cards with overlapping text may be candidates for merging</p>
       </div>
     </div>
     <div class="rule-item">
       <div class="rule-number">06</div>
       <div class="rule-content">
         <span class="rule-severity severity-warning">Warning</span>
-        <h4>Brainstorm Referenced</h4>
-        <p>Non-brainstorm cards referencing brainstorm cards leak draft context</p>
+        <h4>Brainstorm Leaking</h4>
+        <p>Non-brainstorm cards referencing brainstorm cards expose draft ideas</p>
       </div>
     </div>
     <div class="rule-item">
@@ -1322,7 +1118,7 @@
       <div class="rule-content">
         <span class="rule-severity severity-warning">Warning</span>
         <h4>Deep Reference Chains</h4>
-        <p>Reference chains exceeding 3 levels compound context exponentially</p>
+        <p>Long chains of references compound context exponentially</p>
       </div>
     </div>
     <div class="rule-item">
@@ -1330,292 +1126,142 @@
       <div class="rule-content">
         <span class="rule-severity severity-info">Info</span>
         <h4>Orphan Cards</h4>
-        <p>Cards with no connections are invisible to the hierarchy and export</p>
+        <p>Cards with no connections are invisible to the export</p>
       </div>
     </div>
   </div>
 
-  <!-- Word count estimation tiers -->
+  <!-- Context tiers -->
   <div style="display: flex; gap: 1px; background: var(--border-strong); border: 1px solid var(--border-strong); margin-top: 4rem;">
     <div style="flex: 1; background: var(--surface); padding: 2rem; text-align: center;">
       <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.5rem; font-weight: 700; color: #4ADE80;">Lean</div>
       <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-secondary); margin-top: 0.5rem;">&lt; 2,000 words</div>
-      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-muted); margin-top: 0.25rem;">Precise, focused context</div>
     </div>
     <div style="flex: 1; background: var(--surface); padding: 2rem; text-align: center;">
       <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.5rem; font-weight: 700; color: #FACC15;">Standard</div>
       <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-secondary); margin-top: 0.5rem;">&lt; 5,000 words</div>
-      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-muted); margin-top: 0.25rem;">Balanced depth</div>
     </div>
     <div style="flex: 1; background: var(--surface); padding: 2rem; text-align: center;">
       <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.5rem; font-weight: 700; color: #FB923C;">Rich</div>
       <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-secondary); margin-top: 0.5rem;">&lt; 10,000 words</div>
-      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-muted); margin-top: 0.25rem;">Comprehensive coverage</div>
     </div>
     <div style="flex: 1; background: var(--surface); padding: 2rem; text-align: center;">
       <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.5rem; font-weight: 700; color: #EF4444;">Heavy</div>
       <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-secondary); margin-top: 0.5rem;">&gt; 10,000 words</div>
-      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-muted); margin-top: 0.25rem;">Consider scoping down</div>
     </div>
   </div>
 </section>
 
-<!-- ═══════ Feature Matrix ═══════ -->
-<section class="matrix-section" id="matrix">
-  <span class="section-label">Competitive Comparison</span>
-  <div style="height: 1rem;"></div>
-  <h2 style="font-family: 'Space Grotesk', sans-serif; font-size: clamp(2rem, 4vw, 3rem); font-weight: 700; letter-spacing: -0.03em; color: var(--white);">
-    How fl<span class="macron" style="position:relative">o</span> compares.
-  </h2>
-
-  <table class="matrix-table">
-    <thead>
-      <tr>
-        <th style="width: 25%;">Capability</th>
-        <th>fl<span class="macron" style="position:relative; font-family: 'Space Grotesk';">o</span></th>
-        <th>Obsidian Canvas</th>
-        <th>Miro</th>
-        <th>Notion</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>Spatial canvas</td>
-        <td><span class="check"></span></td>
-        <td><span class="check"></span></td>
-        <td><span class="check"></span></td>
-        <td><span class="none-mark"></span></td>
-      </tr>
-      <tr>
-        <td>Typed card nodes</td>
-        <td><span class="check"></span> 4 semantic types</td>
-        <td><span class="none-mark"></span> Generic</td>
-        <td><span class="none-mark"></span> Stickies</td>
-        <td><span class="dash"></span> DB rows</td>
-      </tr>
-      <tr>
-        <td>Typed connections</td>
-        <td><span class="check"></span> OWNS / THEN / REF</td>
-        <td><span class="none-mark"></span> Untyped</td>
-        <td><span class="none-mark"></span> Untyped</td>
-        <td><span class="dash"></span> Relations</td>
-      </tr>
-      <tr>
-        <td>Scoped references</td>
-        <td><span class="check"></span> 4 granularity levels</td>
-        <td><span class="none-mark"></span></td>
-        <td><span class="none-mark"></span></td>
-        <td><span class="none-mark"></span></td>
-      </tr>
-      <tr>
-        <td>Agent-native output</td>
-        <td><span class="check"></span> Designed for it</td>
-        <td><span class="dash"></span> Vault files</td>
-        <td><span class="none-mark"></span></td>
-        <td><span class="none-mark"></span></td>
-      </tr>
-      <tr>
-        <td>Context governance</td>
-        <td><span class="check"></span> 8 rules + word estimation</td>
-        <td><span class="none-mark"></span></td>
-        <td><span class="none-mark"></span></td>
-        <td><span class="none-mark"></span></td>
-      </tr>
-      <tr>
-        <td>Structured context export</td>
-        <td><span class="check"></span> 5-section context.md</td>
-        <td><span class="none-mark"></span></td>
-        <td><span class="none-mark"></span></td>
-        <td><span class="none-mark"></span></td>
-      </tr>
-      <tr>
-        <td>Local-first / no database</td>
-        <td><span class="check"></span> File system only</td>
-        <td><span class="check"></span> Vault</td>
-        <td><span class="none-mark"></span> Cloud</td>
-        <td><span class="none-mark"></span> Cloud</td>
-      </tr>
-      <tr>
-        <td>App footprint</td>
-        <td>~10MB (Tauri)</td>
-        <td>~200MB (Electron)</td>
-        <td>Browser</td>
-        <td>Browser</td>
-      </tr>
-      <tr>
-        <td>Brainstorm isolation</td>
-        <td><span class="check"></span> Auto-excluded</td>
-        <td><span class="none-mark"></span></td>
-        <td><span class="none-mark"></span></td>
-        <td><span class="none-mark"></span></td>
-      </tr>
-      <tr>
-        <td>Self-documenting files</td>
-        <td><span class="check"></span> YAML frontmatter</td>
-        <td><span class="dash"></span> Manual</td>
-        <td><span class="none-mark"></span></td>
-        <td><span class="none-mark"></span></td>
-      </tr>
-      <tr>
-        <td>Offline-first</td>
-        <td><span class="check"></span> 100% local</td>
-        <td><span class="check"></span> 100% local</td>
-        <td><span class="none-mark"></span></td>
-        <td><span class="none-mark"></span></td>
-      </tr>
-    </tbody>
-  </table>
-</section>
-
-<!-- ═══════ Specs ═══════ -->
+<!-- ═══ Specs ═══ -->
 <section class="specs-section">
-  <span class="section-label">Technical Specs</span>
-  <div style="height: 1rem;"></div>
-
+  <span class="section-label">Under the Hood</span>
   <div class="specs-grid">
-    <div class="spec-item">
-      <div class="spec-value">~10</div>
-      <div class="spec-unit">megabytes</div>
-      <div class="spec-label">App Footprint</div>
-    </div>
-    <div class="spec-item">
-      <div class="spec-value">0</div>
-      <div class="spec-unit">databases</div>
-      <div class="spec-label">File System Only</div>
-    </div>
-    <div class="spec-item">
-      <div class="spec-value">4</div>
-      <div class="spec-unit">card types</div>
-      <div class="spec-label">Semantic Nodes</div>
-    </div>
-    <div class="spec-item">
-      <div class="spec-value">3</div>
-      <div class="spec-unit">edge types</div>
-      <div class="spec-label">Typed Connections</div>
-    </div>
-    <div class="spec-item">
-      <div class="spec-value">4</div>
-      <div class="spec-unit">scope levels</div>
-      <div class="spec-label">Reference Granularity</div>
-    </div>
-    <div class="spec-item">
-      <div class="spec-value">8</div>
-      <div class="spec-unit">rules</div>
-      <div class="spec-label">Governor Validation</div>
-    </div>
-    <div class="spec-item">
-      <div class="spec-value">400</div>
-      <div class="spec-unit">% max zoom</div>
-      <div class="spec-label">Infinite Canvas</div>
-    </div>
-    <div class="spec-item">
-      <div class="spec-value">20</div>
-      <div class="spec-unit">px grid</div>
-      <div class="spec-label">Snap-to-Grid</div>
-    </div>
+    <div class="spec-item"><div class="spec-value">~10</div><div class="spec-unit">megabytes</div><div class="spec-label">App Size</div></div>
+    <div class="spec-item"><div class="spec-value">0</div><div class="spec-unit">databases</div><div class="spec-label">Files Only</div></div>
+    <div class="spec-item"><div class="spec-value">0</div><div class="spec-unit">accounts</div><div class="spec-label">No Sign-Up</div></div>
+    <div class="spec-item"><div class="spec-value">100</div><div class="spec-unit">% local</div><div class="spec-label">Your Machine</div></div>
   </div>
 
-  <!-- Tech stack bar -->
   <div style="display: flex; gap: 1px; background: var(--border-strong); border: 1px solid var(--border-strong); margin-top: 3rem;">
-    <div style="flex: 1; background: var(--surface); padding: 1.25rem 2rem; display: flex; align-items: center; justify-content: center; gap: 0.75rem;">
+    <div style="flex: 1; background: var(--surface); padding: 1.25rem 2rem; text-align: center;">
       <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em;">Tauri v2</span>
     </div>
-    <div style="flex: 1; background: var(--surface); padding: 1.25rem 2rem; display: flex; align-items: center; justify-content: center; gap: 0.75rem;">
+    <div style="flex: 1; background: var(--surface); padding: 1.25rem 2rem; text-align: center;">
       <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em;">React 19</span>
     </div>
-    <div style="flex: 1; background: var(--surface); padding: 1.25rem 2rem; display: flex; align-items: center; justify-content: center; gap: 0.75rem;">
+    <div style="flex: 1; background: var(--surface); padding: 1.25rem 2rem; text-align: center;">
       <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em;">React Flow</span>
     </div>
-    <div style="flex: 1; background: var(--surface); padding: 1.25rem 2rem; display: flex; align-items: center; justify-content: center; gap: 0.75rem;">
-      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em;">TipTap</span>
+    <div style="flex: 1; background: var(--surface); padding: 1.25rem 2rem; text-align: center;">
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em;">Markdown</span>
     </div>
-    <div style="flex: 1; background: var(--surface); padding: 1.25rem 2rem; display: flex; align-items: center; justify-content: center; gap: 0.75rem;">
-      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em;">Zustand</span>
-    </div>
-    <div style="flex: 1; background: var(--surface); padding: 1.25rem 2rem; display: flex; align-items: center; justify-content: center; gap: 0.75rem;">
-      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em;">shadcn/ui</span>
+    <div style="flex: 1; background: var(--surface); padding: 1.25rem 2rem; text-align: center;">
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em;">No Cloud</span>
     </div>
   </div>
 </section>
 
-<!-- ═══════ Value Props ═══════ -->
+<!-- ═══ Who It's For ═══ -->
 <section class="value-section" id="for-whom">
   <span class="section-label">Who It's For</span>
   <div style="height: 1rem;"></div>
   <h2 style="font-family: 'Space Grotesk', sans-serif; font-size: clamp(2rem, 4vw, 3rem); font-weight: 700; letter-spacing: -0.03em; color: var(--white);">
-    Built for people who think in systems.
+    For anyone who thinks in systems<br/>but doesn't think in file systems.
   </h2>
+  <p style="color: var(--text-secondary); font-size: 1.1rem; margin-top: 1rem; max-width: 640px; line-height: 1.7;">
+    You don't need to be technical to use <span class="logo" style="font-size:inherit;letter-spacing:normal;">fl<span class="logo-o">o</span></span>. If you can arrange sticky notes on a wall, you can use this. The structured output happens automatically.
+  </p>
 
   <div class="value-grid">
     <div class="value-card">
-      <span class="audience">AI Engineers & Prompt Engineers</span>
-      <h3>Precision control over agent context</h3>
-      <p>Stop dumping knowledge bases into prompts. Map information spatially, scope every reference, and export clean context that fits your agent's window.</p>
+      <span class="audience">Anyone Using AI</span>
+      <h3>Stop copy-pasting random context into ChatGPT</h3>
+      <p>You know AI works better with good context, but organizing that context is a nightmare. <span class="logo" style="font-size:inherit;letter-spacing:normal;">fl<span class="logo-o">o</span></span> does it for you. Drop your ideas on the canvas, connect them, and export — your AI gets a structured briefing instead of a wall of text.</p>
       <ul>
-        <li>Scoped references prevent overflow</li>
-        <li>Governor validates before export</li>
-        <li>Word estimation maps to token budgets</li>
-        <li>File system = agent interface</li>
+        <li>No file management needed</li>
+        <li>Visual organization, not folder organization</li>
+        <li>One-click export for any AI tool</li>
+        <li>Quality checks catch problems automatically</li>
       </ul>
     </div>
 
     <div class="value-card">
-      <span class="audience">Product Strategists</span>
-      <h3>Strategic thinking with structured output</h3>
-      <p>Turn multi-workstream initiatives into semantic knowledge maps. Typed cards and connections make relationships explicit. Export the full structure as a single briefing document.</p>
+      <span class="audience">Founders & Strategists</span>
+      <h3>Turn complex plans into something an AI can actually help with</h3>
+      <p>You're juggling product strategy, hiring plans, fundraising decks, and competitive research. Map the whole picture spatially, then hand your AI the context it needs to give you useful answers — not generic ones.</p>
       <ul>
-        <li>4 card types match strategic thinking</li>
-        <li>Typed connections distinguish ownership from sequence</li>
-        <li>Kanban view for hierarchical overview</li>
-        <li>Documents stay close to decisions</li>
+        <li>See the big picture and the details</li>
+        <li>Typed cards match how you think</li>
+        <li>Canvas view + list view for different modes</li>
+        <li>Documents stay connected to decisions</li>
       </ul>
     </div>
 
     <div class="value-card">
-      <span class="audience">Technical Architects</span>
-      <h3>Lightweight architecture that documents itself</h3>
-      <p>Map system components spatially, define ownership and data flows with typed edges, and get a file structure any AI coding assistant can traverse without the app.</p>
+      <span class="audience">Consultants & Freelancers</span>
+      <h3>Organize client knowledge without becoming a file clerk</h3>
+      <p>Every client has their own world of context — processes, stakeholders, history. <span class="logo" style="font-size:inherit;letter-spacing:normal;">fl<span class="logo-o">o</span></span> lets you map it visually and export it when you need AI help with deliverables. No more digging through folders.</p>
       <ul>
-        <li>Hierarchy edges model containment</li>
-        <li>Flow edges model pipelines</li>
-        <li>Reference edges model cross-cutting concerns</li>
-        <li>10MB native — no Electron bloat</li>
+        <li>One map per client, everything in one place</li>
+        <li>Brainstorm cards hidden from AI exports</li>
+        <li>Reference scoping prevents info overload</li>
+        <li>Local and private — client data stays on your machine</li>
       </ul>
     </div>
 
     <div class="value-card">
-      <span class="audience">Developers Working with Claude</span>
-      <h3>The missing layer between thinking and agent context</h3>
-      <p>Sketch structure visually. fl<span class="macron" style="position:relative">o</span> translates it into a file hierarchy Claude reads natively. Every file knows its place in the hierarchy.</p>
+      <span class="audience">Researchers & Students</span>
+      <h3>Connect what you're learning into something you can use</h3>
+      <p>You read papers, take notes, collect references — then struggle to synthesize it all. <span class="logo" style="font-size:inherit;letter-spacing:normal;">fl<span class="logo-o">o</span></span> lets you lay out concepts spatially, attach your notes, and then ask AI to help you make sense of the structure.</p>
       <ul>
-        <li>context.md optimized for Claude</li>
-        <li>YAML frontmatter = machine-readable metadata</li>
-        <li>Reference chains auto-maintained</li>
-        <li>Local-first, offline-first</li>
+        <li>Visual connections between concepts</li>
+        <li>Attach detailed notes to any card</li>
+        <li>See how ideas relate at a glance</li>
+        <li>Export structured context for AI assistance</li>
       </ul>
     </div>
   </div>
 </section>
 
-<!-- ═══════ CTA ═══════ -->
+<!-- ═══ CTA ═══ -->
 <section class="cta-section grid-bg">
-  <div class="cta-wordmark">
-    fl<span class="macron" style="position:relative">o</span>
+  <div class="logo logo-cta" style="margin-bottom: 2rem;">
+    fl<span class="logo-o">o</span>
   </div>
   <div class="cta-tagline">reach flostate</div>
   <a href="#" class="cta-button">Download for Mac</a>
-  <div class="cta-subtext">Alpha &mdash; macOS only &mdash; Free &mdash; No account required</div>
+  <div class="cta-subtext">Alpha &mdash; macOS &mdash; Free &mdash; No account required</div>
 </section>
 
-<!-- ═══════ Footer ═══════ -->
+<!-- ═══ Footer ═══ -->
 <footer>
   <div class="footer-left">
-    fl<span class="macron" style="position:relative; font-family: 'Space Grotesk'; font-weight: 700;">o</span>
+    <span class="logo" style="font-size: 11px;">fl<span class="logo-o">o</span></span>
     &nbsp;&middot;&nbsp; v0.1 Alpha &nbsp;&middot;&nbsp; 2026
   </div>
   <div class="footer-right">
-    <span>Cards for humans</span>
-    <span>Markdown for agents</span>
+    <span>Think visually</span>
+    <span>Export for AI</span>
   </div>
 </footer>
 
