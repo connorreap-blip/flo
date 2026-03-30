@@ -50,6 +50,22 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
     if (editingBody && bodyRef.current) bodyRef.current.focus();
   }, [editingBody]);
 
+  // Close dropdowns on any click outside
+  useEffect(() => {
+    if (!showConnectMenu) return;
+    const handler = () => setShowConnectMenu(false);
+    const timer = setTimeout(() => window.addEventListener("click", handler), 0);
+    return () => { clearTimeout(timer); window.removeEventListener("click", handler); };
+  }, [showConnectMenu]);
+
+  useEffect(() => {
+    if (!showTypeMenu) return;
+    const handler = () => setShowTypeMenu(false);
+    // Delay to avoid closing immediately from the click that opened it
+    const timer = setTimeout(() => window.addEventListener("click", handler), 0);
+    return () => { clearTimeout(timer); window.removeEventListener("click", handler); };
+  }, [showTypeMenu]);
+
   const handleDocClick = useCallback(() => {
     if (!data.hasDoc) {
       updateCard(id, { hasDoc: true });
@@ -78,11 +94,11 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
     </>
   );
 
-  // Hover action menu — positioned top-right, with its own hover zone
+  // Hover action menu — positioned top-right, bridged to card via padding
   const hoverMenu = showHoverMenu && (
     <div
       className="absolute flex flex-col gap-1 nodrag"
-      style={{ top: 0, right: -40, zIndex: 10 }}
+      style={{ top: 0, right: -44, zIndex: 10, paddingLeft: 12 }}
       onMouseEnter={() => setMenuHovered(true)}
       onMouseLeave={() => { setMenuHovered(false); setShowConnectMenu(false); }}
     >
