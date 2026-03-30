@@ -4,7 +4,14 @@ import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import { useCanvasStore } from "../store/canvas-store";
 
-const EDITOR_EXTENSIONS = [StarterKit, Underline];
+const EDITOR_EXTENSIONS = [
+  StarterKit.configure({
+    bulletList: { keepMarks: true, keepAttributes: false },
+    orderedList: { keepMarks: true, keepAttributes: false },
+    listItem: {},
+  }),
+  Underline,
+];
 
 interface Props {
   cardId: string;
