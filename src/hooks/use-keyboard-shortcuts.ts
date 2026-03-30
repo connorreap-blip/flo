@@ -23,6 +23,18 @@ export function useKeyboardShortcuts() {
         loadProject();
       }
 
+      // Cmd+Z — Undo
+      if (meta && e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        useCanvasStore.temporal.getState().undo();
+      }
+
+      // Cmd+Shift+Z — Redo
+      if (meta && e.key === "z" && e.shiftKey) {
+        e.preventDefault();
+        useCanvasStore.temporal.getState().redo();
+      }
+
       // Cmd+E — Export context.md
       if (meta && e.key === "e") {
         e.preventDefault();
