@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { temporal } from "zundo";
 import { v4 as uuid } from "uuid";
 import type { Card, Edge, CanvasViewport, ProjectMeta, EditorState } from "../lib/types";
 import type { CardType } from "../lib/constants";
@@ -60,7 +61,9 @@ interface CanvasStore {
   clearAll: () => void;
 }
 
-export const useCanvasStore = create<CanvasStore>((set, get) => ({
+export const useCanvasStore = create<CanvasStore>()(
+  temporal(
+    (set, get) => ({
   project: { name: "Untitled Map", dirPath: null },
   setProject: (project) => set({ project }),
 
@@ -169,4 +172,13 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       activeView: "canvas",
       dismissedHelpers: [],
     }),
-}));
+    }),
+    {
+      partialize: (state) => ({
+        cards: state.cards,
+        edges: state.edges,
+      }),
+      limit: 50,
+    }
+  )
+);
