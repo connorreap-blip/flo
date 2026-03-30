@@ -4,6 +4,7 @@ import { useCanvasStore } from "../store/canvas-store";
 import { CARD_TYPE_LABELS, CARD_TYPE_STYLES, CARD_TYPES } from "../lib/constants";
 import type { CardNodeType } from "../lib/types";
 import { NewCardDialog } from "./NewCardDialog";
+import { HandleHover } from "./HandleHover";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -23,6 +24,7 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
   const [showBranch, setShowBranch] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
+  const [hoveredHandle, setHoveredHandle] = useState<{ id: string; x: number; y: number } | null>(null);
 
   const typeStyle = CARD_TYPE_STYLES[data.type];
   const typeLabel = CARD_TYPE_LABELS[data.type];
@@ -54,12 +56,17 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
     borderColor: typeStyle.text + "40",
   };
 
+  const handleMouseEnter = (e: React.MouseEvent, handleId: string) => {
+    const rect = (e.target as HTMLElement).getBoundingClientRect();
+    setHoveredHandle({ id: handleId, x: rect.left, y: rect.top });
+  };
+
   const handles = (
     <>
-      <Handle type="source" position={Position.Top} id="top" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" />
-      <Handle type="source" position={Position.Right} id="right" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" />
-      <Handle type="source" position={Position.Bottom} id="bottom" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" />
-      <Handle type="source" position={Position.Left} id="left" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" />
+      <Handle type="source" position={Position.Top} id="top" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" onMouseEnter={(e) => handleMouseEnter(e, "top")} />
+      <Handle type="source" position={Position.Right} id="right" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" onMouseEnter={(e) => handleMouseEnter(e, "right")} />
+      <Handle type="source" position={Position.Bottom} id="bottom" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" onMouseEnter={(e) => handleMouseEnter(e, "bottom")} />
+      <Handle type="source" position={Position.Left} id="left" className="!bg-[var(--color-text-muted)] !w-2 !h-2 !border-0" onMouseEnter={(e) => handleMouseEnter(e, "left")} />
     </>
   );
 
@@ -261,6 +268,16 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
         parentCardId={id}
         parentPosition={data.position}
       />
+
+      {hoveredHandle && (
+        <HandleHover
+          position={{ x: hoveredHandle.x, y: hoveredHandle.y }}
+          onSelect={(_edgeType) => {
+            setHoveredHandle(null);
+          }}
+          onClose={() => setHoveredHandle(null)}
+        />
+      )}
     </>
   );
 }
