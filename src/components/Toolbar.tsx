@@ -1,14 +1,24 @@
 import { useState } from "react";
 import { useCanvasStore } from "../store/canvas-store";
+import { useProjectStore, type TabId } from "../store/project-store";
 import { HealthCheckDialog } from "./HealthCheckDialog";
 import { saveProject, loadProject, exportContext } from "../lib/file-ops";
+
+const TABS: { id: TabId; label: string }[] = [
+  { id: "home", label: "Home" },
+  { id: "layers", label: "Layers" },
+  { id: "assets", label: "Assets" },
+  { id: "history", label: "History" },
+];
 
 export function Toolbar() {
   const [editingName, setEditingName] = useState(false);
   const [showHealthCheck, setShowHealthCheck] = useState(false);
-  const project = useCanvasStore((s) => s.project);
+  const project = useProjectStore((s) => s.project);
+  const setProject = useProjectStore((s) => s.setProject);
+  const activeTab = useProjectStore((s) => s.activeTab);
+  const setActiveTab = useProjectStore((s) => s.setActiveTab);
   const isDirty = useCanvasStore((s) => s.isDirty);
-  const setProject = useCanvasStore((s) => s.setProject);
 
   return (
     <>
@@ -55,6 +65,22 @@ export function Toolbar() {
               {project.name}{isDirty && " *"}
             </span>
           )}
+          <div className="flex items-center gap-1 ml-2">
+            {TABS.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className="text-[10px] px-3 py-1 uppercase tracking-widest transition-colors"
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  color: activeTab === tab.id ? "var(--color-text-primary)" : "var(--color-text-muted)",
+                  borderBottom: activeTab === tab.id ? "1px solid var(--color-text-primary)" : "1px solid transparent",
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button

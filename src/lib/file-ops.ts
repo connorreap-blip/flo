@@ -2,21 +2,23 @@ import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { useCanvasStore } from "../store/canvas-store";
+import { useProjectStore } from "../store/project-store";
 import { serializeCardToMarkdown, deserializeMarkdown } from "./markdown";
 import { generateContextMd } from "./export-context";
 
 export async function saveProject(): Promise<void> {
+  const projectStore = useProjectStore.getState();
   const store = useCanvasStore.getState();
-  let dirPath = store.project.dirPath;
+  let dirPath = projectStore.project.dirPath;
 
   if (!dirPath) {
     const selected = await save({
       title: "Save flo Project",
-      defaultPath: store.project.name,
+      defaultPath: projectStore.project.name,
     });
     if (!selected) return;
     dirPath = selected;
-    store.setProject({ ...store.project, dirPath });
+    projectStore.setProject({ ...projectStore.project, dirPath });
   }
 
   // Prepare cards — serialize doc content to markdown for cards with docs
@@ -33,7 +35,7 @@ export async function saveProject(): Promise<void> {
 
   const state = {
     canvas: {
-      map_name: store.project.name,
+      map_name: projectStore.project.name,
       viewport: store.viewport,
       cards: cardsForSave,
       edges: store.edges.map((e) => ({
@@ -80,7 +82,7 @@ export async function loadProject(): Promise<void> {
     dir_path: string;
   }>("load_project", { dirPath: selected });
 
-  const store = useCanvasStore.getState();
+  const canvasStore = useCanvasStore.getState();
 
   const cards = result.canvas.cards.map((c) => ({
     id: c.id,
@@ -104,13 +106,14 @@ export async function loadProject(): Promise<void> {
     referenceSectionHint: e.referenceSectionHint,
   }));
 
-  store.setProject({ name: result.canvas.map_name, dirPath: result.dir_path });
-  store.loadState(cards, mappedEdges, result.canvas.viewport);
+  useProjectStore.getState().setProject({ name: result.canvas.map_name, dirPath: result.dir_path });
+  canvasStore.loadState(cards, mappedEdges, result.canvas.viewport);
 }
 
 export async function exportContext(): Promise<void> {
+  const projectStore = useProjectStore.getState();
   const store = useCanvasStore.getState();
-  const contextMd = generateContextMd(store.project.name, store.cards, store.edges);
+  const contextMd = generateContextMd(projectStore.project.name, store.cards, store.edges);
 
   const selected = await save({
     title: "Export context.md",

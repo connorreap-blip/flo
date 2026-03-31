@@ -1,5 +1,6 @@
 import { MousePointer2, Hand } from "lucide-react";
 import { useCanvasStore } from "../store/canvas-store";
+import { useProjectStore } from "../store/project-store";
 
 interface Props {
   selectedEdgeIds: string[];
@@ -8,8 +9,8 @@ interface Props {
 export function FloatingToolbar({ selectedEdgeIds: _selectedEdgeIds }: Props) {
   const editorMode = useCanvasStore((s) => s.editorMode);
   const setEditorMode = useCanvasStore((s) => s.setEditorMode);
-  const activeView = useCanvasStore((s) => s.activeView);
-  const setActiveView = useCanvasStore((s) => s.setActiveView);
+  const activeView = useProjectStore((s) => s.activeView);
+  const setActiveView = useProjectStore((s) => s.setActiveView);
 
   return (
     <div
