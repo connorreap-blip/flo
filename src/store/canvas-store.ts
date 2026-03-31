@@ -1,14 +1,10 @@
 import { create } from "zustand";
 import { temporal } from "zundo";
 import { v4 as uuid } from "uuid";
-import type { Card, Edge, CanvasViewport, ProjectMeta, EditorState } from "../lib/types";
+import type { Card, Edge, CanvasViewport, EditorState } from "../lib/types";
 import type { CardType } from "../lib/constants";
 
 interface CanvasStore {
-  // Project
-  project: ProjectMeta;
-  setProject: (project: ProjectMeta) => void;
-
   // Cards
   cards: Card[];
   addCard: (type: CardType, title: string, position: { x: number; y: number }) => string;
@@ -47,10 +43,6 @@ interface CanvasStore {
   isDirty: boolean;
   markClean: () => void;
 
-  // View
-  activeView: "canvas" | "kanban";
-  setActiveView: (view: "canvas" | "kanban") => void;
-
   // Helpers
   dismissedHelpers: string[];
   dismissHelper: (helperId: string) => void;
@@ -64,9 +56,6 @@ interface CanvasStore {
 export const useCanvasStore = create<CanvasStore>()(
   temporal(
     (set, get) => ({
-  project: { name: "Untitled Map", dirPath: null },
-  setProject: (project) => set({ project }),
-
   cards: [],
   addCard: (type, title, position) => {
     const id = uuid();
@@ -150,9 +139,6 @@ export const useCanvasStore = create<CanvasStore>()(
   isDirty: false,
   markClean: () => set({ isDirty: false }),
 
-  activeView: "canvas",
-  setActiveView: (view) => set({ activeView: view }),
-
   dismissedHelpers: [],
   dismissHelper: (helperId) =>
     set((s) => ({
@@ -168,8 +154,6 @@ export const useCanvasStore = create<CanvasStore>()(
       openEditors: [],
       viewport: { x: 0, y: 0, zoom: 1 },
       isDirty: false,
-      project: { name: "Untitled Map", dirPath: null },
-      activeView: "canvas",
       dismissedHelpers: [],
     }),
     }),

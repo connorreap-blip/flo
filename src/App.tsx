@@ -6,17 +6,22 @@ import { EditorBubble } from "./components/EditorBubble";
 import { HomeScreen } from "./components/HomeScreen";
 import { KanbanView } from "./components/KanbanView";
 import { useCanvasStore } from "./store/canvas-store";
+import { useProjectStore } from "./store/project-store";
 import { useKeyboardShortcuts } from "./hooks/use-keyboard-shortcuts";
 import { HelperToast } from "./components/HelperToast";
 import { BottomActionBar } from "./components/BottomActionBar";
+// TODO: import { useThemeInit } from "./hooks/use-theme"; — wired by Task 3/4
 
 export default function App() {
-  const project = useCanvasStore((s) => s.project);
+  const project = useProjectStore((s) => s.project);
+  const setProject = useProjectStore((s) => s.setProject);
+  const activeTab = useProjectStore((s) => s.activeTab);
+  const activeView = useProjectStore((s) => s.activeView);
   const cards = useCanvasStore((s) => s.cards);
   const isDirty = useCanvasStore((s) => s.isDirty);
   const openEditors = useCanvasStore((s) => s.openEditors);
-  const setProject = useCanvasStore((s) => s.setProject);
-  const activeView = useCanvasStore((s) => s.activeView);
+
+  // TODO: useThemeInit(); — wired by Task 3/4
 
   // Show home screen until user starts a map
   const [started, setStarted] = useState(false);
@@ -49,23 +54,33 @@ export default function App() {
     <div className="h-screen w-screen flex flex-col overflow-hidden" style={{ background: "var(--color-canvas-bg)" }}>
       <Toolbar />
       <div className="flex-1 relative">
-        {activeView === "canvas" ? (
-          <>
+        <div style={{ display: activeTab === "layers" ? "contents" : "none" }}>
+          {activeView === "canvas" ? (
             <ReactFlowProvider>
               <Canvas />
             </ReactFlowProvider>
-            {openEditors.map((editor) => (
-              <EditorBubble key={editor.cardId} cardId={editor.cardId} initialPosition={editor.position} />
-            ))}
-          </>
-        ) : (
-          <>
+          ) : (
             <KanbanView />
-            {openEditors.map((editor) => (
-              <EditorBubble key={editor.cardId} cardId={editor.cardId} initialPosition={editor.position} />
-            ))}
-          </>
-        )}
+          )}
+          {openEditors.map((editor) => (
+            <EditorBubble key={editor.cardId} cardId={editor.cardId} initialPosition={editor.position} />
+          ))}
+        </div>
+        <div style={{ display: activeTab === "home" ? "contents" : "none" }}>
+          <div className="w-full h-full flex items-center justify-center" style={{ color: "var(--color-text-muted)" }}>
+            <span className="text-xs" style={{ fontFamily: "var(--font-mono)" }}>Home — coming soon</span>
+          </div>
+        </div>
+        <div style={{ display: activeTab === "assets" ? "contents" : "none" }}>
+          <div className="w-full h-full flex items-center justify-center" style={{ color: "var(--color-text-muted)" }}>
+            <span className="text-xs" style={{ fontFamily: "var(--font-mono)" }}>Assets — coming soon</span>
+          </div>
+        </div>
+        <div style={{ display: activeTab === "history" ? "contents" : "none" }}>
+          <div className="w-full h-full flex items-center justify-center" style={{ color: "var(--color-text-muted)" }}>
+            <span className="text-xs" style={{ fontFamily: "var(--font-mono)" }}>History — coming soon</span>
+          </div>
+        </div>
         <BottomActionBar />
       </div>
       <footer

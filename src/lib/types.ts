@@ -42,6 +42,7 @@ export interface GovernorWarning {
 export interface ProjectMeta {
   name: string;
   dirPath: string | null;
+  goal?: string;
 }
 
 export interface CanvasViewport {
