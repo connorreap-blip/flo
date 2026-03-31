@@ -323,7 +323,7 @@ export function OutlineSidebar({
               className="text-[10px] uppercase tracking-[0.28em]"
               style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
             >
-              Layers
+              Workspace
             </div>
             <div
               className="mt-1 text-lg font-semibold"
@@ -332,7 +332,7 @@ export function OutlineSidebar({
               Outline
             </div>
             <div className="mt-2 text-xs" style={{ color: "var(--color-text-secondary)" }}>
-              Hierarchy tree for the current canvas.
+              Structure view for the current workspace.
             </div>
           </div>
 

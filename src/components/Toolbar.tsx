@@ -8,9 +8,9 @@ import { CommandPalette } from "./CommandPalette";
 import { SettingsPanel } from "./SettingsPanel";
 
 const TABS: { id: TabId; label: string }[] = [
-  { id: "home", label: "Home" },
-  { id: "layers", label: "Layers" },
-  { id: "assets", label: "Assets" },
+  { id: "home", label: "Overview" },
+  { id: "layers", label: "Workspace" },
+  { id: "assets", label: "Files" },
   { id: "history", label: "History" },
 ];
 
@@ -113,7 +113,7 @@ export function Toolbar() {
               fontFamily: "var(--font-mono)",
             }}
           >
-            Open
+            Open Folder
           </button>
           <button
             onClick={() => setShowHealthCheck(true)}
@@ -125,7 +125,7 @@ export function Toolbar() {
               fontFamily: "var(--font-mono)",
             }}
           >
-            Check
+            AI Check
           </button>
           <button
             onClick={() => exportContext()}
@@ -137,7 +137,7 @@ export function Toolbar() {
               fontFamily: "var(--font-mono)",
             }}
           >
-            Export
+            Export for AI
           </button>
           <button
             onClick={() => setShowCommandPalette(true)}
@@ -148,7 +148,7 @@ export function Toolbar() {
               borderColor: "var(--color-card-border)",
               fontFamily: "var(--font-mono)",
             }}
-            title="Search cards and actions"
+            title="Search work and actions"
           >
             <Search size={12} />
             <span>Search</span>

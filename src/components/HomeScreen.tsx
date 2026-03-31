@@ -9,7 +9,7 @@ export function HomeScreen({ onNew }: Props) {
   const [name, setName] = useState("");
 
   const handleNew = () => {
-    const trimmed = name.trim() || "Untitled Map";
+    const trimmed = name.trim() || "Untitled Workspace";
     onNew(trimmed);
   };
 
@@ -39,7 +39,7 @@ export function HomeScreen({ onNew }: Props) {
           className="text-xs tracking-widest uppercase"
           style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
         >
-          knowledge mapping
+          organize work with ai
         </p>
       </div>
 
@@ -47,7 +47,7 @@ export function HomeScreen({ onNew }: Props) {
       <div className="flex flex-col gap-3 w-72">
         <input
           type="text"
-          placeholder="Map name..."
+          placeholder="Workspace name..."
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleNew()}
@@ -65,7 +65,7 @@ export function HomeScreen({ onNew }: Props) {
           className="w-full py-2.5 text-sm font-semibold bg-white text-black hover:opacity-90 transition-opacity"
           style={{ fontFamily: "var(--font-headline)" }}
         >
-          New Map
+          New Workspace
         </button>
         <button
           onClick={handleLoad}
@@ -77,7 +77,7 @@ export function HomeScreen({ onNew }: Props) {
             fontFamily: "var(--font-headline)",
           }}
         >
-          Open Existing
+          Open Folder
         </button>
       </div>
     </div>

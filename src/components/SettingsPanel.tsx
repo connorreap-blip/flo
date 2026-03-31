@@ -37,9 +37,9 @@ const PLACEHOLDER_COPY: Record<Exclude<SettingsSection, "appearance" | "shortcut
 };
 
 const SHORTCUTS = [
-  { keys: "Cmd+S", description: "Save project" },
-  { keys: "Cmd+O", description: "Open project" },
-  { keys: "Cmd+E", description: "Export context.md" },
+  { keys: "Cmd+S", description: "Save workspace" },
+  { keys: "Cmd+O", description: "Open workspace folder" },
+  { keys: "Cmd+E", description: "Export for AI" },
   { keys: "Cmd+G", description: "Toggle grid" },
   { keys: "Cmd+M", description: "Toggle minimap" },
   { keys: "Cmd+K", description: "Open command palette" },

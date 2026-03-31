@@ -112,3 +112,26 @@ pub struct SnapshotMeta {
     pub card_count: usize,
     pub edge_count: usize,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ProjectFileEntry {
+    pub name: String,
+    pub path: String,
+    pub relative_path: String,
+    pub parent: String,
+    pub extension: Option<String>,
+    pub size: u64,
+    pub modified_ms: Option<u64>,
+    pub category: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ProjectFilePreview {
+    pub relative_path: String,
+    pub kind: String,
+    pub mime_type: Option<String>,
+    pub content: Option<String>,
+    pub data_url: Option<String>,
+    pub truncated: bool,
+    pub size: u64,
+}

@@ -18,6 +18,7 @@ import { HelperToast } from "./components/HelperToast";
 import { BottomActionBar } from "./components/BottomActionBar";
 import { HomeDashboard } from "./components/HomeDashboard";
 import { HistoryTab } from "./components/HistoryTab";
+import { FilesTab } from "./components/FilesTab";
 import { parseContextMd } from "./lib/context-parser";
 import { applyLoadedProject, type LoadedProjectPayload } from "./lib/file-ops";
 import type { Card, Edge, ProjectMeta } from "./lib/types";
@@ -309,9 +310,7 @@ export default function App() {
             <HomeDashboard />
           </div>
           <div style={{ display: activeTab === "assets" ? "contents" : "none" }}>
-            <div className="w-full h-full flex items-center justify-center" style={{ color: "var(--color-text-muted)" }}>
-              <span className="text-xs" style={{ fontFamily: "var(--font-mono)" }}>Assets — coming soon</span>
-            </div>
+            <FilesTab />
           </div>
           <div style={{ display: activeTab === "history" ? "contents" : "none" }}>
             <HistoryTab />

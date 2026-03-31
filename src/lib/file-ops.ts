@@ -47,7 +47,7 @@ export async function saveProject(): Promise<void> {
 
   if (!dirPath) {
     const selected = await save({
-      title: "Save flo Project",
+      title: "Save flo Workspace",
       defaultPath: `${projectStore.project.name}.flo`,
     });
     if (!selected) return;
@@ -159,7 +159,7 @@ export async function saveProject(): Promise<void> {
 
 export async function loadProject(): Promise<void> {
   const selected = await open({
-    title: "Open flo Project",
+    title: "Open flo Workspace Folder",
     directory: true,
   });
   if (!selected) return;
@@ -216,7 +216,7 @@ export async function exportContext(): Promise<void> {
   );
 
   const selected = await save({
-    title: "Export context.md",
+    title: "Export for AI",
     defaultPath: "context.md",
     filters: [{ name: "Markdown", extensions: ["md"] }],
   });
