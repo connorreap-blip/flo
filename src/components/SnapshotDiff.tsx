@@ -15,7 +15,14 @@ export function computeDiff(
     title: string;
     body: string;
     position: { x: number; y: number };
+    width?: number | null;
+    height?: number | null;
+    tags?: string[] | null;
     collapsed: boolean;
+    has_doc?: boolean;
+    doc_content?: string;
+    agent_hint?: string | null;
+    comments?: Array<{ id: string; text: string; timestamp: number; author?: string }> | null;
   }>,
   snapshotEdges: Array<{ id: string; source: string; target: string }>,
   currentCards: Card[],
@@ -37,6 +44,13 @@ export function computeDiff(
     if (snapCard.title !== current.title) changes.push("title");
     if (snapCard.body !== current.body) changes.push("body");
     if (snapCard.type !== current.type) changes.push("type");
+    if ((snapCard.width ?? null) !== (current.width ?? null)) changes.push("width");
+    if ((snapCard.height ?? null) !== (current.height ?? null)) changes.push("height");
+    if ((snapCard.has_doc ?? false) !== current.hasDoc) changes.push("document");
+    if ((snapCard.doc_content ?? "") !== current.docContent) changes.push("doc content");
+    if ((snapCard.agent_hint ?? "") !== (current.agentHint ?? "")) changes.push("agent hint");
+    if (JSON.stringify(snapCard.tags ?? []) !== JSON.stringify(current.tags ?? [])) changes.push("tags");
+    if (JSON.stringify(snapCard.comments ?? []) !== JSON.stringify(current.comments ?? [])) changes.push("comments");
     if (
       snapCard.position.x !== current.position.x ||
       snapCard.position.y !== current.position.y

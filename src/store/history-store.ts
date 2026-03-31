@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
+import type { CardComment } from "../lib/types";
 
 export interface SnapshotMeta {
   filename: string;
@@ -11,15 +12,26 @@ export interface SnapshotMeta {
 
 export interface SnapshotData {
   timestamp: string;
+  meta?: {
+    name: string;
+    created: string;
+    format_version: number;
+    goal?: string | null;
+  } | null;
   cards: Array<{
     id: string;
     type: string;
     title: string;
     body: string;
     position: { x: number; y: number };
+    width?: number | null;
+    height?: number | null;
+    tags?: string[] | null;
     collapsed: boolean;
     has_doc: boolean;
     doc_content: string;
+    agent_hint?: string | null;
+    comments?: CardComment[] | null;
   }>;
   edges: Array<{
     id: string;

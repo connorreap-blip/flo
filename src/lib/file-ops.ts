@@ -135,6 +135,7 @@ export async function saveProject(): Promise<void> {
       dirPath,
       snapshot: {
         timestamp: new Date().toISOString(),
+        meta: payload.meta,
         cards: payload.cards,
         edges: payload.edges,
         viewport: payload.viewport,
