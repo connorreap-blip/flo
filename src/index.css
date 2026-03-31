@@ -131,7 +131,23 @@
 }
 
 @theme {
-  /* flo monotone palette */
+  /* flo fonts — registered as Tailwind tokens */
+  --font-headline: "Space Grotesk", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-pixel: "Press Start 2P", monospace;
+  --font-terminal: "VT323", monospace;
+
+  /* Sharp corners — no border radius */
+  --radius: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+}
+
+/* flo monotone palette — in :root so [data-theme="light"] can override */
+:root {
   --color-canvas-bg: #0A0A0A;
   --color-grid-dot: #1A1A1A;
   --color-card-bg: #141414;
@@ -150,20 +166,6 @@
   --color-surface-high: #2A2A2A;
   --color-surface-highest: #353535;
   --color-accent-error: #FF4444;
-
-  /* flo fonts */
-  --font-headline: "Space Grotesk", system-ui, sans-serif;
-  --font-body: "Inter", system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
-  --font-pixel: "Press Start 2P", monospace;
-  --font-terminal: "VT323", monospace;
-
-  /* Sharp corners — no border radius */
-  --radius: 0px;
-  --radius-sm: 0px;
-  --radius-md: 0px;
-  --radius-lg: 0px;
-  --radius-xl: 0px;
 }
 
 [data-theme="light"] {
@@ -264,3 +266,31 @@ html, body, #root {
 }
 .tiptap ul ul { list-style-type: circle; }
 .tiptap ul ul ul { list-style-type: square; }
+.tiptap h1 { font-size: 1.5rem; font-weight: 700; margin: 0.75em 0 0.25em; font-family: var(--font-headline); }
+.tiptap h2 { font-size: 1.25rem; font-weight: 600; margin: 0.6em 0 0.2em; font-family: var(--font-headline); }
+.tiptap h3 { font-size: 1.1rem; font-weight: 600; margin: 0.5em 0 0.15em; font-family: var(--font-headline); }
+.tiptap blockquote {
+  border-left: 2px solid var(--color-card-border);
+  padding-left: 1rem;
+  margin: 0.5em 0;
+  color: var(--color-text-secondary);
+}
+.tiptap pre {
+  background: var(--color-surface);
+  padding: 0.75rem;
+  margin: 0.5em 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  overflow-x: auto;
+}
+.tiptap code {
+  background: var(--color-surface-high);
+  padding: 0.1em 0.3em;
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+.tiptap hr {
+  border: none;
+  border-top: 1px solid var(--color-card-border);
+  margin: 1em 0;
+}

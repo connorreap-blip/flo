@@ -17,6 +17,11 @@ interface CardFrontmatter {
 function htmlToMarkdown(html: string): string {
   if (!html) return "";
   return html
+    .replace(/<h1>(.*?)<\/h1>/g, "# $1\n")
+    .replace(/<h2>(.*?)<\/h2>/g, "## $1\n")
+    .replace(/<h3>(.*?)<\/h3>/g, "### $1\n")
+    .replace(/<blockquote><p>(.*?)<\/p><\/blockquote>/g, "> $1\n")
+    .replace(/<pre><code>(.*?)<\/code><\/pre>/gs, "```\n$1\n```\n")
     .replace(/<strong>(.*?)<\/strong>/g, "**$1**")
     .replace(/<em>(.*?)<\/em>/g, "*$1*")
     .replace(/<u>(.*?)<\/u>/g, "<u>$1</u>")
@@ -35,6 +40,17 @@ function markdownToHtml(md: string): string {
   return md
     .split("\n\n")
     .map((para) => {
+      // Handle headings
+      if (/^### /.test(para)) return para.replace(/^### (.*)$/m, "<h3>$1</h3>");
+      if (/^## /.test(para)) return para.replace(/^## (.*)$/m, "<h2>$1</h2>");
+      if (/^# /.test(para)) return para.replace(/^# (.*)$/m, "<h1>$1</h1>");
+      // Handle blockquotes
+      if (/^> /.test(para)) return `<blockquote><p>${para.replace(/^> /, "")}</p></blockquote>`;
+      // Handle code blocks
+      if (/^```/.test(para)) {
+        const code = para.replace(/^```\w*\n?/, "").replace(/\n?```$/, "");
+        return `<pre><code>${code}</code></pre>`;
+      }
       const html = para
         .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
         .replace(/\*(.*?)\*/g, "<em>$1</em>");
