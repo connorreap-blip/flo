@@ -27,7 +27,7 @@ export function FloatingToolbar({ selectedEdgeIds: _selectedEdgeIds }: Props) {
           title="Select / move (V)"
           className="p-1.5 transition-colors"
           style={{
-            color: editorMode === "select" ? "#FFFFFF" : "var(--color-text-muted)",
+            color: editorMode === "select" ? "var(--color-text-primary)" : "var(--color-text-muted)",
             background: editorMode === "select" ? "var(--color-surface-high)" : "transparent",
           }}
         >
@@ -38,7 +38,7 @@ export function FloatingToolbar({ selectedEdgeIds: _selectedEdgeIds }: Props) {
           title="Pan canvas (H)"
           className="p-1.5 transition-colors"
           style={{
-            color: editorMode === "pan" ? "#FFFFFF" : "var(--color-text-muted)",
+            color: editorMode === "pan" ? "var(--color-text-primary)" : "var(--color-text-muted)",
             background: editorMode === "pan" ? "var(--color-surface-high)" : "transparent",
           }}
         >
@@ -58,7 +58,7 @@ export function FloatingToolbar({ selectedEdgeIds: _selectedEdgeIds }: Props) {
           style={{
             fontFamily: "var(--font-mono)",
             letterSpacing: "0.05em",
-            color: activeView === "canvas" ? "#FFFFFF" : "var(--color-text-muted)",
+            color: activeView === "canvas" ? "var(--color-text-primary)" : "var(--color-text-muted)",
             background: activeView === "canvas" ? "var(--color-surface-high)" : "transparent",
           }}
         >
@@ -71,7 +71,7 @@ export function FloatingToolbar({ selectedEdgeIds: _selectedEdgeIds }: Props) {
           style={{
             fontFamily: "var(--font-mono)",
             letterSpacing: "0.05em",
-            color: activeView === "kanban" ? "#FFFFFF" : "var(--color-text-muted)",
+            color: activeView === "kanban" ? "var(--color-text-primary)" : "var(--color-text-muted)",
             background: activeView === "kanban" ? "var(--color-surface-high)" : "transparent",
           }}
         >

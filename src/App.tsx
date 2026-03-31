@@ -8,9 +8,9 @@ import { KanbanView } from "./components/KanbanView";
 import { useCanvasStore } from "./store/canvas-store";
 import { useProjectStore } from "./store/project-store";
 import { useKeyboardShortcuts } from "./hooks/use-keyboard-shortcuts";
+import { useThemeInit } from "./hooks/use-theme";
 import { HelperToast } from "./components/HelperToast";
 import { BottomActionBar } from "./components/BottomActionBar";
-// TODO: import { useThemeInit } from "./hooks/use-theme"; — wired by Task 3/4
 
 export default function App() {
   const project = useProjectStore((s) => s.project);
@@ -21,7 +21,7 @@ export default function App() {
   const isDirty = useCanvasStore((s) => s.isDirty);
   const openEditors = useCanvasStore((s) => s.openEditors);
 
-  // TODO: useThemeInit(); — wired by Task 3/4
+  useThemeInit();
 
   // Show home screen until user starts a map
   const [started, setStarted] = useState(false);

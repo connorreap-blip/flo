@@ -109,7 +109,7 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
           className="w-8 h-8 flex items-center justify-center transition-colors"
           style={{
             background: "var(--color-surface-high)",
-            color: showConnectMenu ? "#FFFFFF" : "var(--color-text-muted)",
+            color: showConnectMenu ? "var(--color-text-primary)" : "var(--color-text-muted)",
             borderRadius: "6px",
           }}
           title="Connect — create linked card"
@@ -141,7 +141,7 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
                   borderRadius: "4px",
                 }}
                 title={label}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#FFFFFF"; }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-primary)"; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-muted)"; }}
               >
                 <Icon size={11} />
@@ -162,7 +162,7 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
           borderRadius: "6px",
         }}
         title={data.hasDoc ? "Open document" : "Add document"}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#FFFFFF"; }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-primary)"; }}
         onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-muted)"; }}
       >
         <Pencil size={13} />
@@ -266,7 +266,7 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
               onClick={() => { updateCard(id, { type: t }); setShowTypeMenu(false); }}
               className="flex items-center gap-2 px-2 py-1 text-[10px] transition-colors whitespace-nowrap hover:bg-[var(--color-surface-high)]"
               style={{
-                color: data.type === t ? "#FFFFFF" : "var(--color-text-muted)",
+                color: data.type === t ? "var(--color-text-primary)" : "var(--color-text-muted)",
                 fontFamily: "var(--font-mono)",
                 borderRadius: "3px",
               }}
@@ -290,7 +290,7 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
           <ContextMenuTrigger asChild>
             <div
               className="pixel-border bg-[var(--color-card-bg)] px-3 py-2 flex items-center justify-between gap-2 min-w-[200px]"
-              style={{ borderColor: selected ? "#FFFFFF" : undefined }}
+              style={{ borderColor: selected ? "var(--color-card-border-selected)" : undefined }}
             >
               {handles}
               <span className="text-[var(--color-text-primary)] text-xs truncate flex-1">{data.title || "Untitled"}</span>
@@ -322,7 +322,7 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
           <div
             className="pixel-border bg-[var(--color-card-bg)] select-none"
             style={{
-              borderColor: selected ? "#FFFFFF" : undefined,
+              borderColor: selected ? "var(--color-card-border-selected)" : undefined,
               minWidth: 200,
               maxWidth: data.width ? undefined : 300,
               width: data.width ? data.width : undefined,

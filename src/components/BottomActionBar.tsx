@@ -26,7 +26,7 @@ export function BottomActionBar() {
             letterSpacing: "0.05em",
           }}
           title="Create a new card"
-          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#FFFFFF"; }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-primary)"; }}
           onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-muted)"; }}
         >
           <Plus size={14} style={{ background: "var(--color-surface)", padding: 2, borderRadius: 3 }} />
@@ -44,7 +44,7 @@ export function BottomActionBar() {
             letterSpacing: "0.05em",
           }}
           title="Search cards (Cmd+F)"
-          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#FFFFFF"; }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-primary)"; }}
           onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-muted)"; }}
         >
           <Search size={14} />
