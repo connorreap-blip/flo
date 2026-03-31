@@ -79,3 +79,21 @@ pub struct LoadResult {
     pub edges: Vec<EdgeData>,
     pub viewport: Viewport,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SnapshotData {
+    pub timestamp: String,
+    pub cards: Vec<CardData>,
+    pub edges: Vec<EdgeData>,
+    pub viewport: Viewport,
+    pub summary: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SnapshotMeta {
+    pub filename: String,
+    pub timestamp: String,
+    pub summary: String,
+    pub card_count: usize,
+    pub edge_count: usize,
+}
