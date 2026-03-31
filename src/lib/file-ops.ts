@@ -7,22 +7,21 @@ import { serializeCardToMarkdown, deserializeMarkdown } from "./markdown";
 import { generateContextMd } from "./export-context";
 
 export async function saveProject(): Promise<void> {
+  const canvasStore = useCanvasStore.getState();
   const projectStore = useProjectStore.getState();
-  const store = useCanvasStore.getState();
   let dirPath = projectStore.project.dirPath;
 
   if (!dirPath) {
     const selected = await save({
       title: "Save flo Project",
-      defaultPath: projectStore.project.name,
+      defaultPath: `${projectStore.project.name}.flo`,
     });
     if (!selected) return;
     dirPath = selected;
     projectStore.setProject({ ...projectStore.project, dirPath });
   }
 
-  // Prepare cards — serialize doc content to markdown for cards with docs
-  const cardsForSave = store.cards.map((card) => ({
+  const cardsForSave = canvasStore.cards.map((card) => ({
     id: card.id,
     type: card.type,
     title: card.title,
@@ -33,27 +32,40 @@ export async function saveProject(): Promise<void> {
     doc_content: card.hasDoc ? serializeCardToMarkdown(card) : "",
   }));
 
-  const state = {
-    canvas: {
-      map_name: projectStore.project.name,
-      viewport: store.viewport,
-      cards: cardsForSave,
-      edges: store.edges.map((e) => ({
-        id: e.id,
-        source: e.source,
-        target: e.target,
-        edge_type: e.edgeType,
-        source_arrow: e.sourceArrow,
-        target_arrow: e.targetArrow,
-        reference_scope: e.referenceScope,
-        reference_section_hint: e.referenceSectionHint,
-      })),
-    },
+  const edgesForSave = canvasStore.edges.map((edge) => ({
+    id: edge.id,
+    source: edge.source,
+    target: edge.target,
+    edge_type: edge.edgeType,
+    source_arrow: edge.sourceArrow,
+    target_arrow: edge.targetArrow,
+    reference_scope: edge.referenceScope,
+    reference_section_hint: edge.referenceSectionHint,
+    label: edge.label,
+  }));
+
+  const contextMd = generateContextMd(
+    projectStore.project.name,
+    canvasStore.cards,
+    canvasStore.edges
+  );
+
+  const payload = {
     dir_path: dirPath,
+    meta: {
+      name: projectStore.project.name,
+      created: new Date().toISOString(),
+      format_version: 2,
+      goal: projectStore.project.goal ?? null,
+    },
+    cards: cardsForSave,
+    edges: edgesForSave,
+    viewport: canvasStore.viewport,
+    context_md: contextMd,
   };
 
-  await invoke("save_project", { state });
-  store.markClean();
+  await invoke("save_project_v2", { state: payload });
+  canvasStore.markClean();
 }
 
 export async function loadProject(): Promise<void> {
@@ -64,27 +76,33 @@ export async function loadProject(): Promise<void> {
   if (!selected) return;
 
   const result = await invoke<{
-    canvas: {
-      map_name: string;
-      viewport: { x: number; y: number; zoom: number };
-      cards: Array<{
-        id: string;
-        type: string;
-        title: string;
-        body: string;
-        position: { x: number; y: number };
-        collapsed: boolean;
-        has_doc: boolean;
-        doc_content: string;
-      }>;
-      edges: Array<{ id: string; source: string; target: string; edgeType?: string; sourceArrow?: boolean; targetArrow?: boolean; referenceScope?: string; referenceSectionHint?: string }>;
-    };
     dir_path: string;
-  }>("load_project", { dirPath: selected });
+    meta: { name: string; created: string; format_version: number; goal?: string | null };
+    cards: Array<{
+      id: string;
+      type: string;
+      title: string;
+      body: string;
+      position: { x: number; y: number };
+      collapsed: boolean;
+      has_doc: boolean;
+      doc_content: string;
+    }>;
+    edges: Array<{
+      id: string;
+      source: string;
+      target: string;
+      edge_type?: string;
+      source_arrow?: boolean;
+      target_arrow?: boolean;
+      reference_scope?: string;
+      reference_section_hint?: string;
+      label?: string;
+    }>;
+    viewport: { x: number; y: number; zoom: number };
+  }>("load_project_v2", { dirPath: selected });
 
-  const canvasStore = useCanvasStore.getState();
-
-  const cards = result.canvas.cards.map((c) => ({
+  const cards = result.cards.map((c) => ({
     id: c.id,
     type: c.type as "project" | "process" | "reference" | "brainstorm",
     title: c.title,
@@ -95,19 +113,24 @@ export async function loadProject(): Promise<void> {
     docContent: c.has_doc && c.doc_content ? deserializeMarkdown(c.doc_content).htmlContent : "",
   }));
 
-  const mappedEdges = result.canvas.edges.map((e) => ({
+  const mappedEdges = result.edges.map((e) => ({
     id: e.id,
     source: e.source,
     target: e.target,
-    edgeType: (e.edgeType ?? "hierarchy") as import("../lib/types").EdgeType,
-    sourceArrow: e.sourceArrow,
-    targetArrow: e.targetArrow,
-    referenceScope: e.referenceScope as import("../lib/types").ReferenceScope | undefined,
-    referenceSectionHint: e.referenceSectionHint,
+    edgeType: (e.edge_type ?? "hierarchy") as import("../lib/types").EdgeType,
+    sourceArrow: e.source_arrow,
+    targetArrow: e.target_arrow,
+    referenceScope: e.reference_scope as import("../lib/types").ReferenceScope | undefined,
+    referenceSectionHint: e.reference_section_hint,
+    label: e.label,
   }));
 
-  useProjectStore.getState().setProject({ name: result.canvas.map_name, dirPath: result.dir_path });
-  canvasStore.loadState(cards, mappedEdges, result.canvas.viewport);
+  useProjectStore.getState().setProject({
+    name: result.meta.name,
+    dirPath: result.dir_path,
+    goal: result.meta.goal ?? undefined,
+  });
+  useCanvasStore.getState().loadState(cards, mappedEdges, result.viewport);
 }
 
 export async function exportContext(): Promise<void> {

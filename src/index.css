@@ -166,6 +166,32 @@
   --radius-xl: 0px;
 }
 
+[data-theme="light"] {
+  --color-canvas-bg: #F5F5F5;
+  --color-grid-dot: #E0E0E0;
+  --color-card-bg: #FFFFFF;
+  --color-card-border: #D4D4D4;
+  --color-card-border-hover: #B0B0B0;
+  --color-card-border-selected: #000000;
+  --color-text-primary: #1A1A1A;
+  --color-text-secondary: #555555;
+  --color-text-muted: #999999;
+  --color-badge-bg: #F0F0F0;
+  --color-badge-text: #555555;
+  --color-surface: #EBEBEB;
+  --color-surface-container: #E0E0E0;
+  --color-surface-low: #F0F0F0;
+  --color-surface-lowest: #FAFAFA;
+  --color-surface-high: #D4D4D4;
+  --color-surface-highest: #C0C0C0;
+  --color-accent-error: #DC2626;
+}
+
+[data-theme="light"] body {
+  background: var(--color-canvas-bg);
+  color: var(--color-text-primary);
+}
+
 html, body, #root {
   height: 100%;
   margin: 0;
