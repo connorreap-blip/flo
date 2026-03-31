@@ -24,6 +24,12 @@ pub struct EdgeData {
     pub id: String,
     pub source: String,
     pub target: String,
+    pub edge_type: Option<String>,
+    pub source_arrow: Option<bool>,
+    pub target_arrow: Option<bool>,
+    pub reference_scope: Option<String>,
+    pub reference_section_hint: Option<String>,
+    pub label: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -45,4 +51,31 @@ pub struct CanvasState {
 pub struct ProjectState {
     pub canvas: CanvasState,
     pub dir_path: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ProjectMeta {
+    pub name: String,
+    pub created: String,
+    pub format_version: u32,
+    pub goal: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SavePayload {
+    pub dir_path: String,
+    pub meta: ProjectMeta,
+    pub cards: Vec<CardData>,
+    pub edges: Vec<EdgeData>,
+    pub viewport: Viewport,
+    pub context_md: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct LoadResult {
+    pub dir_path: String,
+    pub meta: ProjectMeta,
+    pub cards: Vec<CardData>,
+    pub edges: Vec<EdgeData>,
+    pub viewport: Viewport,
 }
