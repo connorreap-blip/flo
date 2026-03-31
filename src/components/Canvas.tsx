@@ -149,16 +149,16 @@ export function Canvas() {
             variant={BackgroundVariant.Dots}
             gap={GRID_SIZE}
             size={1}
-            color="#1A1A1A"
+            color="var(--color-grid-dot)"
           />
         )}
         {showMinimap && (
           <MiniMap
-            nodeColor="#2A2A2A"
+            nodeColor="var(--color-card-border)"
             maskColor="rgba(0, 0, 0, 0.8)"
             style={{
-              backgroundColor: "#131313",
-              border: "1px solid #2A2A2A",
+              backgroundColor: "var(--color-surface)",
+              border: "1px solid var(--color-card-border)",
             }}
           />
         )}
