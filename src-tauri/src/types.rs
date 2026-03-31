@@ -96,6 +96,8 @@ pub struct LoadResult {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SnapshotData {
     pub timestamp: String,
+    #[serde(default)]
+    pub meta: Option<ProjectMeta>,
     pub cards: Vec<CardData>,
     pub edges: Vec<EdgeData>,
     pub viewport: Viewport,

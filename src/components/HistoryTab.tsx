@@ -24,6 +24,8 @@ function formatTimestamp(iso: string): string {
 }
 
 export function HistoryTab() {
+  const project = useProjectStore((s) => s.project);
+  const setProject = useProjectStore((s) => s.setProject);
   const dirPath = useProjectStore((s) => s.project.dirPath);
   const snapshots = useHistoryStore((s) => s.snapshots);
   const selectedFilename = useHistoryStore((s) => s.selectedFilename);
@@ -51,12 +53,17 @@ export function HistoryTab() {
       title: c.title,
       body: c.body,
       position: c.position,
+      width: c.width ?? undefined,
+      height: c.height ?? undefined,
+      tags: c.tags ?? undefined,
       collapsed: c.collapsed,
       hasDoc: c.has_doc,
       docContent:
         c.has_doc && c.doc_content
           ? deserializeMarkdown(c.doc_content).htmlContent
           : "",
+      agentHint: c.agent_hint ?? undefined,
+      comments: c.comments ?? undefined,
     }));
 
     const edges: Edge[] = selectedSnapshot.edges.map((e) => ({
@@ -71,11 +78,17 @@ export function HistoryTab() {
       label: e.label,
     }));
 
-    useCanvasStore
-      .getState()
-      .loadState(cards, edges, selectedSnapshot.viewport);
+    if (selectedSnapshot.meta) {
+      setProject({
+        ...project,
+        name: selectedSnapshot.meta.name,
+        goal: selectedSnapshot.meta.goal ?? undefined,
+      });
+    }
+
+    useCanvasStore.getState().loadState(cards, edges, selectedSnapshot.viewport);
     clearSelection();
-  }, [selectedSnapshot, clearSelection]);
+  }, [clearSelection, project, selectedSnapshot, setProject]);
 
   if (!dirPath) {
     return (
