@@ -1,18 +1,32 @@
 import { v4 as uuid } from "uuid";
 import { create } from "zustand";
 import { CARD_TYPES, type CardType } from "../lib/constants";
-import type { Card } from "../lib/types";
+import type { Card, EdgeType } from "../lib/types";
 import { useCanvasStore } from "./canvas-store";
 
 type ActivityAction = "add" | "edit" | "delete";
 
-export interface ActivityEntry {
+interface ActivityEntryBase {
   id: string;
   timestamp: number;
   action: ActivityAction;
+}
+
+export interface CardActivityEntry extends ActivityEntryBase {
+  subject: "card";
   cardTitle: string;
   cardType: CardType;
 }
+
+export interface EdgeActivityEntry extends ActivityEntryBase {
+  subject: "edge";
+  edgeType: EdgeType;
+  sourceTitle: string;
+  targetTitle: string;
+}
+
+export type ActivityEntry = CardActivityEntry | EdgeActivityEntry;
+type ActivityInput = Omit<CardActivityEntry, "id" | "timestamp"> | Omit<EdgeActivityEntry, "id" | "timestamp">;
 
 interface DashboardStore {
   cardCountByType: Record<CardType, number>;
@@ -20,7 +34,7 @@ interface DashboardStore {
   totalWordCount: number;
   activityLog: ActivityEntry[];
   lastEditedAt: number | null;
-  addActivity: (entry: Omit<ActivityEntry, "id" | "timestamp">) => void;
+  addActivity: (entry: ActivityInput) => void;
   recompute: () => void;
   touch: (timestamp?: number) => void;
 }
@@ -38,6 +52,11 @@ function countWords(value: string): number {
 
 function getCardLabel(card: Card): string {
   return card.title.trim() || "Untitled";
+}
+
+function getCardLabelById(cardId: string, cards: Map<string, Card>): string {
+  const card = cards.get(cardId);
+  return card ? getCardLabel(card) : "Untitled";
 }
 
 function hasMeaningfulCardChange(previous: Card, next: Card): boolean {
@@ -58,16 +77,24 @@ export const useDashboardStore = create<DashboardStore>()((set) => ({
   lastEditedAt: null,
 
   addActivity: (entry) =>
-    set((state) => ({
-      activityLog: [
-        {
-          ...entry,
-          id: uuid(),
-          timestamp: Date.now(),
-        },
-        ...state.activityLog,
-      ].slice(0, 50),
-    })),
+    set((state) => {
+      const activity: ActivityEntry =
+        entry.subject === "card"
+          ? {
+              ...entry,
+              id: uuid(),
+              timestamp: Date.now(),
+            }
+          : {
+              ...entry,
+              id: uuid(),
+              timestamp: Date.now(),
+            };
+
+      return {
+        activityLog: [activity, ...state.activityLog].slice(0, 50),
+      };
+    }),
 
   recompute: () => {
     const { cards, edges } = useCanvasStore.getState();
@@ -99,12 +126,15 @@ useCanvasStore.subscribe((state, previousState) => {
   const dashboard = useDashboardStore.getState();
   const previousCards = new Map(previousState.cards.map((card) => [card.id, card]));
   const nextCards = new Map(state.cards.map((card) => [card.id, card]));
+  const previousEdges = new Map(previousState.edges.map((edge) => [edge.id, edge]));
+  const nextEdges = new Map(state.edges.map((edge) => [edge.id, edge]));
 
   if (state.isDirty || previousState.isDirty) {
     for (const card of state.cards) {
       const previous = previousCards.get(card.id);
       if (!previous) {
         dashboard.addActivity({
+          subject: "card",
           action: "add",
           cardTitle: getCardLabel(card),
           cardType: card.type,
@@ -114,6 +144,7 @@ useCanvasStore.subscribe((state, previousState) => {
 
       if (hasMeaningfulCardChange(previous, card)) {
         dashboard.addActivity({
+          subject: "card",
           action: "edit",
           cardTitle: getCardLabel(card),
           cardType: card.type,
@@ -124,9 +155,34 @@ useCanvasStore.subscribe((state, previousState) => {
     for (const card of previousState.cards) {
       if (!nextCards.has(card.id)) {
         dashboard.addActivity({
+          subject: "card",
           action: "delete",
           cardTitle: getCardLabel(card),
           cardType: card.type,
+        });
+      }
+    }
+
+    for (const edge of state.edges) {
+      if (!previousEdges.has(edge.id)) {
+        dashboard.addActivity({
+          subject: "edge",
+          action: "add",
+          edgeType: edge.edgeType,
+          sourceTitle: getCardLabelById(edge.source, nextCards),
+          targetTitle: getCardLabelById(edge.target, nextCards),
+        });
+      }
+    }
+
+    for (const edge of previousState.edges) {
+      if (!nextEdges.has(edge.id)) {
+        dashboard.addActivity({
+          subject: "edge",
+          action: "delete",
+          edgeType: edge.edgeType,
+          sourceTitle: getCardLabelById(edge.source, previousCards),
+          targetTitle: getCardLabelById(edge.target, previousCards),
         });
       }
     }

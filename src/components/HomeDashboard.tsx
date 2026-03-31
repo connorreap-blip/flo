@@ -3,7 +3,7 @@ import { CARD_DEFAULTS, CARD_TYPE_LABELS, CARD_TYPE_STYLES } from "../lib/consta
 import { runGovernor } from "../lib/governor";
 import type { Card, Edge, GovernorWarning } from "../lib/types";
 import { useCanvasStore } from "../store/canvas-store";
-import { useDashboardStore } from "../store/dashboard-store";
+import { useDashboardStore, type ActivityEntry } from "../store/dashboard-store";
 import { useProjectStore } from "../store/project-store";
 
 type GovernorHealth = {
@@ -33,6 +33,12 @@ type MinimapModel = {
     dashed: boolean;
   }>;
 };
+
+const EDGE_TYPE_LABELS = {
+  hierarchy: "Hierarchy",
+  flow: "Flow",
+  reference: "Reference",
+} as const;
 
 function formatCount(value: number): string {
   return new Intl.NumberFormat("en-US").format(value);
@@ -162,6 +168,45 @@ function buildMinimap(cards: Card[], edges: Edge[]): MinimapModel | null {
       })
       .filter(Boolean) as MinimapModel["edges"],
   };
+}
+
+function getActivityBadge(entry: ActivityEntry): { label: string; style: { backgroundColor: string; color: string; border: string } } {
+  if (entry.subject === "card") {
+    const typeStyle = CARD_TYPE_STYLES[entry.cardType];
+    return {
+      label: CARD_TYPE_LABELS[entry.cardType],
+      style: {
+        backgroundColor: typeStyle.bg,
+        color: typeStyle.text,
+        border: `1px solid ${typeStyle.text}40`,
+      },
+    };
+  }
+
+  return {
+    label: EDGE_TYPE_LABELS[entry.edgeType],
+    style: {
+      backgroundColor: "var(--color-surface-high)",
+      color: "var(--color-text-primary)",
+      border: "1px solid var(--color-card-border)",
+    },
+  };
+}
+
+function getActivityTitle(entry: ActivityEntry): string {
+  if (entry.subject === "card") {
+    return entry.cardTitle;
+  }
+
+  return `${entry.sourceTitle} -> ${entry.targetTitle}`;
+}
+
+function getActivityDetail(entry: ActivityEntry): string | null {
+  if (entry.subject === "card") {
+    return null;
+  }
+
+  return `${EDGE_TYPE_LABELS[entry.edgeType]} link`;
 }
 
 function StatCard({
@@ -523,13 +568,13 @@ export function HomeDashboard() {
             <div className="min-h-0 flex-1 overflow-y-auto">
               {activityLog.length === 0 ? (
                 <div className="px-4 py-6 text-sm" style={{ color: "var(--color-text-secondary)" }}>
-                  Changes will appear here after cards are added, edited, or removed.
+                  Changes will appear here after cards or links are added, edited, or removed.
                 </div>
               ) : (
                 <div className="grid gap-px" style={{ background: "var(--color-card-border)" }}>
                   {activityLog.map((entry) => {
-                    const typeLabel = CARD_TYPE_LABELS[entry.cardType];
-                    const typeStyle = CARD_TYPE_STYLES[entry.cardType];
+                    const badge = getActivityBadge(entry);
+                    const detail = getActivityDetail(entry);
                     return (
                       <div
                         key={entry.id}
@@ -544,12 +589,10 @@ export function HomeDashboard() {
                                 fontFamily: "var(--font-mono)",
                                 fontWeight: 600,
                                 letterSpacing: "0.05em",
-                                backgroundColor: typeStyle.bg,
-                                color: typeStyle.text,
-                                border: `1px solid ${typeStyle.text}40`,
+                                ...badge.style,
                               }}
                             >
-                              {typeLabel}
+                              {badge.label}
                             </span>
                             <span
                               className="text-[10px] uppercase tracking-[0.22em]"
@@ -559,8 +602,13 @@ export function HomeDashboard() {
                             </span>
                           </div>
                           <div className="mt-2 truncate text-sm" style={{ color: "var(--color-text-primary)" }}>
-                            {entry.cardTitle}
+                            {getActivityTitle(entry)}
                           </div>
+                          {detail ? (
+                            <div className="mt-1 text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                              {detail}
+                            </div>
+                          ) : null}
                         </div>
                         <span
                           className="shrink-0 text-[10px]"
