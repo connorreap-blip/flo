@@ -407,7 +407,7 @@ export function HomeDashboard() {
                         goal: event.target.value,
                       })
                     }
-                    placeholder="Describe the map in one sentence so exported context stays pointed."
+                    placeholder="Describe the workspace in one sentence so exported context stays focused."
                     className="min-h-28 w-full resize-none border px-3 py-3 text-sm outline-none transition-colors"
                     style={{
                       background: "var(--color-surface-lowest)",
@@ -574,7 +574,7 @@ export function HomeDashboard() {
                         No canvas structure yet
                       </div>
                       <div className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-                        Add cards in Layers and this thumbnail will mirror the map.
+                        Add items in Workspace and this thumbnail will mirror the structure.
                       </div>
                     </div>
                   </div>

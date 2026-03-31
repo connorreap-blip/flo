@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { exportContext, loadProject, saveProject } from "../lib/file-ops";
-import { buildWorkspaceCommandItems, filterWorkspaceCommandItems, type WorkspaceCommandItem } from "../lib/workspace-search";
+import {
+  buildWorkspaceCommandItems,
+  filterWorkspaceCommandItems,
+  type WorkspaceCommandItem,
+} from "../lib/workspace-search";
 import { useCanvasStore } from "../store/canvas-store";
 import { useProjectStore } from "../store/project-store";
 

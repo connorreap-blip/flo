@@ -18,6 +18,7 @@ import { HelperToast } from "./components/HelperToast";
 import { BottomActionBar } from "./components/BottomActionBar";
 import { HomeDashboard } from "./components/HomeDashboard";
 import { HistoryTab } from "./components/HistoryTab";
+import { FilesTab } from "./components/FilesTab";
 import { parseContextMd } from "./lib/context-parser";
 import { applyLoadedProject, type LoadedProjectPayload } from "./lib/file-ops";
 import { cn } from "./lib/utils";
@@ -342,9 +343,7 @@ export default function App() {
             <HomeDashboard />
           </TabViewport>
           <TabViewport active={activeTab === "assets"} scrollable={true} className="pb-24">
-            <div className="flex min-h-full items-center justify-center px-6 py-10 text-center" style={{ color: "var(--color-text-muted)" }}>
-              <span className="text-xs" style={{ fontFamily: "var(--font-mono)" }}>Assets — coming soon</span>
-            </div>
+            <FilesTab />
           </TabViewport>
           <TabViewport active={activeTab === "history"} className="pb-24">
             <HistoryTab />

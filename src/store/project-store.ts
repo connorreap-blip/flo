@@ -20,7 +20,7 @@ interface ProjectStore {
 }
 
 export const useProjectStore = create<ProjectStore>()((set) => ({
-  project: { name: "Untitled Map", dirPath: null },
+  project: { name: "Untitled Workspace", dirPath: null },
   setProject: (project) => set({ project }),
 
   activeTab: "layers",
@@ -34,7 +34,7 @@ export const useProjectStore = create<ProjectStore>()((set) => ({
 
   clearAll: () =>
     set({
-      project: { name: "Untitled Map", dirPath: null },
+      project: { name: "Untitled Workspace", dirPath: null },
       activeTab: "layers",
       activeView: "canvas",
     }),
