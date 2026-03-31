@@ -28,7 +28,12 @@ import { GRID_SIZE } from "../lib/constants";
 const nodeTypes: NodeTypes = { card: CardNode };
 const edgeTypes: EdgeTypes = { card: CardEdge };
 
-export function Canvas() {
+interface CanvasProps {
+  selectedCardId?: string | null;
+  onSelectedCardChange?: (cardId: string | null) => void;
+}
+
+export function Canvas({ selectedCardId = null, onSelectedCardChange }: CanvasProps) {
   const cards = useCanvasStore((s) => s.cards);
   const edges = useCanvasStore((s) => s.edges);
   const showGrid = useCanvasStore((s) => s.showGrid);
@@ -63,8 +68,10 @@ export function Canvas() {
   }, [fitView]);
 
   useOnSelectionChange({
-    onChange: ({ edges: selEdges }) => {
+    onChange: ({ nodes: selNodes, edges: selEdges }) => {
       setSelectedEdgeIds(selEdges.map((e) => e.id));
+      const nodeId = selNodes.length === 1 ? selNodes[0].id : null;
+      onSelectedCardChange?.(nodeId);
     },
   });
 
@@ -77,9 +84,10 @@ export function Canvas() {
         data: { ...card },
         width: card.width,
         height: card.height,
+        selected: selectedCardId === card.id,
         style: card.width ? { width: card.width, height: card.height } : undefined,
       })),
-    [cards]
+    [cards, selectedCardId]
   );
 
   const rfEdges: RFEdge[] = useMemo(

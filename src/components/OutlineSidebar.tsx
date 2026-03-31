@@ -60,6 +60,21 @@ function buildOutline(cards: Card[], hierarchyEdges: Array<{ source: string; tar
   return roots;
 }
 
+function buildParentLookup(cards: Card[], hierarchyEdges: Array<{ source: string; target: string }>): Map<string, string> {
+  const cardIds = new Set(cards.map((card) => card.id));
+  const parentById = new Map<string, string>();
+
+  for (const edge of hierarchyEdges) {
+    if (!cardIds.has(edge.source) || !cardIds.has(edge.target) || parentById.has(edge.target)) {
+      continue;
+    }
+
+    parentById.set(edge.target, edge.source);
+  }
+
+  return parentById;
+}
+
 function collectExpandableIds(nodes: OutlineNode[]): Set<string> {
   const ids = new Set<string>();
 
@@ -126,6 +141,7 @@ function OutlineTreeNode({
         <button
           type="button"
           onClick={() => onSelect(node.card.id)}
+          aria-current={isSelected ? "true" : undefined}
           className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5 text-left transition-colors"
           style={{
             background: isSelected ? "var(--color-surface-high)" : "transparent",
@@ -187,12 +203,31 @@ export function OutlineSidebar({
   const [isVisible, setIsVisible] = useState(defaultOpen);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const closeTimerRef = useRef<number | null>(null);
-
-  const outline = useMemo(
-    () => buildOutline(cards, edges.filter((edge) => edge.edgeType === "hierarchy")),
-    [cards, edges]
+  const hierarchyEdges = useMemo(
+    () => edges.filter((edge) => edge.edgeType === "hierarchy"),
+    [edges]
   );
+
+  const outline = useMemo(() => buildOutline(cards, hierarchyEdges), [cards, hierarchyEdges]);
+  const parentById = useMemo(() => buildParentLookup(cards, hierarchyEdges), [cards, hierarchyEdges]);
   const expandableIds = useMemo(() => collectExpandableIds(outline), [outline]);
+  const selectedAncestorIds = useMemo(() => {
+    if (!selectedCardId) {
+      return [];
+    }
+
+    const ancestors: string[] = [];
+    const visited = new Set<string>();
+    let current = parentById.get(selectedCardId);
+
+    while (current && !visited.has(current)) {
+      visited.add(current);
+      ancestors.push(current);
+      current = parentById.get(current);
+    }
+
+    return ancestors;
+  }, [parentById, selectedCardId]);
 
   useEffect(() => {
     setExpandedIds((current) => {
@@ -203,6 +238,26 @@ export function OutlineSidebar({
       return new Set([...current].filter((id) => expandableIds.has(id)));
     });
   }, [expandableIds]);
+
+  useEffect(() => {
+    if (selectedAncestorIds.length === 0) {
+      return;
+    }
+
+    setExpandedIds((current) => {
+      const next = new Set(current);
+      let changed = false;
+
+      for (const id of selectedAncestorIds) {
+        if (expandableIds.has(id) && !next.has(id)) {
+          next.add(id);
+          changed = true;
+        }
+      }
+
+      return changed ? next : current;
+    });
+  }, [expandableIds, selectedAncestorIds]);
 
   useEffect(() => {
     return () => {

@@ -9,6 +9,7 @@ import { EditorBubble } from "./components/EditorBubble";
 import { HomeScreen } from "./components/HomeScreen";
 import { KanbanView } from "./components/KanbanView";
 import { GhostPreview } from "./components/GhostPreview";
+import { OutlineSidebar } from "./components/OutlineSidebar";
 import { useCanvasStore } from "./store/canvas-store";
 import { useProjectStore } from "./store/project-store";
 import { useKeyboardShortcuts } from "./hooks/use-keyboard-shortcuts";
@@ -16,6 +17,7 @@ import { useThemeInit } from "./hooks/use-theme";
 import { HelperToast } from "./components/HelperToast";
 import { BottomActionBar } from "./components/BottomActionBar";
 import { HomeDashboard } from "./components/HomeDashboard";
+import { HistoryTab } from "./components/HistoryTab";
 import { parseContextMd } from "./lib/context-parser";
 import { applyLoadedProject, type LoadedProjectPayload } from "./lib/file-ops";
 import type { Card, Edge, ProjectMeta } from "./lib/types";
@@ -70,13 +72,13 @@ function hierarchySignature(edges: Edge[]): string {
     .sort()
     .join("|");
 }
-import { HistoryTab } from "./components/HistoryTab";
 
 export default function App() {
   const project = useProjectStore((s) => s.project);
   const setProject = useProjectStore((s) => s.setProject);
   const activeTab = useProjectStore((s) => s.activeTab);
   const activeView = useProjectStore((s) => s.activeView);
+  const setActiveView = useProjectStore((s) => s.setActiveView);
   const cards = useCanvasStore((s) => s.cards);
   const edges = useCanvasStore((s) => s.edges);
   const viewport = useCanvasStore((s) => s.viewport);
@@ -91,6 +93,8 @@ export default function App() {
   const [started, setStarted] = useState(false);
   const [externalChange, setExternalChange] = useState<ExternalChangePrompt | null>(null);
   const [showExternalDiff, setShowExternalDiff] = useState(false);
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [pendingFocusCardId, setPendingFocusCardId] = useState<string | null>(null);
 
   const externalSnapshotRef = useRef({
     project,
@@ -107,6 +111,26 @@ export default function App() {
   useEffect(() => {
     externalSnapshotRef.current = { project, cards, edges, viewport };
   }, [project, cards, edges, viewport]);
+
+  useEffect(() => {
+    if (selectedCardId && !cards.some((card) => card.id === selectedCardId)) {
+      setSelectedCardId(null);
+    }
+  }, [cards, selectedCardId]);
+
+  useEffect(() => {
+    if (activeTab !== "layers" || activeView !== "canvas" || !pendingFocusCardId) {
+      return;
+    }
+
+    const cardId = pendingFocusCardId;
+    const frame = window.requestAnimationFrame(() => {
+      window.dispatchEvent(new CustomEvent("flo:focus-card", { detail: { cardId } }));
+      setPendingFocusCardId((current) => (current === cardId ? null : current));
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeTab, activeView, pendingFocusCardId]);
 
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
@@ -244,6 +268,15 @@ export default function App() {
 
   const hasProject = project.dirPath !== null || cards.length > 0;
 
+  const handleOutlineSelect = (cardId: string) => {
+    setSelectedCardId(cardId);
+    setPendingFocusCardId(cardId);
+
+    if (activeView !== "canvas") {
+      setActiveView("canvas");
+    }
+  };
+
   if (!started && !hasProject) {
     return <HomeScreen onNew={handleNewMap} />;
   }
@@ -254,17 +287,23 @@ export default function App() {
         <Toolbar />
         <div className="flex-1 relative">
           <div style={{ display: activeTab === "layers" ? "contents" : "none" }}>
-            {activeView === "canvas" ? (
-              <ReactFlowProvider>
-                <Canvas />
-              </ReactFlowProvider>
-            ) : (
-              <KanbanView />
-            )}
-            {openEditors.map((editor) => (
-              <EditorBubble key={editor.cardId} cardId={editor.cardId} initialPosition={editor.position} />
-            ))}
-            {ghostPreviewMode ? <GhostPreview /> : null}
+            <div className="flex h-full">
+              <OutlineSidebar selectedCardId={selectedCardId} onSelect={handleOutlineSelect} />
+              <div className="relative min-w-0 flex-1">
+                {activeView === "canvas" ? (
+                  <ReactFlowProvider>
+                    <Canvas selectedCardId={selectedCardId} onSelectedCardChange={setSelectedCardId} />
+                  </ReactFlowProvider>
+                ) : (
+                  <KanbanView />
+                )}
+
+                {openEditors.map((editor) => (
+                  <EditorBubble key={editor.cardId} cardId={editor.cardId} initialPosition={editor.position} />
+                ))}
+                {ghostPreviewMode ? <GhostPreview /> : null}
+              </div>
+            </div>
           </div>
           <div style={{ display: activeTab === "home" ? "contents" : "none" }}>
             <HomeDashboard />
