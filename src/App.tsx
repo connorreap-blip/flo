@@ -11,6 +11,7 @@ import { useKeyboardShortcuts } from "./hooks/use-keyboard-shortcuts";
 import { useThemeInit } from "./hooks/use-theme";
 import { HelperToast } from "./components/HelperToast";
 import { BottomActionBar } from "./components/BottomActionBar";
+import { HomeDashboard } from "./components/HomeDashboard";
 
 export default function App() {
   const project = useProjectStore((s) => s.project);
@@ -67,9 +68,7 @@ export default function App() {
           ))}
         </div>
         <div style={{ display: activeTab === "home" ? "contents" : "none" }}>
-          <div className="w-full h-full flex items-center justify-center" style={{ color: "var(--color-text-muted)" }}>
-            <span className="text-xs" style={{ fontFamily: "var(--font-mono)" }}>Home — coming soon</span>
-          </div>
+          <HomeDashboard />
         </div>
         <div style={{ display: activeTab === "assets" ? "contents" : "none" }}>
           <div className="w-full h-full flex items-center justify-center" style={{ color: "var(--color-text-muted)" }}>
