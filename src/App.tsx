@@ -70,6 +70,7 @@ function hierarchySignature(edges: Edge[]): string {
     .sort()
     .join("|");
 }
+import { HistoryTab } from "./components/HistoryTab";
 
 export default function App() {
   const project = useProjectStore((s) => s.project);
@@ -274,9 +275,7 @@ export default function App() {
             </div>
           </div>
           <div style={{ display: activeTab === "history" ? "contents" : "none" }}>
-            <div className="w-full h-full flex items-center justify-center" style={{ color: "var(--color-text-muted)" }}>
-              <span className="text-xs" style={{ fontFamily: "var(--font-mono)" }}>History — coming soon</span>
-            </div>
+            <HistoryTab />
           </div>
           <BottomActionBar />
         </div>

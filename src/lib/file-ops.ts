@@ -105,6 +105,46 @@ export async function saveProject(): Promise<void> {
   };
 
   await invoke("save_project_v2", { state: payload });
+
+  // Auto-snapshot after save
+  try {
+    const prevSnapshots = await invoke<
+      Array<{ filename: string; timestamp: string; summary: string; card_count: number; edge_count: number }>
+    >("list_snapshots", { dirPath });
+
+    let summary = `${payload.cards.length} cards, ${payload.edges.length} edges`;
+    if (prevSnapshots.length > 0) {
+      const prev = await invoke<{
+        cards: Array<{ id: string }>;
+        edges: Array<{ id: string }>;
+      }>("load_snapshot", { dirPath, filename: prevSnapshots[0].filename });
+
+      const prevCardIds = new Set(prev.cards.map((c) => c.id));
+      const currCardIds = new Set(payload.cards.map((c) => c.id));
+      const added = payload.cards.filter((c) => !prevCardIds.has(c.id)).length;
+      const removed = prev.cards.filter((c) => !currCardIds.has(c.id)).length;
+      const parts: string[] = [];
+      if (added > 0) parts.push(`+${added} card${added > 1 ? "s" : ""}`);
+      if (removed > 0) parts.push(`-${removed} card${removed > 1 ? "s" : ""}`);
+      const modified = payload.cards.filter((c) => prevCardIds.has(c.id)).length;
+      if (modified > 0 && added === 0 && removed === 0) parts.push(`${modified} cards unchanged`);
+      if (parts.length > 0) summary = parts.join(", ");
+    }
+
+    await invoke("save_snapshot", {
+      dirPath,
+      snapshot: {
+        timestamp: new Date().toISOString(),
+        cards: payload.cards,
+        edges: payload.edges,
+        viewport: payload.viewport,
+        summary,
+      },
+    });
+  } catch {
+    // Snapshot failure should not block save
+  }
+
   canvasStore.markClean();
   window.dispatchEvent(
     new CustomEvent("flo:project-saved", {

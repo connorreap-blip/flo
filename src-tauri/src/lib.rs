@@ -21,6 +21,9 @@ pub fn run() {
             commands::load::load_project_v2,
             commands::watcher::start_watching,
             commands::watcher::stop_watching,
+            commands::history::save_snapshot,
+            commands::history::list_snapshots,
+            commands::history::load_snapshot,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
