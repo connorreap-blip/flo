@@ -20,6 +20,7 @@ import { HomeDashboard } from "./components/HomeDashboard";
 import { HistoryTab } from "./components/HistoryTab";
 import { parseContextMd } from "./lib/context-parser";
 import { applyLoadedProject, type LoadedProjectPayload } from "./lib/file-ops";
+import { cn } from "./lib/utils";
 import type { Card, Edge, ProjectMeta } from "./lib/types";
 import {
   Dialog,
@@ -65,6 +66,31 @@ function normalizeExternalKey(filename: string): string {
   return PROJECT_FILE_NAMES.has(filename) ? "project-files" : filename;
 }
 
+function TabViewport({
+  active,
+  scrollable = false,
+  className,
+  children,
+}: {
+  active: boolean;
+  scrollable?: boolean;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        "absolute inset-0 min-h-0 min-w-0",
+        scrollable ? "overflow-y-auto overflow-x-hidden" : "overflow-hidden",
+        className
+      )}
+      style={{ display: active ? "block" : "none" }}
+    >
+      {children}
+    </div>
+  );
+}
+
 function hierarchySignature(edges: Edge[]): string {
   return edges
     .filter((edge) => edge.edgeType === "hierarchy")
@@ -86,6 +112,9 @@ export default function App() {
   const openEditors = useCanvasStore((s) => s.openEditors);
   const loadState = useCanvasStore((s) => s.loadState);
   const ghostPreviewMode = useCanvasStore((s) => s.ghostPreviewMode);
+  const addCard = useCanvasStore((s) => s.addCard);
+  const clearCanvas = useCanvasStore((s) => s.clearAll);
+  const setViewport = useCanvasStore((s) => s.setViewport);
 
   useThemeInit();
   useKeyboardShortcuts();
@@ -262,7 +291,11 @@ export default function App() {
   }, [project.dirPath, externalChange, loadState]);
 
   const handleNewMap = (name: string) => {
-    setProject({ name, dirPath: null });
+    clearCanvas();
+    setViewport({ x: 0, y: 0, zoom: 1 });
+    setProject({ name, dirPath: null, goal: undefined });
+    addCard("project", name, { x: 240, y: 160 });
+    setActiveView("canvas");
     setStarted(true);
   };
 
@@ -285,11 +318,11 @@ export default function App() {
     <>
       <div className="h-screen w-screen flex flex-col overflow-hidden" style={{ background: "var(--color-canvas-bg)" }}>
         <Toolbar />
-        <div className="flex-1 relative">
-          <div style={{ display: activeTab === "layers" ? "contents" : "none" }}>
-            <div className="flex h-full">
+        <div className="relative flex-1 min-h-0">
+          <TabViewport active={activeTab === "layers"}>
+            <div className="flex h-full min-h-0">
               <OutlineSidebar selectedCardId={selectedCardId} onSelect={handleOutlineSelect} />
-              <div className="relative min-w-0 flex-1">
+              <div className="relative min-w-0 flex-1 min-h-0">
                 {activeView === "canvas" ? (
                   <ReactFlowProvider>
                     <Canvas selectedCardId={selectedCardId} onSelectedCardChange={setSelectedCardId} />
@@ -304,18 +337,18 @@ export default function App() {
                 {ghostPreviewMode ? <GhostPreview /> : null}
               </div>
             </div>
-          </div>
-          <div style={{ display: activeTab === "home" ? "contents" : "none" }}>
+          </TabViewport>
+          <TabViewport active={activeTab === "home"} scrollable={true} className="pb-24">
             <HomeDashboard />
-          </div>
-          <div style={{ display: activeTab === "assets" ? "contents" : "none" }}>
-            <div className="w-full h-full flex items-center justify-center" style={{ color: "var(--color-text-muted)" }}>
+          </TabViewport>
+          <TabViewport active={activeTab === "assets"} scrollable={true} className="pb-24">
+            <div className="flex min-h-full items-center justify-center px-6 py-10 text-center" style={{ color: "var(--color-text-muted)" }}>
               <span className="text-xs" style={{ fontFamily: "var(--font-mono)" }}>Assets — coming soon</span>
             </div>
-          </div>
-          <div style={{ display: activeTab === "history" ? "contents" : "none" }}>
+          </TabViewport>
+          <TabViewport active={activeTab === "history"} className="pb-24">
             <HistoryTab />
-          </div>
+          </TabViewport>
           <BottomActionBar />
         </div>
         <footer
