@@ -1,7 +1,10 @@
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { CARD_DEFAULTS, CARD_TYPE_LABELS, CARD_TYPE_STYLES } from "../lib/constants";
+import { saveProject } from "../lib/file-ops";
 import { runGovernor } from "../lib/governor";
+import { suggestProjectGoal } from "../lib/suggestions";
 import type { Card, Edge, GovernorWarning } from "../lib/types";
+import { HealthCheckDialog } from "./HealthCheckDialog";
 import { useCanvasStore } from "../store/canvas-store";
 import { useDashboardStore, type ActivityEntry } from "../store/dashboard-store";
 import { useProjectStore } from "../store/project-store";
@@ -214,19 +217,16 @@ function StatCard({
   value,
   tone,
   caption,
+  onClick,
 }: {
   label: string;
   value: string;
   tone?: string;
   caption?: string;
+  onClick?: () => void;
 }) {
-  return (
-    <div
-      className="pixel-border flex min-h-24 flex-col justify-between px-3 py-3"
-      style={{
-        background: "linear-gradient(180deg, var(--color-surface-high) 0%, var(--color-surface) 100%)",
-      }}
-    >
+  const content = (
+    <>
       <span
         className="text-[10px] uppercase tracking-[0.3em]"
         style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
@@ -249,6 +249,33 @@ function StatCard({
           </div>
         ) : null}
       </div>
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="pixel-border flex min-h-24 flex-col justify-between px-3 py-3 text-left transition-colors"
+        style={{
+          background: "linear-gradient(180deg, var(--color-surface-high) 0%, var(--color-surface) 100%)",
+          cursor: "pointer",
+        }}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div
+      className="pixel-border flex min-h-24 flex-col justify-between px-3 py-3 text-left transition-colors"
+      style={{
+        background: "linear-gradient(180deg, var(--color-surface-high) 0%, var(--color-surface) 100%)",
+      }}
+    >
+      {content}
     </div>
   );
 }
@@ -276,6 +303,8 @@ function MetricRibbon({ label, value }: { label: string; value: string }) {
 }
 
 export function HomeDashboard() {
+  const [showHealthCheck, setShowHealthCheck] = useState(false);
+  const [goalSuggestion, setGoalSuggestion] = useState<string | null>(null);
   const project = useProjectStore((state) => state.project);
   const setProject = useProjectStore((state) => state.setProject);
   const cards = useCanvasStore((state) => state.cards);
@@ -289,6 +318,10 @@ export function HomeDashboard() {
   const warnings = useMemo(() => runGovernor(cards, edges), [cards, edges]);
   const governorHealth = useMemo(() => resolveGovernorHealth(warnings), [warnings]);
   const minimap = useMemo(() => buildMinimap(cards, edges), [cards, edges]);
+  const openHealthCheck = useCallback(() => setShowHealthCheck(true), []);
+  const generateGoalSuggestion = useCallback(() => {
+    setGoalSuggestion(suggestProjectGoal(project.name, cards, edges));
+  }, [cards, edges, project.name]);
 
   const statCards = useMemo(
     () =>
@@ -304,14 +337,15 @@ export function HomeDashboard() {
           value: formatCount(warnings.length),
           caption: warnings.length === 0 ? "No governor findings" : "Governor findings",
           tone: warnings.length > 0 ? governorHealth.tone : undefined,
+          onClick: openHealthCheck,
         },
-      ] satisfies Array<{ label: string; value: string; caption: string; tone?: string }>,
-    [cardCountByType, edgeCount, governorHealth.tone, totalWordCount, warnings.length]
+      ] satisfies Array<{ label: string; value: string; caption: string; tone?: string; onClick?: () => void }>,
+    [cardCountByType, edgeCount, governorHealth.tone, openHealthCheck, totalWordCount, warnings.length]
   );
 
   return (
     <div
-      className="h-full overflow-y-auto px-4 py-4 sm:px-6"
+      className="min-h-full px-4 py-4 sm:px-6"
       style={{
         background:
           "radial-gradient(circle at top left, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 32%), var(--color-canvas-bg)",
@@ -344,12 +378,27 @@ export function HomeDashboard() {
                 </div>
 
                 <label className="block space-y-2">
-                  <span
-                    className="text-[10px] uppercase tracking-[0.28em]"
-                    style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
-                  >
-                    Project Goal
-                  </span>
+                  <div className="flex items-center justify-between gap-3">
+                    <span
+                      className="text-[10px] uppercase tracking-[0.28em]"
+                      style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+                    >
+                      Project Goal
+                    </span>
+                    <button
+                      type="button"
+                      className="border px-2 py-1 text-[10px] uppercase tracking-[0.22em]"
+                      style={{
+                        borderColor: "var(--color-card-border)",
+                        color: "var(--color-text-secondary)",
+                        background: "var(--color-surface-low)",
+                        fontFamily: "var(--font-mono)",
+                      }}
+                      onClick={generateGoalSuggestion}
+                    >
+                      Suggest Goal
+                    </button>
+                  </div>
                   <textarea
                     value={project.goal ?? ""}
                     onChange={(event) =>
@@ -367,6 +416,58 @@ export function HomeDashboard() {
                       fontFamily: "var(--font-body)",
                     }}
                   />
+                  {goalSuggestion ? (
+                    <div
+                      className="space-y-3 border px-3 py-3"
+                      style={{
+                        borderColor: "var(--color-card-border)",
+                        background: "var(--color-surface-low)",
+                      }}
+                    >
+                      <div
+                        className="text-[10px] uppercase tracking-[0.24em]"
+                        style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+                      >
+                        Suggested Goal
+                      </div>
+                      <p className="text-sm" style={{ color: "var(--color-text-primary)" }}>
+                        {goalSuggestion}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          className="border px-3 py-2 text-[10px] uppercase tracking-[0.22em]"
+                          style={{
+                            borderColor: "var(--color-card-border)",
+                            color: "var(--color-text-secondary)",
+                            fontFamily: "var(--font-mono)",
+                          }}
+                          onClick={() => setGoalSuggestion(null)}
+                        >
+                          Dismiss
+                        </button>
+                        <button
+                          type="button"
+                          className="border px-3 py-2 text-[10px] uppercase tracking-[0.22em]"
+                          style={{
+                            borderColor: "var(--color-text-primary)",
+                            background: "var(--color-surface-high)",
+                            color: "var(--color-text-primary)",
+                            fontFamily: "var(--font-mono)",
+                          }}
+                          onClick={() => {
+                            setProject({
+                              ...project,
+                              goal: goalSuggestion,
+                            });
+                            setGoalSuggestion(null);
+                          }}
+                        >
+                          Apply Suggestion
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
                 </label>
               </div>
 
@@ -388,6 +489,7 @@ export function HomeDashboard() {
               value={governorHealth.label}
               tone={governorHealth.tone}
               caption={governorHealth.detail}
+              onClick={openHealthCheck}
             />
           </div>
 
@@ -494,19 +596,27 @@ export function HomeDashboard() {
               >
                 Context Tier
               </div>
-              <div
-                className="mt-1 text-xl font-semibold"
+              <button
+                type="button"
+                className="mt-1 text-left text-xl font-semibold"
                 style={{ color: governorHealth.tone, fontFamily: "var(--font-headline)" }}
+                onClick={openHealthCheck}
               >
                 {governorHealth.label}
-              </div>
+              </button>
               <p className="mt-2 text-sm" style={{ color: "var(--color-text-secondary)" }}>
                 {governorHealth.detail}
               </p>
             </div>
             <div className="grid gap-px" style={{ background: "var(--color-card-border)" }}>
               {warnings.slice(0, 4).map((warning) => (
-                <div key={warning.id} className="px-4 py-3" style={{ background: "var(--color-surface-lowest)" }}>
+                <button
+                  key={warning.id}
+                  type="button"
+                  className="px-4 py-3 text-left transition-colors"
+                  style={{ background: "var(--color-surface-lowest)" }}
+                  onClick={openHealthCheck}
+                >
                   <div className="flex items-center justify-between gap-3">
                     <span
                       className="text-[10px] uppercase tracking-[0.25em]"
@@ -529,12 +639,17 @@ export function HomeDashboard() {
                   <div className="mt-2 text-sm" style={{ color: "var(--color-text-primary)" }}>
                     {warning.message}
                   </div>
-                </div>
+                </button>
               ))}
               {warnings.length === 0 ? (
-                <div className="px-4 py-4 text-sm" style={{ background: "var(--color-surface-lowest)", color: "var(--color-text-secondary)" }}>
+                <button
+                  type="button"
+                  className="px-4 py-4 text-left text-sm"
+                  style={{ background: "var(--color-surface-lowest)", color: "var(--color-text-secondary)" }}
+                  onClick={openHealthCheck}
+                >
                   Governor is quiet. No structural warnings at the moment.
-                </div>
+                </button>
               ) : null}
             </div>
           </div>
@@ -625,6 +740,7 @@ export function HomeDashboard() {
           </div>
         </aside>
       </div>
+      <HealthCheckDialog open={showHealthCheck} onClose={() => setShowHealthCheck(false)} onSave={saveProject} />
     </div>
   );
 }

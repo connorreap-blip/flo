@@ -3,7 +3,10 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
+import { exportContext, loadProject, saveProject } from "../lib/file-ops";
+import { buildWorkspaceCommandItems } from "../lib/workspace-search";
 import { useCanvasStore } from "../store/canvas-store";
+import { useProjectStore } from "../store/project-store";
 import { SlashCommandMenu } from "./SlashCommandMenu";
 import { Wikilink } from "../lib/tiptap-wikilink";
 import { CardComments } from "./CardComments";
@@ -31,6 +34,11 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
   const updateCard = useCanvasStore((s) => s.updateCard);
   const closeEditor = useCanvasStore((s) => s.closeEditor);
   const openEditor = useCanvasStore((s) => s.openEditor);
+  const toggleShowGrid = useCanvasStore((s) => s.toggleShowGrid);
+  const toggleMinimap = useCanvasStore((s) => s.toggleMinimap);
+  const toggleSnapToGrid = useCanvasStore((s) => s.toggleSnapToGrid);
+  const setActiveTab = useProjectStore((s) => s.setActiveTab);
+  const setActiveView = useProjectStore((s) => s.setActiveView);
 
   const [position, setPosition] = useState(initialPosition);
   const [size, setSize] = useState({ width: 600, height: 500 });
@@ -61,14 +69,17 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
     },
   });
 
-  const navigateToCard = useCallback(
-    (targetId: string) => {
+  const focusCard = useCallback(
+    (targetId: string, openDocument = false) => {
       const target = cards.find((entry) => entry.id === targetId);
       if (!target) {
         return;
       }
 
-      if (target.hasDoc) {
+      setActiveTab("layers");
+      setActiveView("canvas");
+
+      if (openDocument || target.hasDoc) {
         openEditor(target.id, { x: 120, y: 120 });
       }
 
@@ -78,7 +89,23 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
         );
       });
     },
-    [cards, openEditor]
+    [cards, openEditor, setActiveTab, setActiveView]
+  );
+
+  const workspaceItems = useMemo(
+    () =>
+      buildWorkspaceCommandItems({
+        cards,
+        focusCard: (targetId) => focusCard(targetId, false),
+        openDocument: (targetId) => focusCard(targetId, true),
+        saveProject,
+        loadProject,
+        exportContext,
+        toggleShowGrid,
+        toggleMinimap,
+        toggleSnapToGrid,
+      }),
+    [cards, focusCard, toggleMinimap, toggleShowGrid, toggleSnapToGrid]
   );
 
   // Listen for "/" key to open slash command menu
@@ -300,6 +327,30 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
         >
           1—
         </button>
+        <button
+          onClick={() => editor?.chain().focus().toggleBlockquote().run()}
+          className="px-2 py-1 text-xs"
+          style={toolbarBtnStyle(editor?.isActive("blockquote") ?? false)}
+          title="Quote"
+        >
+          "
+        </button>
+        <button
+          onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
+          className="px-2 py-1 text-xs"
+          style={toolbarBtnStyle(editor?.isActive("codeBlock") ?? false)}
+          title="Code block"
+        >
+          &lt;&gt;
+        </button>
+        <button
+          onClick={() => editor?.chain().focus().setHorizontalRule().run()}
+          className="px-2 py-1 text-xs"
+          style={toolbarBtnStyle(false)}
+          title="Divider"
+        >
+          HR
+        </button>
         <div style={{ width: 1, height: 16, background: "var(--color-card-border)", margin: "0 4px" }} />
         <button
           onClick={() => editor?.chain().focus().setTextAlign("left").run()}
@@ -346,7 +397,7 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
             }
 
             event.preventDefault();
-            navigateToCard(linkedCard.id);
+            focusCard(linkedCard.id, linkedCard.hasDoc);
           }}
         >
           <EditorContent editor={editor} className="h-full" />
@@ -355,6 +406,7 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
           <SlashCommandMenu
             editor={editor}
             position={slashMenu}
+            items={workspaceItems}
             onClose={() => setSlashMenu(null)}
           />
         )}
@@ -458,7 +510,7 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
                     color: "var(--color-text-secondary)",
                     fontFamily: "var(--font-mono)",
                   }}
-                  onClick={() => navigateToCard(backlink.id)}
+                  onClick={() => focusCard(backlink.id, backlink.hasDoc)}
                 >
                   {backlink.title || "Untitled"}
                 </button>

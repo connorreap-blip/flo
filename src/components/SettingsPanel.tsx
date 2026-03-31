@@ -74,7 +74,7 @@ export function SettingsPanel({ open, onOpenChange }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={true}
-        className="max-w-5xl overflow-hidden border p-0"
+        className="h-[min(52rem,calc(100dvh-2rem))] w-[min(96vw,72rem)] max-w-[72rem] overflow-hidden border p-0"
         style={{
           background: "var(--color-surface)",
           borderColor: "var(--color-card-border)",
@@ -87,9 +87,9 @@ export function SettingsPanel({ open, onOpenChange }: Props) {
           <DialogDescription>Adjust appearance, shortcuts, and future workspace preferences.</DialogDescription>
         </div>
 
-        <div className="flex min-h-[560px] flex-col md:flex-row">
+        <div className="flex h-full min-h-0 flex-col md:flex-row">
           <aside
-            className="border-b px-3 py-3 md:w-52 md:border-b-0 md:border-r"
+            className="shrink-0 border-b px-3 py-3 md:flex md:w-60 md:flex-col md:border-r md:border-b-0 md:overflow-y-auto"
             style={{ borderColor: "var(--color-card-border)", background: "var(--color-surface-lowest)" }}
           >
             <div className="mb-3 px-2">
@@ -102,28 +102,30 @@ export function SettingsPanel({ open, onOpenChange }: Props) {
               </p>
             </div>
 
-            <div className="flex flex-col gap-1">
-              {SETTINGS_SECTIONS.map((section) => {
-                const selected = activeSection === section;
-                return (
-                  <button
-                    key={section}
-                    type="button"
-                    className="w-full px-2 py-2 text-left text-sm transition-colors"
-                    style={{
-                      background: selected ? "var(--color-surface-high)" : "transparent",
-                      color: selected ? "var(--color-text-primary)" : "var(--color-text-secondary)",
-                    }}
-                    onClick={() => setActiveSection(section)}
-                  >
-                    {SECTION_LABELS[section]}
-                  </button>
-                );
-              })}
+            <div className="-mx-1 overflow-x-auto pb-1 md:mx-0 md:overflow-x-visible md:pb-0">
+              <div className="flex min-w-max gap-1 px-1 md:min-w-0 md:flex-col md:px-0">
+                {SETTINGS_SECTIONS.map((section) => {
+                  const selected = activeSection === section;
+                  return (
+                    <button
+                      key={section}
+                      type="button"
+                      className="shrink-0 px-3 py-2 text-left text-sm transition-colors md:w-full md:px-2"
+                      style={{
+                        background: selected ? "var(--color-surface-high)" : "transparent",
+                        color: selected ? "var(--color-text-primary)" : "var(--color-text-secondary)",
+                      }}
+                      onClick={() => setActiveSection(section)}
+                    >
+                      {SECTION_LABELS[section]}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </aside>
 
-          <main className="flex-1 px-5 py-5">
+          <main className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-5 md:py-5">
             <div className="mb-5">
               <h2 className="text-lg font-semibold" style={{ fontFamily: "var(--font-headline)" }}>
                 {title}
