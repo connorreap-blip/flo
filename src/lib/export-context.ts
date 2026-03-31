@@ -60,7 +60,11 @@ export function generateContextMd(
     function renderTree(card: Card, indent: number) {
       const prefix = "  ".repeat(indent) + "- ";
       const tag = `[${CARD_TYPE_LABELS[card.type]}]`;
-      lines.push(`${prefix}${tag} ${card.title}${card.body ? ": " + card.body.split("\n")[0] : ""}`);
+      const tags = Array.isArray(card.tags)
+        ? card.tags.filter((value): value is string => typeof value === "string")
+        : [];
+      const tagStr = tags.length ? ` [${tags.map((value) => `#${value}`).join(", ")}]` : "";
+      lines.push(`${prefix}${tag} ${card.title}${card.body ? ": " + card.body.split("\n")[0] : ""}${tagStr}`);
       for (const child of childrenOf(card.id)) {
         renderTree(child, indent + 1);
       }

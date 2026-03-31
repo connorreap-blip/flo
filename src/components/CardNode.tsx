@@ -33,11 +33,17 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
   const [showConnectMenu, setShowConnectMenu] = useState(false);
   const [showTypeMenu, setShowTypeMenu] = useState(false);
   const [branchEdgeType, setBranchEdgeType] = useState<EdgeType>("hierarchy");
+  const [editingTags, setEditingTags] = useState(false);
+  const [tagInput, setTagInput] = useState("");
   const titleRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
+  const tagRef = useRef<HTMLInputElement>(null);
 
   const typeStyle = CARD_TYPE_STYLES[data.type];
   const typeLabel = CARD_TYPE_LABELS[data.type];
+  const tags = Array.isArray(data.tags)
+    ? data.tags.filter((value): value is string => typeof value === "string")
+    : [];
 
   // Show menu if card OR menu is hovered
   const showHoverMenu = (hovered || menuHovered) && !editingTitle && !editingBody;
@@ -49,6 +55,10 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
   useEffect(() => {
     if (editingBody && bodyRef.current) bodyRef.current.focus();
   }, [editingBody]);
+
+  useEffect(() => {
+    if (editingTags && tagRef.current) tagRef.current.focus();
+  }, [editingTags]);
 
   // Close dropdowns on any click outside
   useEffect(() => {
@@ -84,6 +94,22 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
     borderWidth: "1px",
     borderColor: typeStyle.text + "40",
   };
+
+  const commitTag = useCallback(() => {
+    const nextTag = tagInput.trim().replace(/^#/, "").toLowerCase();
+    if (!nextTag) {
+      setTagInput("");
+      setEditingTags(false);
+      return;
+    }
+
+    if (!tags.includes(nextTag)) {
+      updateCard(id, { tags: [...tags, nextTag] });
+    }
+
+    setTagInput("");
+    setEditingTags(false);
+  }, [id, tagInput, tags, updateCard]);
 
   const handles = (
     <>
@@ -393,6 +419,67 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
                   {data.body || <span className="opacity-30 italic">double-click to add summary</span>}
                 </div>
               )}
+            </div>
+
+            <div
+              className="px-3 pb-3 pt-1 nodrag"
+              onDoubleClick={(event) => {
+                event.stopPropagation();
+                setEditingTags(true);
+              }}
+            >
+              <div className="flex flex-wrap items-center gap-1.5">
+                {tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="text-[9px] px-1.5 py-0.5"
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      background: "var(--color-surface-high)",
+                      color: "var(--color-text-secondary)",
+                      border: "1px solid var(--color-card-border)",
+                    }}
+                  >
+                    #{tag}
+                  </span>
+                ))}
+
+                {editingTags ? (
+                  <input
+                    ref={tagRef}
+                    value={tagInput}
+                    onChange={(event) => setTagInput(event.target.value)}
+                    onBlur={commitTag}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        commitTag();
+                      }
+
+                      if (event.key === "Escape") {
+                        setEditingTags(false);
+                        setTagInput("");
+                      }
+                    }}
+                    onMouseDown={(event) => event.stopPropagation()}
+                    className="min-w-[88px] bg-transparent text-[10px] outline-none"
+                    style={{
+                      color: "var(--color-text-primary)",
+                      fontFamily: "var(--font-mono)",
+                    }}
+                    placeholder="tag"
+                  />
+                ) : null}
+
+                {!editingTags && tags.length === 0 ? (
+                  <span
+                    className="text-[9px]"
+                    style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+                  >
+                    double-click to tag
+                  </span>
+                ) : null}
+              </div>
             </div>
           </div>
         </ContextMenuTrigger>
