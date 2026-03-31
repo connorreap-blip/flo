@@ -2,15 +2,19 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
+import TextAlign from "@tiptap/extension-text-align";
 import { useCanvasStore } from "../store/canvas-store";
+import { SlashCommandMenu } from "./SlashCommandMenu";
 
 const EDITOR_EXTENSIONS = [
   StarterKit.configure({
+    heading: { levels: [1, 2, 3] },
     bulletList: { keepMarks: true, keepAttributes: false },
     orderedList: { keepMarks: true, keepAttributes: false },
     listItem: {},
   }),
   Underline,
+  TextAlign.configure({ types: ["heading", "paragraph"] }),
 ];
 
 interface Props {
@@ -30,6 +34,7 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
   const [resizing, setResizing] = useState(false);
   const resizeStart = useRef({ x: 0, y: 0, w: 0, h: 0 });
   const [fullscreen, setFullscreen] = useState(false);
+  const [slashMenu, setSlashMenu] = useState<{ top: number; left: number } | null>(null);
 
   const editor = useEditor({
     extensions: EDITOR_EXTENSIONS,
@@ -38,6 +43,22 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
       updateCard(cardId, { docContent: editor.getHTML() });
     },
   });
+
+  // Listen for "/" key to open slash command menu
+  useEffect(() => {
+    if (!editor) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "/" && !e.metaKey && !e.ctrlKey && !slashMenu) {
+        // Get cursor position for menu placement
+        const { view } = editor;
+        const coords = view.coordsAtPos(view.state.selection.from);
+        setSlashMenu({ top: coords.bottom + 4, left: coords.left });
+      }
+    };
+    const editorEl = editor.view.dom;
+    editorEl.addEventListener("keydown", handleKeyDown);
+    return () => editorEl.removeEventListener("keydown", handleKeyDown);
+  }, [editor, slashMenu]);
 
   // Drag handlers
   const handleMouseDown = useCallback(
@@ -98,6 +119,11 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
   }, [fullscreen]);
 
   if (!card) return null;
+
+  const toolbarBtnStyle = (active: boolean) => ({
+    color: active ? "var(--color-text-primary)" : "var(--color-text-muted)",
+    background: active ? "var(--color-surface-high)" : "transparent",
+  });
 
   return (
     <div
@@ -177,57 +203,54 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
         <button
           onClick={() => editor?.chain().focus().toggleBold().run()}
           className="px-2 py-1 text-xs font-bold"
-          style={{
-            color: editor?.isActive("bold")
-              ? "var(--color-text-primary)"
-              : "var(--color-text-muted)",
-            background: editor?.isActive("bold")
-              ? "var(--color-surface-high)"
-              : "transparent",
-          }}
+          style={toolbarBtnStyle(editor?.isActive("bold") ?? false)}
         >
           B
         </button>
         <button
           onClick={() => editor?.chain().focus().toggleItalic().run()}
           className="px-2 py-1 text-xs italic"
-          style={{
-            color: editor?.isActive("italic")
-              ? "var(--color-text-primary)"
-              : "var(--color-text-muted)",
-            background: editor?.isActive("italic")
-              ? "var(--color-surface-high)"
-              : "transparent",
-          }}
+          style={toolbarBtnStyle(editor?.isActive("italic") ?? false)}
         >
           I
         </button>
         <button
           onClick={() => editor?.chain().focus().toggleUnderline().run()}
           className="px-2 py-1 text-xs underline"
-          style={{
-            color: editor?.isActive("underline")
-              ? "var(--color-text-primary)"
-              : "var(--color-text-muted)",
-            background: editor?.isActive("underline")
-              ? "var(--color-surface-high)"
-              : "transparent",
-          }}
+          style={toolbarBtnStyle(editor?.isActive("underline") ?? false)}
         >
           U
         </button>
         <div style={{ width: 1, height: 16, background: "var(--color-card-border)", margin: "0 4px" }} />
         <button
+          onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}
+          className="px-2 py-1 text-xs"
+          style={toolbarBtnStyle(editor?.isActive("heading", { level: 1 }) ?? false)}
+          title="Heading 1"
+        >
+          H1
+        </button>
+        <button
+          onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
+          className="px-2 py-1 text-xs"
+          style={toolbarBtnStyle(editor?.isActive("heading", { level: 2 }) ?? false)}
+          title="Heading 2"
+        >
+          H2
+        </button>
+        <button
+          onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}
+          className="px-2 py-1 text-xs"
+          style={toolbarBtnStyle(editor?.isActive("heading", { level: 3 }) ?? false)}
+          title="Heading 3"
+        >
+          H3
+        </button>
+        <div style={{ width: 1, height: 16, background: "var(--color-card-border)", margin: "0 4px" }} />
+        <button
           onClick={() => editor?.chain().focus().toggleBulletList().run()}
           className="px-2 py-1 text-xs"
-          style={{
-            color: editor?.isActive("bulletList")
-              ? "var(--color-text-primary)"
-              : "var(--color-text-muted)",
-            background: editor?.isActive("bulletList")
-              ? "var(--color-surface-high)"
-              : "transparent",
-          }}
+          style={toolbarBtnStyle(editor?.isActive("bulletList") ?? false)}
           title="Bullet list"
         >
           •—
@@ -235,23 +258,48 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
         <button
           onClick={() => editor?.chain().focus().toggleOrderedList().run()}
           className="px-2 py-1 text-xs"
-          style={{
-            color: editor?.isActive("orderedList")
-              ? "var(--color-text-primary)"
-              : "var(--color-text-muted)",
-            background: editor?.isActive("orderedList")
-              ? "var(--color-surface-high)"
-              : "transparent",
-          }}
+          style={toolbarBtnStyle(editor?.isActive("orderedList") ?? false)}
           title="Numbered list"
         >
           1—
         </button>
+        <div style={{ width: 1, height: 16, background: "var(--color-card-border)", margin: "0 4px" }} />
+        <button
+          onClick={() => editor?.chain().focus().setTextAlign("left").run()}
+          className="px-2 py-1 text-xs"
+          style={toolbarBtnStyle(editor?.isActive({ textAlign: "left" }) ?? false)}
+          title="Align left"
+        >
+          ⫷
+        </button>
+        <button
+          onClick={() => editor?.chain().focus().setTextAlign("center").run()}
+          className="px-2 py-1 text-xs"
+          style={toolbarBtnStyle(editor?.isActive({ textAlign: "center" }) ?? false)}
+          title="Align center"
+        >
+          ⫿
+        </button>
+        <button
+          onClick={() => editor?.chain().focus().setTextAlign("right").run()}
+          className="px-2 py-1 text-xs"
+          style={toolbarBtnStyle(editor?.isActive({ textAlign: "right" }) ?? false)}
+          title="Align right"
+        >
+          ⫸
+        </button>
       </div>
 
       {/* Editor content */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto relative">
         <EditorContent editor={editor} className="h-full" />
+        {slashMenu && editor && (
+          <SlashCommandMenu
+            editor={editor}
+            position={slashMenu}
+            onClose={() => setSlashMenu(null)}
+          />
+        )}
       </div>
 
       {/* Resize handle (bottom-right corner) */}
