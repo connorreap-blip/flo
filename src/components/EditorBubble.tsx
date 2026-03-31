@@ -6,6 +6,7 @@ import TextAlign from "@tiptap/extension-text-align";
 import { useCanvasStore } from "../store/canvas-store";
 import { SlashCommandMenu } from "./SlashCommandMenu";
 import { Wikilink } from "../lib/tiptap-wikilink";
+import { CardComments } from "./CardComments";
 
 const EDITOR_EXTENSIONS = [
   StarterKit.configure({
@@ -40,6 +41,8 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
   const [fullscreen, setFullscreen] = useState(false);
   const [slashMenu, setSlashMenu] = useState<{ top: number; left: number } | null>(null);
   const [showBacklinks, setShowBacklinks] = useState(true);
+  const [showAgentHint, setShowAgentHint] = useState(() => Boolean(card?.agentHint?.trim()));
+  const [showComments, setShowComments] = useState(() => (card?.comments?.length ?? 0) > 0);
 
   const backlinks = useMemo(() => {
     if (!card?.title) {
@@ -355,6 +358,73 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
             onClose={() => setSlashMenu(null)}
           />
         )}
+      </div>
+
+      <div
+        className="border-t px-3 py-2"
+        style={{ borderColor: "var(--color-card-border)", background: "var(--color-surface-low)" }}
+      >
+        <button
+          type="button"
+          className="flex w-full items-center justify-between text-left"
+          onClick={() => setShowAgentHint((current) => !current)}
+        >
+          <span className="text-xs font-semibold">Agent Hint</span>
+          <span
+            className="text-[10px]"
+            style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+          >
+            {showAgentHint ? "HIDE" : "SHOW"} {card.agentHint?.trim() ? "(SET)" : ""}
+          </span>
+        </button>
+
+        {showAgentHint ? (
+          <div className="mt-2 space-y-2">
+            <p className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+              Optional instruction for agents. This is exported inline with the card in `context.md`.
+            </p>
+            <textarea
+              value={card.agentHint ?? ""}
+              onChange={(event) =>
+                updateCard(cardId, {
+                  agentHint: event.target.value.trim() ? event.target.value : undefined,
+                })
+              }
+              placeholder="Example: Focus on migration risk and surface the quickest safe rollout."
+              className="min-h-24 w-full resize-y border px-3 py-2 text-sm outline-none"
+              style={{
+                borderColor: "var(--color-card-border)",
+                background: "var(--color-surface-lowest)",
+                color: "var(--color-text-primary)",
+              }}
+            />
+          </div>
+        ) : null}
+      </div>
+
+      <div
+        className="border-t px-3 py-2"
+        style={{ borderColor: "var(--color-card-border)", background: "var(--color-surface-low)" }}
+      >
+        <button
+          type="button"
+          className="flex w-full items-center justify-between text-left"
+          onClick={() => setShowComments((current) => !current)}
+        >
+          <span className="text-xs font-semibold">Comments</span>
+          <span
+            className="text-[10px]"
+            style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+          >
+            {showComments ? "HIDE" : "SHOW"} {card.comments?.length ? `(${card.comments.length})` : ""}
+          </span>
+        </button>
+
+        {showComments ? (
+          <div className="mt-2">
+            <CardComments cardId={cardId} comments={card.comments} />
+          </div>
+        ) : null}
       </div>
 
       <div

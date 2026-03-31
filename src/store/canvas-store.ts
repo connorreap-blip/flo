@@ -26,6 +26,8 @@ interface CanvasStore {
   openEditors: EditorState[];
   openEditor: (cardId: string, position: { x: number; y: number }) => void;
   closeEditor: (cardId: string) => void;
+  ghostPreviewMode: null | "read" | "cost";
+  setGhostPreviewMode: (mode: null | "read" | "cost") => void;
 
   // Viewport
   viewport: CanvasViewport;
@@ -47,6 +49,8 @@ interface CanvasStore {
   dismissedHelpers: string[];
   dismissHelper: (helperId: string) => void;
   resetHelpers: () => void;
+  addComment: (cardId: string, text: string, author?: string) => void;
+  removeComment: (cardId: string, commentId: string) => void;
 
   // Bulk load (for loading from disk)
   loadState: (cards: Card[], edges: Edge[], viewport: CanvasViewport) => void;
@@ -125,6 +129,8 @@ export const useCanvasStore = create<CanvasStore>()(
     set((s) => ({
       openEditors: s.openEditors.filter((e) => e.cardId !== cardId),
     })),
+  ghostPreviewMode: null,
+  setGhostPreviewMode: (mode) => set({ ghostPreviewMode: mode }),
 
   viewport: { x: 0, y: 0, zoom: 1 },
   setViewport: (viewport) => set({ viewport }),
@@ -145,13 +151,54 @@ export const useCanvasStore = create<CanvasStore>()(
       dismissedHelpers: [...s.dismissedHelpers, helperId],
     })),
   resetHelpers: () => set({ dismissedHelpers: [] }),
+  addComment: (cardId, text, author) =>
+    set((s) => ({
+      cards: s.cards.map((card) =>
+        card.id === cardId
+          ? {
+              ...card,
+              comments: [
+                ...(Array.isArray(card.comments) ? card.comments : []),
+                {
+                  id: uuid(),
+                  text,
+                  timestamp: Date.now(),
+                  author: author?.trim() ? author.trim() : undefined,
+                },
+              ],
+            }
+          : card
+      ),
+      isDirty: true,
+    })),
+  removeComment: (cardId, commentId) =>
+    set((s) => ({
+      cards: s.cards.map((card) =>
+        card.id === cardId
+          ? {
+              ...card,
+              comments: (card.comments ?? []).filter((comment) => comment.id !== commentId),
+            }
+          : card
+      ),
+      isDirty: true,
+    })),
 
-  loadState: (cards, edges, viewport) => set({ cards, edges, viewport, isDirty: false }),
+  loadState: (cards, edges, viewport) =>
+    set({
+      cards,
+      edges,
+      viewport,
+      openEditors: [],
+      ghostPreviewMode: null,
+      isDirty: false,
+    }),
   clearAll: () =>
     set({
       cards: [],
       edges: [],
       openEditors: [],
+      ghostPreviewMode: null,
       viewport: { x: 0, y: 0, zoom: 1 },
       isDirty: false,
       dismissedHelpers: [],
