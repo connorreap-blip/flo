@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Search, Settings } from "lucide-react";
 import { useCanvasStore } from "../store/canvas-store";
 import { useProjectStore, type TabId } from "../store/project-store";
 import { HealthCheckDialog } from "./HealthCheckDialog";
 import { saveProject, loadProject, exportContext } from "../lib/file-ops";
+import { CommandPalette } from "./CommandPalette";
+import { SettingsPanel } from "./SettingsPanel";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "home", label: "Home" },
@@ -14,11 +17,28 @@ const TABS: { id: TabId; label: string }[] = [
 export function Toolbar() {
   const [editingName, setEditingName] = useState(false);
   const [showHealthCheck, setShowHealthCheck] = useState(false);
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const project = useProjectStore((s) => s.project);
   const setProject = useProjectStore((s) => s.setProject);
   const activeTab = useProjectStore((s) => s.activeTab);
   const setActiveTab = useProjectStore((s) => s.setActiveTab);
   const isDirty = useCanvasStore((s) => s.isDirty);
+
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      const meta = event.metaKey || event.ctrlKey;
+      if (!meta || event.key.toLowerCase() !== "k") {
+        return;
+      }
+
+      event.preventDefault();
+      setShowCommandPalette((current) => !current);
+    };
+
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   return (
     <>
@@ -120,6 +140,35 @@ export function Toolbar() {
             Export
           </button>
           <button
+            onClick={() => setShowCommandPalette(true)}
+            className="flex items-center gap-2 text-xs px-3 py-1.5 border"
+            style={{
+              background: "var(--color-surface-high)",
+              color: "var(--color-text-primary)",
+              borderColor: "var(--color-card-border)",
+              fontFamily: "var(--font-mono)",
+            }}
+            title="Search cards and actions"
+          >
+            <Search size={12} />
+            <span>Search</span>
+            <span style={{ color: "var(--color-text-muted)" }}>Cmd+K</span>
+          </button>
+          <button
+            onClick={() => setShowSettings(true)}
+            className="flex items-center gap-2 text-xs px-3 py-1.5 border"
+            style={{
+              background: "var(--color-surface-high)",
+              color: "var(--color-text-primary)",
+              borderColor: "var(--color-card-border)",
+              fontFamily: "var(--font-mono)",
+            }}
+            title="Open settings"
+          >
+            <Settings size={12} />
+            <span>Settings</span>
+          </button>
+          <button
             onClick={() => saveProject()}
             className="text-xs font-bold px-3 py-1.5 uppercase tracking-wider bg-white text-black hover:opacity-90"
             style={{ fontFamily: "var(--font-headline)" }}
@@ -133,6 +182,12 @@ export function Toolbar() {
         onClose={() => setShowHealthCheck(false)}
         onSave={() => saveProject()}
       />
+      <CommandPalette
+        open={showCommandPalette}
+        onClose={() => setShowCommandPalette(false)}
+        onOpenSettings={() => setShowSettings(true)}
+      />
+      <SettingsPanel open={showSettings} onOpenChange={setShowSettings} />
     </>
   );
 }

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ReactFlow,
   Background,
@@ -15,6 +15,7 @@ import {
   type NodeTypes,
   type EdgeTypes,
   type Viewport,
+  useReactFlow,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useCanvasStore } from "../store/canvas-store";
@@ -38,9 +39,28 @@ export function Canvas() {
   const removeEdge = useCanvasStore((s) => s.removeEdge);
   const setViewport = useCanvasStore((s) => s.setViewport);
   const editorMode = useCanvasStore((s) => s.editorMode);
+  const { fitView } = useReactFlow();
 
   const [selectedEdgeIds, setSelectedEdgeIds] = useState<string[]>([]);
   const [pendingRef, setPendingRef] = useState<{ source: string; target: string } | null>(null);
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const cardId = (event as CustomEvent<{ cardId?: string }>).detail?.cardId;
+      if (!cardId) {
+        return;
+      }
+
+      void fitView({
+        nodes: [{ id: cardId }],
+        duration: 250,
+        padding: 0.35,
+      });
+    };
+
+    window.addEventListener("flo:focus-card", handler as EventListener);
+    return () => window.removeEventListener("flo:focus-card", handler as EventListener);
+  }, [fitView]);
 
   useOnSelectionChange({
     onChange: ({ edges: selEdges }) => {

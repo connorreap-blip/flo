@@ -1,10 +1,11 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import { useCanvasStore } from "../store/canvas-store";
 import { SlashCommandMenu } from "./SlashCommandMenu";
+import { Wikilink } from "../lib/tiptap-wikilink";
 
 const EDITOR_EXTENSIONS = [
   StarterKit.configure({
@@ -15,6 +16,7 @@ const EDITOR_EXTENSIONS = [
   }),
   Underline,
   TextAlign.configure({ types: ["heading", "paragraph"] }),
+  Wikilink,
 ];
 
 interface Props {
@@ -23,9 +25,11 @@ interface Props {
 }
 
 export function EditorBubble({ cardId, initialPosition }: Props) {
+  const cards = useCanvasStore((s) => s.cards);
   const card = useCanvasStore((s) => s.cards.find((c) => c.id === cardId));
   const updateCard = useCanvasStore((s) => s.updateCard);
   const closeEditor = useCanvasStore((s) => s.closeEditor);
+  const openEditor = useCanvasStore((s) => s.openEditor);
 
   const [position, setPosition] = useState(initialPosition);
   const [size, setSize] = useState({ width: 600, height: 500 });
@@ -35,6 +39,16 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
   const resizeStart = useRef({ x: 0, y: 0, w: 0, h: 0 });
   const [fullscreen, setFullscreen] = useState(false);
   const [slashMenu, setSlashMenu] = useState<{ top: number; left: number } | null>(null);
+  const [showBacklinks, setShowBacklinks] = useState(true);
+
+  const backlinks = useMemo(() => {
+    if (!card?.title) {
+      return [];
+    }
+
+    const token = `[[${card.title}]]`;
+    return cards.filter((candidate) => candidate.id !== cardId && candidate.docContent.includes(token));
+  }, [card?.title, cardId, cards]);
 
   const editor = useEditor({
     extensions: EDITOR_EXTENSIONS,
@@ -43,6 +57,26 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
       updateCard(cardId, { docContent: editor.getHTML() });
     },
   });
+
+  const navigateToCard = useCallback(
+    (targetId: string) => {
+      const target = cards.find((entry) => entry.id === targetId);
+      if (!target) {
+        return;
+      }
+
+      if (target.hasDoc) {
+        openEditor(target.id, { x: 120, y: 120 });
+      }
+
+      window.requestAnimationFrame(() => {
+        window.dispatchEvent(
+          new CustomEvent("flo:focus-card", { detail: { cardId: target.id } })
+        );
+      });
+    },
+    [cards, openEditor]
+  );
 
   // Listen for "/" key to open slash command menu
   useEffect(() => {
@@ -292,7 +326,28 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
 
       {/* Editor content */}
       <div className="flex-1 overflow-y-auto relative">
-        <EditorContent editor={editor} className="h-full" />
+        <div
+          className="h-full"
+          onClick={(event) => {
+            const target = event.target as HTMLElement;
+            const wikilink = target.closest("[data-wikilink]");
+
+            if (!wikilink) {
+              return;
+            }
+
+            const title = wikilink.getAttribute("data-wikilink");
+            const linkedCard = cards.find((entry) => entry.title === title);
+            if (!linkedCard) {
+              return;
+            }
+
+            event.preventDefault();
+            navigateToCard(linkedCard.id);
+          }}
+        >
+          <EditorContent editor={editor} className="h-full" />
+        </div>
         {slashMenu && editor && (
           <SlashCommandMenu
             editor={editor}
@@ -300,6 +355,51 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
             onClose={() => setSlashMenu(null)}
           />
         )}
+      </div>
+
+      <div
+        className="border-t px-3 py-2"
+        style={{ borderColor: "var(--color-card-border)", background: "var(--color-surface-low)" }}
+      >
+        <button
+          type="button"
+          className="flex w-full items-center justify-between text-left"
+          onClick={() => setShowBacklinks((current) => !current)}
+        >
+          <span className="text-xs font-semibold">Referenced by</span>
+          <span
+            className="text-[10px]"
+            style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+          >
+            {showBacklinks ? "HIDE" : "SHOW"} {backlinks.length > 0 ? `(${backlinks.length})` : ""}
+          </span>
+        </button>
+
+        {showBacklinks ? (
+          backlinks.length > 0 ? (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {backlinks.map((backlink) => (
+                <button
+                  key={backlink.id}
+                  type="button"
+                  className="border px-2 py-1 text-[10px] transition-colors"
+                  style={{
+                    borderColor: "var(--color-card-border)",
+                    color: "var(--color-text-secondary)",
+                    fontFamily: "var(--font-mono)",
+                  }}
+                  onClick={() => navigateToCard(backlink.id)}
+                >
+                  {backlink.title || "Untitled"}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-2 text-[10px]" style={{ color: "var(--color-text-muted)" }}>
+              No incoming wikilinks yet.
+            </p>
+          )
+        ) : null}
       </div>
 
       {/* Resize handle (bottom-right corner) */}

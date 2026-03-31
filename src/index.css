@@ -294,3 +294,23 @@ html, body, #root {
   border-top: 1px solid var(--color-card-border);
   margin: 1em 0;
 }
+
+.tiptap .wikilink {
+  color: #6b9bff;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+.tiptap .wikilink:hover {
+  text-decoration: underline;
+}
+
+.wikilink-suggestion {
+  position: fixed;
+  z-index: 160;
+  overflow: hidden;
+  background: var(--color-surface);
+  border-color: var(--color-card-border);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.35);
+}
