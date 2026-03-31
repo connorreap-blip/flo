@@ -1,10 +1,44 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
+import type { CardType } from "./constants";
 import { useCanvasStore } from "../store/canvas-store";
 import { useProjectStore } from "../store/project-store";
 import { serializeCardToMarkdown, deserializeMarkdown } from "./markdown";
 import { generateContextMd } from "./export-context";
+import type { CardComment, EdgeType, ReferenceScope } from "./types";
+
+export interface LoadedProjectPayload {
+  dir_path: string;
+  meta: { name: string; created: string; format_version: number; goal?: string | null };
+  cards: Array<{
+    id: string;
+    type: string;
+    title: string;
+    body: string;
+    position: { x: number; y: number };
+    width?: number | null;
+    height?: number | null;
+    tags?: string[] | null;
+    collapsed: boolean;
+    has_doc: boolean;
+    doc_content: string;
+    agent_hint?: string | null;
+    comments?: CardComment[] | null;
+  }>;
+  edges: Array<{
+    id: string;
+    source: string;
+    target: string;
+    edge_type?: string;
+    source_arrow?: boolean;
+    target_arrow?: boolean;
+    reference_scope?: string;
+    reference_section_hint?: string;
+    label?: string;
+  }>;
+  viewport: { x: number; y: number; zoom: number };
+}
 
 export async function saveProject(): Promise<void> {
   const canvasStore = useCanvasStore.getState();
@@ -27,9 +61,14 @@ export async function saveProject(): Promise<void> {
     title: card.title,
     body: card.body,
     position: card.position,
+    width: card.width ?? null,
+    height: card.height ?? null,
+    tags: Array.isArray(card.tags) ? card.tags : null,
     collapsed: card.collapsed,
     has_doc: card.hasDoc,
     doc_content: card.hasDoc ? serializeCardToMarkdown(card) : "",
+    agent_hint: card.agentHint ?? null,
+    comments: Array.isArray(card.comments) ? card.comments : null,
   }));
 
   const edgesForSave = canvasStore.edges.map((edge) => ({
@@ -47,7 +86,8 @@ export async function saveProject(): Promise<void> {
   const contextMd = generateContextMd(
     projectStore.project.name,
     canvasStore.cards,
-    canvasStore.edges
+    canvasStore.edges,
+    projectStore.project.goal
   );
 
   const payload = {
@@ -106,6 +146,14 @@ export async function saveProject(): Promise<void> {
   }
 
   canvasStore.markClean();
+  window.dispatchEvent(
+    new CustomEvent("flo:project-saved", {
+      detail: {
+        dirPath,
+        files: ["meta.json", "cards.json", "edges.json", "viewport.json", "context.md"],
+      },
+    })
+  );
 }
 
 export async function loadProject(): Promise<void> {
@@ -115,52 +163,35 @@ export async function loadProject(): Promise<void> {
   });
   if (!selected) return;
 
-  const result = await invoke<{
-    dir_path: string;
-    meta: { name: string; created: string; format_version: number; goal?: string | null };
-    cards: Array<{
-      id: string;
-      type: string;
-      title: string;
-      body: string;
-      position: { x: number; y: number };
-      collapsed: boolean;
-      has_doc: boolean;
-      doc_content: string;
-    }>;
-    edges: Array<{
-      id: string;
-      source: string;
-      target: string;
-      edge_type?: string;
-      source_arrow?: boolean;
-      target_arrow?: boolean;
-      reference_scope?: string;
-      reference_section_hint?: string;
-      label?: string;
-    }>;
-    viewport: { x: number; y: number; zoom: number };
-  }>("load_project_v2", { dirPath: selected });
+  const result = await invoke<LoadedProjectPayload>("load_project_v2", { dirPath: selected });
+  applyLoadedProject(result);
+}
 
+export function applyLoadedProject(result: LoadedProjectPayload): void {
   const cards = result.cards.map((c) => ({
     id: c.id,
-    type: c.type as "project" | "process" | "reference" | "brainstorm",
+    type: c.type as CardType,
     title: c.title,
     body: c.body,
     position: c.position,
+    width: c.width ?? undefined,
+    height: c.height ?? undefined,
+    tags: c.tags ?? undefined,
     collapsed: c.collapsed,
     hasDoc: c.has_doc,
     docContent: c.has_doc && c.doc_content ? deserializeMarkdown(c.doc_content).htmlContent : "",
+    agentHint: c.agent_hint ?? undefined,
+    comments: c.comments ?? undefined,
   }));
 
   const mappedEdges = result.edges.map((e) => ({
     id: e.id,
     source: e.source,
     target: e.target,
-    edgeType: (e.edge_type ?? "hierarchy") as import("../lib/types").EdgeType,
+    edgeType: (e.edge_type ?? "hierarchy") as EdgeType,
     sourceArrow: e.source_arrow,
     targetArrow: e.target_arrow,
-    referenceScope: e.reference_scope as import("../lib/types").ReferenceScope | undefined,
+    referenceScope: e.reference_scope as ReferenceScope | undefined,
     referenceSectionHint: e.reference_section_hint,
     label: e.label,
   }));
@@ -176,7 +207,12 @@ export async function loadProject(): Promise<void> {
 export async function exportContext(): Promise<void> {
   const projectStore = useProjectStore.getState();
   const store = useCanvasStore.getState();
-  const contextMd = generateContextMd(projectStore.project.name, store.cards, store.edges);
+  const contextMd = generateContextMd(
+    projectStore.project.name,
+    store.cards,
+    store.edges,
+    projectStore.project.goal
+  );
 
   const selected = await save({
     title: "Export context.md",

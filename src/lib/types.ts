@@ -9,9 +9,12 @@ export interface Card extends Record<string, unknown> {
   position: { x: number; y: number };
   width?: number;
   height?: number;
+  tags?: string[];
   collapsed: boolean;
   hasDoc: boolean;
   docContent: string;
+  agentHint?: string;
+  comments?: CardComment[];
 }
 
 export type EdgeType = "hierarchy" | "flow" | "reference";
@@ -43,6 +46,13 @@ export interface ProjectMeta {
   name: string;
   dirPath: string | null;
   goal?: string;
+}
+
+export interface CardComment {
+  id: string;
+  text: string;
+  timestamp: number;
+  author?: string;
 }
 
 export interface CanvasViewport {

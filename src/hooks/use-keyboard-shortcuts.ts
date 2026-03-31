@@ -54,6 +54,13 @@ export function useKeyboardShortcuts() {
         toggleMinimap();
       }
 
+      // Cmd+Shift+P — Ghost Preview
+      if (meta && e.shiftKey && e.key.toLowerCase() === "p") {
+        e.preventDefault();
+        const current = useCanvasStore.getState().ghostPreviewMode;
+        useCanvasStore.getState().setGhostPreviewMode(current ? null : "read");
+      }
+
       // Cmd+1 — Canvas view
       if (meta && e.key === "1") {
         e.preventDefault();

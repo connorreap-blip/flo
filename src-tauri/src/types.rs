@@ -1,6 +1,14 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct CardComment {
+    pub id: String,
+    pub text: String,
+    pub timestamp: i64,
+    pub author: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CardData {
     pub id: String,
     #[serde(rename = "type")]
@@ -8,9 +16,14 @@ pub struct CardData {
     pub title: String,
     pub body: String,
     pub position: Position,
+    pub width: Option<f64>,
+    pub height: Option<f64>,
+    pub tags: Option<Vec<String>>,
     pub collapsed: bool,
     pub has_doc: bool,
     pub doc_content: String,
+    pub agent_hint: Option<String>,
+    pub comments: Option<Vec<CardComment>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
