@@ -1,8 +1,9 @@
 import { memo, useState, useCallback, useRef, useEffect } from "react";
 import { Handle, Position, NodeResizer, type NodeProps } from "@xyflow/react";
-import { Plus, Pencil, Trash2, GitBranch, ArrowRight, Link } from "lucide-react";
+import { Plus, Pencil, Trash2, GitBranch, ArrowRight, Link, WandSparkles } from "lucide-react";
 import { useCanvasStore } from "../store/canvas-store";
 import { CARD_TYPE_LABELS, CARD_TYPE_STYLES, CARD_TYPES } from "../lib/constants";
+import { suggestCardSummary } from "../lib/suggestions";
 import type { CardNodeType, EdgeType } from "../lib/types";
 import { NewCardDialog } from "./NewCardDialog";
 import {
@@ -35,6 +36,7 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
   const [branchEdgeType, setBranchEdgeType] = useState<EdgeType>("hierarchy");
   const [editingTags, setEditingTags] = useState(false);
   const [tagInput, setTagInput] = useState("");
+  const [bodySuggestion, setBodySuggestion] = useState<string | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const tagRef = useRef<HTMLInputElement>(null);
@@ -110,6 +112,17 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
     setTagInput("");
     setEditingTags(false);
   }, [id, tagInput, tags, updateCard]);
+
+  const generateSummarySuggestion = useCallback(() => {
+    setBodySuggestion(
+      suggestCardSummary({
+        title: data.title,
+        body: data.body,
+        hasDoc: data.hasDoc,
+        docContent: data.docContent,
+      })
+    );
+  }, [data.body, data.docContent, data.hasDoc, data.title]);
 
   const handles = (
     <>
@@ -398,6 +411,29 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
 
             {/* Body */}
             <div className="px-3 py-2">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <span
+                  className="text-[9px] uppercase tracking-[0.2em]"
+                  style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+                >
+                  Summary
+                </span>
+                {data.hasDoc && data.docContent.trim() ? (
+                  <button
+                    type="button"
+                    className="nodrag flex items-center gap-1 text-[9px] uppercase tracking-[0.2em]"
+                    style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      generateSummarySuggestion();
+                    }}
+                    title="Suggest summary from document"
+                  >
+                    <WandSparkles size={11} />
+                    Suggest
+                  </button>
+                ) : null}
+              </div>
               {editingBody ? (
                 <textarea
                   ref={bodyRef}
@@ -419,6 +455,50 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
                   {data.body || <span className="opacity-30 italic">double-click to add summary</span>}
                 </div>
               )}
+              {bodySuggestion ? (
+                <div
+                  className="mt-3 space-y-2 border px-2.5 py-2"
+                  style={{
+                    borderColor: "var(--color-card-border)",
+                    background: "var(--color-surface-low)",
+                  }}
+                >
+                  <div
+                    className="text-[9px] uppercase tracking-[0.2em]"
+                    style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+                  >
+                    Suggested Summary
+                  </div>
+                  <p className="text-xs" style={{ color: "var(--color-text-primary)" }}>
+                    {bodySuggestion}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="nodrag text-[9px] uppercase tracking-[0.2em]"
+                      style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setBodySuggestion(null);
+                      }}
+                    >
+                      Dismiss
+                    </button>
+                    <button
+                      type="button"
+                      className="nodrag text-[9px] uppercase tracking-[0.2em]"
+                      style={{ color: "var(--color-text-primary)", fontFamily: "var(--font-mono)" }}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        updateCard(id, { body: bodySuggestion });
+                        setBodySuggestion(null);
+                      }}
+                    >
+                      Apply
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <div

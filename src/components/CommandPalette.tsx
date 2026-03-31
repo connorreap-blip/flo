@@ -1,52 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { exportContext, loadProject, saveProject } from "../lib/file-ops";
+import { buildWorkspaceCommandItems, filterWorkspaceCommandItems, type WorkspaceCommandItem } from "../lib/workspace-search";
 import { useCanvasStore } from "../store/canvas-store";
 import { useProjectStore } from "../store/project-store";
-
-type CommandCategory = "card" | "action" | "setting";
-
-interface CommandItem {
-  id: string;
-  label: string;
-  category: CommandCategory;
-  keywords: string;
-  run: () => void | Promise<void>;
-}
 
 interface Props {
   open: boolean;
   onClose: () => void;
   onOpenSettings?: () => void;
-}
-
-function fuzzyScore(text: string, query: string) {
-  const haystack = text.toLowerCase();
-  const needle = query.trim().toLowerCase();
-
-  if (!needle) {
-    return 0;
-  }
-
-  if (haystack.includes(needle)) {
-    return needle.length * 10 - haystack.indexOf(needle);
-  }
-
-  let score = 0;
-  let cursor = 0;
-
-  for (const char of needle) {
-    const nextIndex = haystack.indexOf(char, cursor);
-    if (nextIndex === -1) {
-      return -1;
-    }
-    score += 2;
-    if (nextIndex === cursor) {
-      score += 3;
-    }
-    cursor = nextIndex + 1;
-  }
-
-  return score;
 }
 
 export function CommandPalette({ open, onClose, onOpenSettings }: Props) {
@@ -62,112 +23,49 @@ export function CommandPalette({ open, onClose, onOpenSettings }: Props) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const items = useMemo<CommandItem[]>(() => {
-    const cardItems = cards.map((card) => ({
-      id: `card:${card.id}`,
-      label: card.title || "Untitled",
-      category: "card" as const,
-      keywords: [
-        card.title,
-        card.body,
-        Array.isArray(card.tags) ? card.tags.join(" ") : "",
-        card.type,
-      ]
-        .filter(Boolean)
-        .join(" "),
-      run: () => {
-        setActiveTab("layers");
-        setActiveView("canvas");
-        if (card.hasDoc) {
-          openEditor(card.id, { x: 120, y: 120 });
-        }
+  const focusCard = useCallback(
+    (cardId: string, openDocument = false) => {
+      const target = cards.find((entry) => entry.id === cardId);
+      if (!target) {
+        return;
+      }
+
+      setActiveTab("layers");
+      setActiveView("canvas");
+
+      if (openDocument || target.hasDoc) {
+        openEditor(target.id, { x: 120, y: 120 });
+      }
+
+      window.requestAnimationFrame(() => {
         window.requestAnimationFrame(() => {
-          window.requestAnimationFrame(() => {
-            window.dispatchEvent(
-              new CustomEvent("flo:focus-card", { detail: { cardId: card.id } })
-            );
-          });
+          window.dispatchEvent(
+            new CustomEvent("flo:focus-card", { detail: { cardId: target.id } })
+          );
         });
-      },
-    }));
+      });
+    },
+    [cards, openEditor, setActiveTab, setActiveView]
+  );
 
-    return [
-      ...cardItems,
-      {
-        id: "action:save",
-        label: "Save Project",
-        category: "action",
-        keywords: "save project command",
-        run: () => saveProject(),
-      },
-      {
-        id: "action:open",
-        label: "Open Project",
-        category: "action",
-        keywords: "open load project",
-        run: () => loadProject(),
-      },
-      {
-        id: "action:export",
-        label: "Export context.md",
-        category: "action",
-        keywords: "export context markdown",
-        run: () => exportContext(),
-      },
-      {
-        id: "setting:grid",
-        label: "Toggle Grid",
-        category: "setting",
-        keywords: "grid dots background",
-        run: () => toggleShowGrid(),
-      },
-      {
-        id: "setting:minimap",
-        label: "Toggle Minimap",
-        category: "setting",
-        keywords: "minimap map overview",
-        run: () => toggleMinimap(),
-      },
-      {
-        id: "setting:snap",
-        label: "Toggle Snap to Grid",
-        category: "setting",
-        keywords: "snap grid alignment",
-        run: () => toggleSnapToGrid(),
-      },
-      {
-        id: "setting:settings",
-        label: "Open Settings",
-        category: "setting",
-        keywords: "settings preferences panel",
-        run: () => onOpenSettings?.(),
-      },
-    ];
-  }, [
-    cards,
-    onOpenSettings,
-    openEditor,
-    setActiveTab,
-    setActiveView,
-    toggleMinimap,
-    toggleShowGrid,
-    toggleSnapToGrid,
-  ]);
+  const items = useMemo<WorkspaceCommandItem[]>(
+    () =>
+      buildWorkspaceCommandItems({
+        cards,
+        focusCard: (cardId) => focusCard(cardId, false),
+        openDocument: (cardId) => focusCard(cardId, true),
+        saveProject,
+        loadProject,
+        exportContext,
+        toggleShowGrid,
+        toggleMinimap,
+        toggleSnapToGrid,
+        openSettings: onOpenSettings,
+      }),
+    [cards, focusCard, onOpenSettings, toggleMinimap, toggleShowGrid, toggleSnapToGrid]
+  );
 
-  const visibleItems = useMemo(() => {
-    if (!query.trim()) {
-      return items;
-    }
-
-    return items
-      .map((item) => ({
-        item,
-        score: fuzzyScore(`${item.label} ${item.keywords}`, query),
-      }))
-      .filter((entry) => entry.score >= 0)
-      .sort((left, right) => right.score - left.score || left.item.label.localeCompare(right.item.label))
-      .map((entry) => entry.item);
-  }, [items, query]);
+  const visibleItems = useMemo(() => filterWorkspaceCommandItems(items, query), [items, query]);
 
   useEffect(() => {
     if (!open) {
@@ -231,12 +129,13 @@ export function CommandPalette({ open, onClose, onOpenSettings }: Props) {
     return null;
   }
 
-  const executeItem = (item: CommandItem) => {
+  const executeItem = (item: WorkspaceCommandItem) => {
     void item.run();
     onClose();
   };
 
   const cardItems = visibleItems.filter((item) => item.category === "card");
+  const docItems = visibleItems.filter((item) => item.category === "doc");
   const actionItems = visibleItems.filter((item) => item.category === "action");
   const settingItems = visibleItems.filter((item) => item.category === "setting");
 
@@ -266,7 +165,7 @@ export function CommandPalette({ open, onClose, onOpenSettings }: Props) {
               setQuery(event.target.value);
               setSelectedIndex(0);
             }}
-            placeholder="Search cards, commands, or settings..."
+            placeholder="Search cards, docs, commands, or settings..."
             className="w-full bg-transparent text-sm outline-none"
             style={{
               color: "var(--color-text-primary)",
@@ -288,6 +187,14 @@ export function CommandPalette({ open, onClose, onOpenSettings }: Props) {
               <Section
                 title="Cards"
                 items={cardItems}
+                selectedIndex={selectedIndex}
+                visibleItems={visibleItems}
+                onHover={setSelectedIndex}
+                onSelect={executeItem}
+              />
+              <Section
+                title="Docs"
+                items={docItems}
                 selectedIndex={selectedIndex}
                 visibleItems={visibleItems}
                 onHover={setSelectedIndex}
@@ -326,11 +233,11 @@ function Section({
   onSelect,
 }: {
   title: string;
-  items: CommandItem[];
+  items: WorkspaceCommandItem[];
   selectedIndex: number;
-  visibleItems: CommandItem[];
+  visibleItems: WorkspaceCommandItem[];
   onHover: (index: number) => void;
-  onSelect: (item: CommandItem) => void;
+  onSelect: (item: WorkspaceCommandItem) => void;
 }) {
   if (items.length === 0) {
     return null;
@@ -361,9 +268,19 @@ function Section({
               onMouseEnter={() => onHover(itemIndex)}
               onClick={() => onSelect(item)}
             >
-              <span className="text-sm">{item.label}</span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm">{item.label}</div>
+                {item.hint ? (
+                  <div
+                    className="mt-1 truncate text-[10px]"
+                    style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+                  >
+                    {item.hint}
+                  </div>
+                ) : null}
+              </div>
               <span
-                className="text-[10px] uppercase"
+                className="ml-3 text-[10px] uppercase"
                 style={{ fontFamily: "var(--font-mono)", color: "var(--color-text-muted)" }}
               >
                 {item.category}

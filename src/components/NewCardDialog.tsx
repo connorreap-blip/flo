@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCanvasStore } from "../store/canvas-store";
 import { CARD_TYPES, CARD_TYPE_LABELS, type CardType } from "../lib/constants";
+import { resolveDefaultCardType } from "../lib/suggestions";
 import type { EdgeType } from "../lib/types";
 
 interface Props {
@@ -29,10 +30,18 @@ interface Props {
 
 export function NewCardDialog({ open, onClose, parentCardId, parentPosition, edgeType = "hierarchy" }: Props) {
   const [title, setTitle] = useState("");
-  const [type, setType] = useState<CardType>("process");
+  const [type, setType] = useState<CardType>(resolveDefaultCardType(edgeType));
   const addCard = useCanvasStore((s) => s.addCard);
   const addEdge = useCanvasStore((s) => s.addEdge);
   const viewport = useCanvasStore((s) => s.viewport);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    setType(resolveDefaultCardType(edgeType));
+  }, [edgeType, open]);
 
   const handleCreate = () => {
     if (!title.trim()) return;
@@ -52,7 +61,7 @@ export function NewCardDialog({ open, onClose, parentCardId, parentPosition, edg
       addEdge(parentCardId, newId, edgeType);
     }
     setTitle("");
-    setType("process");
+    setType(resolveDefaultCardType(edgeType));
     onClose();
   };
 
