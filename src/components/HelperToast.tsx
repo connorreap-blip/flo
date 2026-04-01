@@ -5,6 +5,10 @@ interface HelperMessage {
   id: string;
   message: string;
   detail: string;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
 }
 
 export function HelperToast() {
@@ -18,6 +22,8 @@ export function HelperToast() {
   const helperMinEditDistance = useCanvasStore((s) => s.helperMinEditDistance);
   const helperDismissForSession = useCanvasStore((s) => s.helperDismissForSession);
   const editVersion = useCanvasStore((s) => s.editVersion);
+  const ghostPreviewMode = useCanvasStore((s) => s.ghostPreviewMode);
+  const setGhostPreviewMode = useCanvasStore((s) => s.setGhostPreviewMode);
   const [activeHelper, setActiveHelper] = useState<HelperMessage | null>(null);
   const [prevCounts, setPrevCounts] = useState({ cards: 0, edges: 0 });
   const lastPromptAtRef = useRef(0);
@@ -113,6 +119,28 @@ export function HelperToast() {
     helperUnscopedReferenceThreshold,
   ]);
 
+  useEffect(() => {
+    if (
+      cards.length >= 3 &&
+      ghostPreviewMode === null &&
+      !dismissedHelpers.includes("ghost-preview-nudge") &&
+      !activeHelperRef.current
+    ) {
+      showHelper({
+        id: "ghost-preview-nudge",
+        message: "See what your agent reads — try Ghost Preview",
+        detail: "Open the read view to inspect the exact context before you export or hand off the workspace.",
+        action: {
+          label: "OPEN PREVIEW",
+          onClick: () => {
+            dismissHelper("ghost-preview-nudge");
+            setGhostPreviewMode("read");
+          },
+        },
+      });
+    }
+  }, [cards.length, dismissHelper, dismissedHelpers, editVersion, ghostPreviewMode, setGhostPreviewMode]);
+
   // Auto-dismiss after 8s
   useEffect(() => {
     if (!activeHelper) return;
@@ -135,6 +163,7 @@ export function HelperToast() {
           {activeHelper.message}
         </p>
         <button
+          type="button"
           onClick={() => {
             if (helperDismissForSession) {
               dismissHelper(activeHelper.id);
@@ -150,18 +179,38 @@ export function HelperToast() {
       <p className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>
         {activeHelper.detail}
       </p>
-      <button
-        onClick={() => {
-          if (helperDismissForSession) {
-            dismissHelper(activeHelper.id);
-          }
-          setActiveHelper(null);
-        }}
-        className="text-[10px] self-end mt-1 px-2 py-0.5"
-        style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
-      >
-        GOT IT
-      </button>
+      <div className="mt-1 flex items-center justify-end gap-2">
+        {activeHelper.action ? (
+          <button
+            type="button"
+            onClick={() => {
+              activeHelper.action?.onClick();
+              setActiveHelper(null);
+            }}
+            className="border px-2 py-1 text-[10px] uppercase tracking-[0.24em]"
+            style={{
+              borderColor: "var(--color-card-border)",
+              color: "var(--color-text-primary)",
+              fontFamily: "var(--font-mono)",
+            }}
+          >
+            {activeHelper.action.label}
+          </button>
+        ) : null}
+        <button
+          type="button"
+          onClick={() => {
+            if (helperDismissForSession) {
+              dismissHelper(activeHelper.id);
+            }
+            setActiveHelper(null);
+          }}
+          className="text-[10px] px-2 py-0.5"
+          style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+        >
+          GOT IT
+        </button>
+      </div>
     </div>
   );
 }
