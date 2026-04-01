@@ -30,12 +30,8 @@ pub fn extract_file_text(file_path: String) -> Result<String, String> {
         // DOCX — zip containing word/document.xml
         "docx" => extract_docx(path),
 
-        // PDF — not yet supported without heavy dependencies
-        "pdf" => Err(
-            "PDF text extraction is not yet supported. \
-             Please copy-paste the PDF content manually or convert to .docx first."
-                .to_string(),
-        ),
+        // PDF — extract text via pdf-extract
+        "pdf" => extract_pdf(path),
 
         _ => {
             // Try reading as UTF-8 text as a fallback
@@ -48,6 +44,19 @@ pub fn extract_file_text(file_path: String) -> Result<String, String> {
             }
         }
     }
+}
+
+/// Extract text from a PDF file.
+fn extract_pdf(path: &Path) -> Result<String, String> {
+    let text = pdf_extract::extract_text(path)
+        .map_err(|e| format!("Failed to extract text from PDF: {e}"))?;
+
+    let trimmed = text.trim().to_string();
+    if trimmed.is_empty() {
+        return Err("No readable text found in the PDF. It may be image-based (scanned).".to_string());
+    }
+
+    Ok(trimmed)
 }
 
 /// Extract text from a .docx file by reading word/document.xml from the zip archive.
