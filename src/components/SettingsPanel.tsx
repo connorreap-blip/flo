@@ -140,7 +140,7 @@ export function SettingsPanel({ open, onOpenChange }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={true}
-        className="h-[min(52rem,calc(100dvh-2rem))] w-[min(96vw,72rem)] max-w-[72rem] overflow-hidden border p-0"
+        className="h-[min(52rem,calc(100dvh-2rem))] w-[min(96vw,72rem)] max-w-[72rem] sm:max-w-[72rem] overflow-hidden border p-0"
         style={{
           background: "var(--color-surface)",
           borderColor: "var(--color-card-border)",
@@ -212,7 +212,7 @@ export function SettingsPanel({ open, onOpenChange }: Props) {
                     </div>
                   </SettingsGroup>
                   <SettingsGroup title="Canvas" description="Toggle canvas display features.">
-                    <div className="grid gap-3 md:grid-cols-3">
+                    <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
                       <ToggleCard title="Grid" description="Show the dotted canvas backdrop." active={showGrid} onToggle={toggleShowGrid} />
                       <ToggleCard title="Minimap" description="Keep the viewport overview visible." active={showMinimap} onToggle={toggleMinimap} />
                       <ToggleCard title="Snap to Grid" description="Lock drag operations to the grid rhythm." active={snapToGrid} onToggle={toggleSnapToGrid} />
@@ -255,7 +255,7 @@ export function SettingsPanel({ open, onOpenChange }: Props) {
                     </div>
                   </SettingsGroup>
                   <SettingsGroup title="Behavior" description="Editor defaults for all card documents.">
-                    <div className="grid gap-3 md:grid-cols-2">
+                    <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
                       <ToggleCard title="Spell Check" description="Browser spell-check in the editor." active={spellCheck} onToggle={toggleSpellCheck} />
                       <ToggleCard title="Auto-save" description="Automatically save after edits." active={autoSave} onToggle={toggleAutoSave} />
                       <ToggleCard title="Word Count" description="Show live word count in the editor footer." active={showWordCount} onToggle={toggleShowWordCount} />
@@ -268,7 +268,7 @@ export function SettingsPanel({ open, onOpenChange }: Props) {
               {activeSection === "export" && (
                 <>
                   <SettingsGroup title="Content Inclusion" description="Choose what gets included when exporting context for AI.">
-                    <div className="grid gap-3 md:grid-cols-2">
+                    <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
                       <ToggleCard title="Brainstorm Cards" description="Include brainstorm-type cards in export." active={exportIncludeBrainstorm} onToggle={toggleExportIncludeBrainstorm} />
                       <ToggleCard title="Card Documents" description="Include full card documents in export." active={exportIncludeCardDocs} onToggle={toggleExportIncludeCardDocs} />
                       <ToggleCard title="Agent Hints" description="Include agent hint annotations." active={exportIncludeAgentHints} onToggle={toggleExportIncludeAgentHints} />
@@ -376,7 +376,7 @@ export function SettingsPanel({ open, onOpenChange }: Props) {
               {activeSection === "history" && (
                 <>
                   <SettingsGroup title="Snapshots" description="Configure automatic history snapshots.">
-                    <div className="grid gap-3 md:grid-cols-2">
+                    <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
                       <ToggleCard title="Auto-snapshot on Save" description="Create a snapshot every time the workspace is saved." active={autoSnapshot} onToggle={toggleAutoSnapshot} />
                     </div>
                   </SettingsGroup>

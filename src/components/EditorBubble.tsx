@@ -4,6 +4,7 @@ import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { exportContext, loadProject, saveProject } from "../lib/file-ops";
 import { buildWorkspaceCommandItems } from "../lib/workspace-search";
 import { useCanvasStore } from "../store/canvas-store";
@@ -95,27 +96,14 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
     [cards, openEditor, setActiveTab, setActiveView]
   );
 
-  const handleFileDrop = useCallback(
-    async (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setDragOver(false);
+  const editorContainerRef = useRef<HTMLDivElement>(null);
+
+  const importFile = useCallback(
+    async (filePath: string) => {
       setImportError(null);
-
-      const files = Array.from(e.dataTransfer.files);
-      if (files.length === 0) return;
-
-      const file = files[0];
-      const filePath = (file as File & { path?: string }).path;
-      if (!filePath) {
-        setImportError("Could not read file path. Try dragging from Finder.");
-        return;
-      }
-
       try {
         const text = await invoke<string>("extract_file_text", { filePath });
         if (editor && text.trim()) {
-          // Convert text to paragraphs and insert
           const paragraphs = text
             .split(/\n{2,}/)
             .map((p) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
@@ -128,6 +116,44 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
     },
     [editor]
   );
+
+  // Tauri native drag-drop: gives us actual file paths
+  useEffect(() => {
+    const appWindow = getCurrentWindow();
+    let cancelled = false;
+
+    const unlistenPromise = appWindow.onDragDropEvent((event) => {
+      if (cancelled) return;
+      const container = editorContainerRef.current;
+      if (!container) return;
+
+      if (event.payload.type === "over") {
+        const { x, y } = event.payload.position;
+        const rect = container.getBoundingClientRect();
+        const inside = x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+        setDragOver(inside);
+      }
+
+      if (event.payload.type === "leave") {
+        setDragOver(false);
+      }
+
+      if (event.payload.type === "drop") {
+        setDragOver(false);
+        const { x, y } = event.payload.position;
+        const rect = container.getBoundingClientRect();
+        const inside = x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+        if (inside && event.payload.paths.length > 0) {
+          void importFile(event.payload.paths[0]);
+        }
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      void unlistenPromise.then((unlisten) => unlisten());
+    };
+  }, [importFile]);
 
   const workspaceItems = useMemo(
     () =>
@@ -150,10 +176,14 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
     if (!editor) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "/" && !e.metaKey && !e.ctrlKey && !slashMenu) {
-        // Get cursor position for menu placement
+        // Get cursor position for menu placement (viewport coords)
         const { view } = editor;
         const coords = view.coordsAtPos(view.state.selection.from);
-        setSlashMenu({ top: coords.bottom + 4, left: coords.left });
+        // Let the "/" character be inserted, then position the menu
+        // The menu will clean up the "/" when a command is selected
+        requestAnimationFrame(() => {
+          setSlashMenu({ top: coords.bottom + 4, left: coords.left });
+        });
       }
     };
     const editorEl = editor.view.dom;
@@ -417,10 +447,8 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
 
       {/* Editor content */}
       <div
+        ref={editorContainerRef}
         className="flex-1 overflow-y-auto relative"
-        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={handleFileDrop}
       >
         {dragOver && (
           <div
@@ -432,7 +460,7 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
                 Drop file to import content
               </p>
               <p className="mt-1 text-xs" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>
-                .txt, .md, .docx supported
+                .txt, .md, .docx, .pdf supported
               </p>
             </div>
           </div>
