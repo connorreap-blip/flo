@@ -1,6 +1,6 @@
 use crate::types::{SnapshotData, SnapshotMeta};
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[tauri::command]
 pub fn save_snapshot(dir_path: String, snapshot: SnapshotData) -> Result<String, String> {
@@ -73,4 +73,69 @@ pub fn load_snapshot(dir_path: String, filename: String) -> Result<SnapshotData,
     let data: SnapshotData = serde_json::from_str(&content).map_err(|e| e.to_string())?;
 
     Ok(data)
+}
+
+fn load_snapshot_index(history_dir: &Path) -> Result<Vec<(PathBuf, SnapshotMeta)>, String> {
+    if !history_dir.exists() {
+        return Ok(vec![]);
+    }
+
+    let mut snapshots: Vec<(PathBuf, SnapshotMeta)> = Vec::new();
+
+    for entry in fs::read_dir(history_dir).map_err(|e| e.to_string())? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let path = entry.path();
+
+        if path.extension().and_then(|e| e.to_str()) != Some("json") {
+            continue;
+        }
+
+        let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+        let data: SnapshotData = match serde_json::from_str(&content) {
+            Ok(d) => d,
+            Err(_) => continue,
+        };
+
+        let filename = path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
+
+        snapshots.push((
+            path,
+            SnapshotMeta {
+                filename,
+                timestamp: data.timestamp,
+                summary: data.summary,
+                card_count: data.cards.len(),
+                edge_count: data.edges.len(),
+            },
+        ));
+    }
+
+    snapshots.sort_by(|a, b| b.1.timestamp.cmp(&a.1.timestamp));
+
+    Ok(snapshots)
+}
+
+#[tauri::command]
+pub fn enforce_snapshot_retention(dir_path: String, max_snapshots: usize) -> Result<usize, String> {
+    let history_dir = Path::new(&dir_path).join("history");
+    if max_snapshots == 0 || !history_dir.exists() {
+        return Ok(0);
+    }
+
+    let snapshots = load_snapshot_index(&history_dir)?;
+    if snapshots.len() <= max_snapshots {
+        return Ok(0);
+    }
+
+    let mut removed = 0usize;
+    for (path, _) in snapshots.into_iter().skip(max_snapshots) {
+        fs::remove_file(path).map_err(|e| e.to_string())?;
+        removed += 1;
+    }
+
+    Ok(removed)
 }

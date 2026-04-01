@@ -24,6 +24,7 @@ pub fn run() {
             commands::history::save_snapshot,
             commands::history::list_snapshots,
             commands::history::load_snapshot,
+            commands::history::enforce_snapshot_retention,
             commands::files::list_project_files,
             commands::files::read_project_file_preview,
             commands::files::import_project_files,
