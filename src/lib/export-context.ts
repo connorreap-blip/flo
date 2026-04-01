@@ -1,5 +1,6 @@
 import type { Card, Edge } from "./types";
 import { CARD_TYPE_LABELS } from "./constants";
+import type { AgentHintExportMode } from "../store/canvas-store";
 
 /**
  * Generate context.md following Claude's optimal reading pattern:
@@ -16,12 +17,29 @@ export function generateContextMd(
   cards: Card[],
   edges: Edge[],
   goal?: string,
+  options?: {
+    agentHintExportMode?: AgentHintExportMode;
+    includeBrainstorm?: boolean;
+    includeCardDocs?: boolean;
+    excludedTags?: string[];
+  },
 ): string {
-  const activeCards = cards.filter((c) => c.type !== "brainstorm");
+  const hintMode = options?.agentHintExportMode ?? "inline";
+  const includeBrainstorm = options?.includeBrainstorm ?? false;
+  const includeCardDocs = options?.includeCardDocs ?? true;
+  const excludedTags = new Set(options?.excludedTags ?? []);
+
+  const activeCards = cards.filter((c) => {
+    if (c.type === "brainstorm" && !includeBrainstorm) return false;
+    const cardTags = Array.isArray(c.tags) ? c.tags.filter((t): t is string => typeof t === "string") : [];
+    if (cardTags.some((t) => excludedTags.has(t))) return false;
+    return true;
+  });
   const hierarchyEdges = edges.filter((e) => e.edgeType === "hierarchy");
   const flowEdges = edges.filter((e) => e.edgeType === "flow");
   const refEdges = edges.filter((e) => e.edgeType === "reference");
   const goalProfile = resolveGoalProfile(goal);
+  const collectedHints: { cardTitle: string; hint: string }[] = [];
 
   const lines: string[] = [];
 
@@ -81,8 +99,12 @@ export function generateContextMd(
       if (tags.length) {
         lines.push(`${metadataIndent}Tags: ${tags.map((value) => `#${value}`).join(" ")}`);
       }
-      if (card.agentHint?.trim()) {
-        lines.push(`${metadataIndent}Agent: ${card.agentHint.trim()}`);
+      if (card.agentHint?.trim() && hintMode !== "hidden") {
+        if (hintMode === "inline") {
+          lines.push(`${metadataIndent}Agent: ${card.agentHint.trim()}`);
+        } else {
+          collectedHints.push({ cardTitle: card.title, hint: card.agentHint.trim() });
+        }
       }
       for (const child of childrenOf(card.id)) {
         renderTree(child, indent + 1);
@@ -113,8 +135,15 @@ export function generateContextMd(
         visited.add(current);
         const card = activeCards.find((c) => c.id === current);
         if (card) {
+          const hintSuffix =
+            card.agentHint?.trim() && hintMode === "inline"
+              ? ` _(Agent: ${card.agentHint.trim()})_`
+              : "";
+          if (card.agentHint?.trim() && hintMode === "section") {
+            collectedHints.push({ cardTitle: card.title, hint: card.agentHint.trim() });
+          }
           lines.push(
-            `${step}. **${card.title}**${card.body ? " — " + card.body.split("\n")[0] : ""}${card.agentHint?.trim() ? ` _(Agent: ${card.agentHint.trim()})_` : ""}`
+            `${step}. **${card.title}**${card.body ? " — " + card.body.split("\n")[0] : ""}${hintSuffix}`
           );
           step++;
         }
@@ -155,36 +184,41 @@ export function generateContextMd(
     lines.push("");
   }
 
-  // --- Section 5: Card Documents ---
-  const fullDocCards = activeCards.filter(
-    (c) => c.hasDoc && c.docContent.trim()
-  );
-  const fullRefTargets = new Set(
-    refEdges.filter((e) => e.referenceScope === "full").map((e) => e.target)
-  );
-  const docsToInclude = fullDocCards.filter(
-    (c) =>
-      !hierarchyEdges.some((e) => e.target === c.id) ||
-      fullRefTargets.has(c.id)
-  );
-
-  if (docsToInclude.length > 0) {
-    lines.push("## Detailed Documents");
+  // --- Section 5: Agent Hints (collected, if mode=section) ---
+  if (hintMode === "section" && collectedHints.length > 0) {
+    lines.push("## Agent Hints");
     lines.push("");
-    for (const card of sortCardsForGoal(docsToInclude, goalProfile)) {
-      lines.push(`### ${card.title}`);
-      lines.push(`<!-- flo-card:${card.id} -->`);
+    for (const { cardTitle, hint } of collectedHints) {
+      lines.push(`- **${cardTitle}**: ${hint}`);
+    }
+    lines.push("");
+  }
+
+  // --- Section 6: Card Documents ---
+  if (includeCardDocs) {
+    const fullDocCards = activeCards.filter(
+      (c) => c.hasDoc && c.docContent.trim()
+    );
+    const fullRefTargets = new Set(
+      refEdges.filter((e) => e.referenceScope === "full").map((e) => e.target)
+    );
+    const docsToInclude = fullDocCards.filter(
+      (c) =>
+        !hierarchyEdges.some((e) => e.target === c.id) ||
+        fullRefTargets.has(c.id)
+    );
+
+    if (docsToInclude.length > 0) {
+      lines.push("## Detailed Documents");
       lines.push("");
-      const plainText = card.docContent
-        .replace(/<strong>(.*?)<\/strong>/g, "**$1**")
-        .replace(/<em>(.*?)<\/em>/g, "*$1*")
-        .replace(/<p><\/p>/g, "\n")
-        .replace(/<p>(.*?)<\/p>/g, "$1\n")
-        .replace(/<li>(.*?)<\/li>/g, "- $1\n")
-        .replace(/<[^>]+>/g, "")
-        .trim();
-      lines.push(plainText);
-      lines.push("");
+      for (const card of sortCardsForGoal(docsToInclude, goalProfile)) {
+        lines.push(`### ${card.title}`);
+        lines.push(`<!-- flo-card:${card.id} -->`);
+        lines.push("");
+        const plainText = docHtmlToPlainMarkdown(card.docContent);
+        lines.push(plainText);
+        lines.push("");
+      }
     }
   }
 
@@ -254,6 +288,35 @@ function sortCardIdsForGoal(
 
     return cardA.title.localeCompare(cardB.title);
   });
+}
+
+/**
+ * Convert TipTap HTML doc content to clean markdown for export,
+ * resolving wikilink spans to card titles.
+ */
+function docHtmlToPlainMarkdown(html: string): string {
+  if (!html) return "";
+  return html
+    // Resolve wikilinks: <span data-wikilink="Title" ...>[[Title]]</span>
+    .replace(/<span[^>]*data-wikilink="([^"]*)"[^>]*>.*?<\/span>/g, (_, title) => {
+      return `[[${title}]]`;
+    })
+    .replace(/<h1>(.*?)<\/h1>/g, "# $1\n")
+    .replace(/<h2>(.*?)<\/h2>/g, "## $1\n")
+    .replace(/<h3>(.*?)<\/h3>/g, "### $1\n")
+    .replace(/<blockquote><p>(.*?)<\/p><\/blockquote>/g, "> $1\n")
+    .replace(/<pre><code>(.*?)<\/code><\/pre>/gs, "```\n$1\n```\n")
+    .replace(/<strong>(.*?)<\/strong>/g, "**$1**")
+    .replace(/<em>(.*?)<\/em>/g, "*$1*")
+    .replace(/<ul>(.*?)<\/ul>/gs, "$1")
+    .replace(/<ol>(.*?)<\/ol>/gs, "$1")
+    .replace(/<li>(.*?)<\/li>/g, "- $1\n")
+    .replace(/<p><\/p>/g, "\n")
+    .replace(/<p>(.*?)<\/p>/g, "$1\n")
+    .replace(/<br\s*\/?>/g, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 function sortEdgesForGoal(

@@ -87,7 +87,13 @@ export async function saveProject(): Promise<void> {
     projectStore.project.name,
     canvasStore.cards,
     canvasStore.edges,
-    projectStore.project.goal
+    projectStore.project.goal,
+    {
+      agentHintExportMode: canvasStore.agentHintExportMode,
+      includeBrainstorm: canvasStore.exportIncludeBrainstorm,
+      includeCardDocs: canvasStore.exportIncludeCardDocs,
+      excludedTags: canvasStore.excludedTags,
+    }
   );
 
   const payload = {
@@ -105,6 +111,7 @@ export async function saveProject(): Promise<void> {
   };
 
   await invoke("save_project_v2", { state: payload });
+  projectStore.addRecentProject(projectStore.project.name, dirPath);
 
   // Auto-snapshot after save
   try {
@@ -166,6 +173,13 @@ export async function loadProject(): Promise<void> {
 
   const result = await invoke<LoadedProjectPayload>("load_project_v2", { dirPath: selected });
   applyLoadedProject(result);
+  useProjectStore.getState().addRecentProject(result.meta.name, result.dir_path);
+}
+
+export async function loadProjectFromPath(dirPath: string): Promise<void> {
+  const result = await invoke<LoadedProjectPayload>("load_project_v2", { dirPath });
+  applyLoadedProject(result);
+  useProjectStore.getState().addRecentProject(result.meta.name, result.dir_path);
 }
 
 export function applyLoadedProject(result: LoadedProjectPayload): void {
@@ -212,7 +226,13 @@ export async function exportContext(): Promise<void> {
     projectStore.project.name,
     store.cards,
     store.edges,
-    projectStore.project.goal
+    projectStore.project.goal,
+    {
+      agentHintExportMode: store.agentHintExportMode,
+      includeBrainstorm: store.exportIncludeBrainstorm,
+      includeCardDocs: store.exportIncludeCardDocs,
+      excludedTags: store.excludedTags,
+    }
   );
 
   const selected = await save({

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./ui/dialog";
-import { useCanvasStore } from "../store/canvas-store";
+import { useCanvasStore, type AgentHintExportMode, type ExportGoalOverride } from "../store/canvas-store";
 import { useProjectStore } from "../store/project-store";
 
 const SETTINGS_SECTIONS = [
@@ -27,13 +27,15 @@ const SECTION_LABELS: Record<SettingsSection, string> = {
   history: "History",
 };
 
-const PLACEHOLDER_COPY: Record<Exclude<SettingsSection, "appearance" | "shortcuts">, string> = {
-  editor: "Default font size, formatting defaults, and editor behaviors will live here.",
-  export: "Context export format controls and goal presets will live here.",
-  agent: "Agent credentials and model-specific placeholders will live here.",
-  tags: "Per-tag export visibility, naming rules, and colors will live here.",
-  governor: "Rule tuning, warning severity thresholds, and policy presets will live here.",
-  history: "Snapshot cadence and auto-save controls will live here.",
+const SECTION_DESCRIPTIONS: Record<SettingsSection, string> = {
+  appearance: "Tune the canvas shell, density, and theme.",
+  shortcuts: "Reference the current keyboard affordances across the app.",
+  editor: "Configure the document editor defaults.",
+  export: "Control how context is exported for AI consumption.",
+  agent: "Manage agent hint defaults and export behavior.",
+  tags: "Control which tags appear in exported context.",
+  governor: "Tune governor rule sensitivity and thresholds.",
+  history: "Configure snapshot and auto-save behavior.",
 };
 
 const SHORTCUTS = [
@@ -51,24 +53,88 @@ const SHORTCUTS = [
   { keys: "Escape", description: "Close active overlays/editors" },
 ];
 
+const FONT_SIZES = [12, 14, 16, 18] as const;
+
+const GOVERNOR_RULES = [
+  { id: "orphan-cards", label: "Orphan cards", description: "Cards with no edges" },
+  { id: "large-body", label: "Large card body", description: "Card body text exceeding ~300 words" },
+  { id: "deep-nesting", label: "Deep nesting", description: "Hierarchy depth exceeding 4 levels" },
+  { id: "missing-doc", label: "Missing docs", description: "Non-brainstorm cards without documents" },
+  { id: "circular-ref", label: "Circular references", description: "Reference loops in the graph" },
+];
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export function SettingsPanel({ open, onOpenChange }: Props) {
-  const theme = useProjectStore((state) => state.theme);
-  const setTheme = useProjectStore((state) => state.setTheme);
-  const showGrid = useCanvasStore((state) => state.showGrid);
-  const toggleShowGrid = useCanvasStore((state) => state.toggleShowGrid);
-  const showMinimap = useCanvasStore((state) => state.showMinimap);
-  const toggleMinimap = useCanvasStore((state) => state.toggleMinimap);
-  const snapToGrid = useCanvasStore((state) => state.snapToGrid);
-  const toggleSnapToGrid = useCanvasStore((state) => state.toggleSnapToGrid);
+  const theme = useProjectStore((s) => s.theme);
+  const setTheme = useProjectStore((s) => s.setTheme);
+  const showGrid = useCanvasStore((s) => s.showGrid);
+  const toggleShowGrid = useCanvasStore((s) => s.toggleShowGrid);
+  const showMinimap = useCanvasStore((s) => s.showMinimap);
+  const toggleMinimap = useCanvasStore((s) => s.toggleMinimap);
+  const snapToGrid = useCanvasStore((s) => s.snapToGrid);
+  const toggleSnapToGrid = useCanvasStore((s) => s.toggleSnapToGrid);
+
+  // Editor settings
+  const editorFontSize = useCanvasStore((s) => s.editorFontSize);
+  const setEditorFontSize = useCanvasStore((s) => s.setEditorFontSize);
+  const spellCheck = useCanvasStore((s) => s.spellCheck);
+  const toggleSpellCheck = useCanvasStore((s) => s.toggleSpellCheck);
+  const autoSave = useCanvasStore((s) => s.autoSave);
+  const toggleAutoSave = useCanvasStore((s) => s.toggleAutoSave);
+  const showWordCount = useCanvasStore((s) => s.showWordCount);
+  const toggleShowWordCount = useCanvasStore((s) => s.toggleShowWordCount);
+
+  // Export settings
+  const exportIncludeBrainstorm = useCanvasStore((s) => s.exportIncludeBrainstorm);
+  const toggleExportIncludeBrainstorm = useCanvasStore((s) => s.toggleExportIncludeBrainstorm);
+  const exportIncludeCardDocs = useCanvasStore((s) => s.exportIncludeCardDocs);
+  const toggleExportIncludeCardDocs = useCanvasStore((s) => s.toggleExportIncludeCardDocs);
+  const exportIncludeAgentHints = useCanvasStore((s) => s.exportIncludeAgentHints);
+  const toggleExportIncludeAgentHints = useCanvasStore((s) => s.toggleExportIncludeAgentHints);
+  const exportGoalOverride = useCanvasStore((s) => s.exportGoalOverride);
+  const setExportGoalOverride = useCanvasStore((s) => s.setExportGoalOverride);
+
+  // Agent settings
+  const defaultAgentHint = useCanvasStore((s) => s.defaultAgentHint);
+  const setDefaultAgentHint = useCanvasStore((s) => s.setDefaultAgentHint);
+  const agentHintExportMode = useCanvasStore((s) => s.agentHintExportMode);
+  const setAgentHintExportMode = useCanvasStore((s) => s.setAgentHintExportMode);
+
+  // Tags
+  const cards = useCanvasStore((s) => s.cards);
+  const excludedTags = useCanvasStore((s) => s.excludedTags);
+  const toggleTagExclusion = useCanvasStore((s) => s.toggleTagExclusion);
+
+  // Governor
+  const disabledGovernorRules = useCanvasStore((s) => s.disabledGovernorRules);
+  const toggleGovernorRule = useCanvasStore((s) => s.toggleGovernorRule);
+
+  // History
+  const autoSnapshot = useCanvasStore((s) => s.autoSnapshot);
+  const toggleAutoSnapshot = useCanvasStore((s) => s.toggleAutoSnapshot);
+  const maxSnapshots = useCanvasStore((s) => s.maxSnapshots);
+  const setMaxSnapshots = useCanvasStore((s) => s.setMaxSnapshots);
 
   const [activeSection, setActiveSection] = useState<SettingsSection>("appearance");
 
-  const title = useMemo(() => SECTION_LABELS[activeSection], [activeSection]);
+  const allTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    for (const card of cards) {
+      if (Array.isArray(card.tags)) {
+        for (const tag of card.tags) {
+          if (typeof tag === "string" && tag.trim()) tagSet.add(tag.trim());
+        }
+      }
+    }
+    return [...tagSet].sort();
+  }, [cards]);
+
+  const title = SECTION_LABELS[activeSection];
+  const description = SECTION_DESCRIPTIONS[activeSection];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -84,12 +150,12 @@ export function SettingsPanel({ open, onOpenChange }: Props) {
       >
         <div className="sr-only">
           <DialogTitle>Settings</DialogTitle>
-          <DialogDescription>Adjust appearance, shortcuts, and future workspace preferences.</DialogDescription>
+          <DialogDescription>Adjust workspace preferences.</DialogDescription>
         </div>
 
         <div className="flex h-full min-h-0 flex-col md:flex-row">
           <aside
-            className="shrink-0 border-b px-3 py-3 md:flex md:w-60 md:flex-col md:border-r md:border-b-0 md:overflow-y-auto"
+            className="shrink-0 border-b px-3 py-3 md:flex md:w-56 md:flex-col md:border-r md:border-b-0 md:overflow-y-auto"
             style={{ borderColor: "var(--color-card-border)", background: "var(--color-surface-lowest)" }}
           >
             <div className="mb-3 px-2">
@@ -125,107 +191,250 @@ export function SettingsPanel({ open, onOpenChange }: Props) {
             </div>
           </aside>
 
-          <main className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-5 md:py-5">
+          <main className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
             <div className="mb-5">
               <h2 className="text-lg font-semibold" style={{ fontFamily: "var(--font-headline)" }}>
                 {title}
               </h2>
               <p className="mt-1 text-sm" style={{ color: "var(--color-text-secondary)" }}>
-                {activeSection === "appearance" && "Tune the canvas shell, density, and theme."}
-                {activeSection === "shortcuts" && "Reference the current keyboard affordances across the app."}
-                {activeSection !== "appearance" && activeSection !== "shortcuts"
-                  ? "This section is reserved in Wave 2 and will be filled in a later pass."
-                  : null}
+                {description}
               </p>
             </div>
 
-            {activeSection === "appearance" ? (
-              <div className="space-y-5">
-                <section>
-                  <div className="mb-2">
-                    <h3 className="text-sm font-semibold">Theme</h3>
-                    <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-                      Choose the contrast profile for the workspace shell.
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <SegmentButton active={theme === "dark"} onClick={() => setTheme("dark")}>
-                      Dark
-                    </SegmentButton>
-                    <SegmentButton active={theme === "light"} onClick={() => setTheme("light")}>
-                      Light
-                    </SegmentButton>
-                  </div>
-                </section>
+            <div className="max-w-3xl space-y-6">
+              {/* ─── Appearance ─── */}
+              {activeSection === "appearance" && (
+                <>
+                  <SettingsGroup title="Theme" description="Choose the contrast profile for the workspace shell.">
+                    <div className="flex flex-wrap gap-2">
+                      <SegmentButton active={theme === "dark"} onClick={() => setTheme("dark")}>Dark</SegmentButton>
+                      <SegmentButton active={theme === "light"} onClick={() => setTheme("light")}>Light</SegmentButton>
+                    </div>
+                  </SettingsGroup>
+                  <SettingsGroup title="Canvas" description="Toggle canvas display features.">
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <ToggleCard title="Grid" description="Show the dotted canvas backdrop." active={showGrid} onToggle={toggleShowGrid} />
+                      <ToggleCard title="Minimap" description="Keep the viewport overview visible." active={showMinimap} onToggle={toggleMinimap} />
+                      <ToggleCard title="Snap to Grid" description="Lock drag operations to the grid rhythm." active={snapToGrid} onToggle={toggleSnapToGrid} />
+                    </div>
+                  </SettingsGroup>
+                </>
+              )}
 
-                <section className="grid gap-3 md:grid-cols-3">
-                  <ToggleCard
-                    title="Grid"
-                    description="Show the dotted canvas backdrop."
-                    active={showGrid}
-                    onToggle={toggleShowGrid}
-                  />
-                  <ToggleCard
-                    title="Minimap"
-                    description="Keep the viewport overview visible."
-                    active={showMinimap}
-                    onToggle={toggleMinimap}
-                  />
-                  <ToggleCard
-                    title="Snap to Grid"
-                    description="Lock drag operations to the grid rhythm."
-                    active={snapToGrid}
-                    onToggle={toggleSnapToGrid}
-                  />
-                </section>
-              </div>
-            ) : null}
+              {/* ─── Shortcuts ─── */}
+              {activeSection === "shortcuts" && (
+                <div className="grid gap-2">
+                  {SHORTCUTS.map((shortcut) => (
+                    <div
+                      key={shortcut.keys}
+                      className="flex items-center justify-between gap-3 border px-3 py-3"
+                      style={{ borderColor: "var(--color-card-border)", background: "var(--color-surface-low)" }}
+                    >
+                      <span className="text-sm">{shortcut.description}</span>
+                      <kbd
+                        className="border px-2 py-1 text-[10px]"
+                        style={{ borderColor: "var(--color-card-border)", fontFamily: "var(--font-mono)", color: "var(--color-text-secondary)" }}
+                      >
+                        {shortcut.keys}
+                      </kbd>
+                    </div>
+                  ))}
+                </div>
+              )}
 
-            {activeSection === "shortcuts" ? (
-              <div className="grid gap-2">
-                {SHORTCUTS.map((shortcut) => (
-                  <div
-                    key={shortcut.keys}
-                    className="flex items-center justify-between gap-3 border px-3 py-3"
-                    style={{
-                      borderColor: "var(--color-card-border)",
-                      background: "var(--color-surface-low)",
-                    }}
-                  >
-                    <span className="text-sm">{shortcut.description}</span>
-                    <kbd
-                      className="border px-2 py-1 text-[10px]"
+              {/* ─── Editor ─── */}
+              {activeSection === "editor" && (
+                <>
+                  <SettingsGroup title="Font Size" description="Default text size in the document editor.">
+                    <div className="flex flex-wrap gap-2">
+                      {FONT_SIZES.map((size) => (
+                        <SegmentButton key={size} active={editorFontSize === size} onClick={() => setEditorFontSize(size)}>
+                          {size}px
+                        </SegmentButton>
+                      ))}
+                    </div>
+                  </SettingsGroup>
+                  <SettingsGroup title="Behavior" description="Editor defaults for all card documents.">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <ToggleCard title="Spell Check" description="Browser spell-check in the editor." active={spellCheck} onToggle={toggleSpellCheck} />
+                      <ToggleCard title="Auto-save" description="Automatically save after edits." active={autoSave} onToggle={toggleAutoSave} />
+                      <ToggleCard title="Word Count" description="Show live word count in the editor footer." active={showWordCount} onToggle={toggleShowWordCount} />
+                    </div>
+                  </SettingsGroup>
+                </>
+              )}
+
+              {/* ─── Export ─── */}
+              {activeSection === "export" && (
+                <>
+                  <SettingsGroup title="Content Inclusion" description="Choose what gets included when exporting context for AI.">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <ToggleCard title="Brainstorm Cards" description="Include brainstorm-type cards in export." active={exportIncludeBrainstorm} onToggle={toggleExportIncludeBrainstorm} />
+                      <ToggleCard title="Card Documents" description="Include full card documents in export." active={exportIncludeCardDocs} onToggle={toggleExportIncludeCardDocs} />
+                      <ToggleCard title="Agent Hints" description="Include agent hint annotations." active={exportIncludeAgentHints} onToggle={toggleExportIncludeAgentHints} />
+                    </div>
+                  </SettingsGroup>
+                  <SettingsGroup title="Goal Profile" description="Override automatic goal detection for the export ordering.">
+                    <div className="flex flex-wrap gap-2">
+                      {(["auto", "implementation", "review", "brainstorm"] as ExportGoalOverride[]).map((mode) => (
+                        <SegmentButton key={mode} active={exportGoalOverride === mode} onClick={() => setExportGoalOverride(mode)}>
+                          {mode === "auto" ? "Auto" : mode.charAt(0).toUpperCase() + mode.slice(1)}
+                        </SegmentButton>
+                      ))}
+                    </div>
+                  </SettingsGroup>
+                </>
+              )}
+
+              {/* ─── Agent ─── */}
+              {activeSection === "agent" && (
+                <>
+                  <SettingsGroup title="Default Hint Template" description="Pre-fill new cards with this agent hint. Leave empty to start blank.">
+                    <textarea
+                      value={defaultAgentHint}
+                      onChange={(e) => setDefaultAgentHint(e.target.value)}
+                      placeholder="Example: Focus on migration risk and surface the quickest safe rollout."
+                      className="min-h-24 w-full resize-y border px-3 py-2 text-sm outline-none"
                       style={{
                         borderColor: "var(--color-card-border)",
-                        fontFamily: "var(--font-mono)",
-                        color: "var(--color-text-secondary)",
+                        background: "var(--color-surface-lowest)",
+                        color: "var(--color-text-primary)",
                       }}
-                    >
-                      {shortcut.keys}
-                    </kbd>
-                  </div>
-                ))}
-              </div>
-            ) : null}
+                    />
+                  </SettingsGroup>
+                  <SettingsGroup title="Hint Export Mode" description="How agent hints appear in the exported context.md.">
+                    <div className="flex flex-wrap gap-2">
+                      {([
+                        { value: "inline" as AgentHintExportMode, label: "Inline with card" },
+                        { value: "section" as AgentHintExportMode, label: "Separate section" },
+                        { value: "hidden" as AgentHintExportMode, label: "Hidden" },
+                      ]).map((opt) => (
+                        <SegmentButton key={opt.value} active={agentHintExportMode === opt.value} onClick={() => setAgentHintExportMode(opt.value)}>
+                          {opt.label}
+                        </SegmentButton>
+                      ))}
+                    </div>
+                    <p className="mt-3 text-xs" style={{ color: "var(--color-text-muted)" }}>
+                      <strong>Inline:</strong> Agent hints appear next to each card in the structure tree.{" "}
+                      <strong>Separate section:</strong> All hints are collected into their own export section.{" "}
+                      <strong>Hidden:</strong> Hints are stored but not exported.
+                    </p>
+                  </SettingsGroup>
+                </>
+              )}
 
-            {activeSection !== "appearance" && activeSection !== "shortcuts" ? (
-              <div
-                className="pixel-border max-w-2xl px-4 py-5"
-                style={{
-                  background: "var(--color-surface-low)",
-                  borderColor: "var(--color-card-border)",
-                }}
-              >
-                <p className="text-sm font-semibold">Coming soon</p>
-                <p className="mt-2 text-sm" style={{ color: "var(--color-text-secondary)" }}>
-                  {PLACEHOLDER_COPY[activeSection]}
-                </p>
-              </div>
-            ) : null}
+              {/* ─── Tags ─── */}
+              {activeSection === "tags" && (
+                <SettingsGroup title="Tag Export Visibility" description="Toggle which tags are included in exported context. Excluded tags won't appear in context.md.">
+                  {allTags.length === 0 ? (
+                    <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+                      No tags in use yet. Add tags to cards and they'll appear here.
+                    </p>
+                  ) : (
+                    <div className="grid gap-2 md:grid-cols-2">
+                      {allTags.map((tag) => (
+                        <ToggleCard
+                          key={tag}
+                          title={`#${tag}`}
+                          description={excludedTags.includes(tag) ? "Excluded from export" : "Included in export"}
+                          active={!excludedTags.includes(tag)}
+                          onToggle={() => toggleTagExclusion(tag)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </SettingsGroup>
+              )}
+
+              {/* ─── Governor ─── */}
+              {activeSection === "governor" && (
+                <>
+                  <SettingsGroup title="Governor Rules" description="Enable or disable individual structural checks the governor runs.">
+                    <div className="grid gap-2">
+                      {GOVERNOR_RULES.map((rule) => (
+                        <ToggleCard
+                          key={rule.id}
+                          title={rule.label}
+                          description={rule.description}
+                          active={!disabledGovernorRules.includes(rule.id)}
+                          onToggle={() => toggleGovernorRule(rule.id)}
+                        />
+                      ))}
+                    </div>
+                  </SettingsGroup>
+                  <SettingsGroup title="About the Governor" description="">
+                    <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+                      The governor analyzes your workspace structure and flags potential issues
+                      like orphan cards, overly deep hierarchies, and missing documentation.
+                      Warnings appear on the Overview dashboard and in the AI Health Check dialog.
+                    </p>
+                  </SettingsGroup>
+                </>
+              )}
+
+              {/* ─── History ─── */}
+              {activeSection === "history" && (
+                <>
+                  <SettingsGroup title="Snapshots" description="Configure automatic history snapshots.">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <ToggleCard title="Auto-snapshot on Save" description="Create a snapshot every time the workspace is saved." active={autoSnapshot} onToggle={toggleAutoSnapshot} />
+                    </div>
+                  </SettingsGroup>
+                  <SettingsGroup title="Retention" description="Maximum number of history snapshots to keep.">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        min={5}
+                        max={500}
+                        value={maxSnapshots}
+                        onChange={(e) => {
+                          const n = parseInt(e.target.value, 10);
+                          if (!isNaN(n) && n >= 5 && n <= 500) setMaxSnapshots(n);
+                        }}
+                        className="w-24 border px-3 py-2 text-sm outline-none"
+                        style={{
+                          borderColor: "var(--color-card-border)",
+                          background: "var(--color-surface-lowest)",
+                          color: "var(--color-text-primary)",
+                          fontFamily: "var(--font-mono)",
+                        }}
+                      />
+                      <span className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+                        snapshots
+                      </span>
+                    </div>
+                  </SettingsGroup>
+                </>
+              )}
+            </div>
           </main>
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function SettingsGroup({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section>
+      <div className="mb-3">
+        <h3 className="text-sm font-semibold">{title}</h3>
+        {description && (
+          <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>
+            {description}
+          </p>
+        )}
+      </div>
+      {children}
+    </section>
   );
 }
 
@@ -235,7 +444,7 @@ function SegmentButton({
   onClick,
 }: {
   active: boolean;
-  children: string;
+  children: React.ReactNode;
   onClick: () => void;
 }) {
   return (

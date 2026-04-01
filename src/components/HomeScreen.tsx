@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { loadProject } from "../lib/file-ops";
+import { X } from "lucide-react";
+import { loadProject, loadProjectFromPath } from "../lib/file-ops";
+import { useProjectStore } from "../store/project-store";
 
 interface Props {
   onNew: (name: string) => void;
@@ -7,6 +9,8 @@ interface Props {
 
 export function HomeScreen({ onNew }: Props) {
   const [name, setName] = useState("");
+  const recentProjects = useProjectStore((s) => s.recentProjects);
+  const removeRecentProject = useProjectStore((s) => s.removeRecentProject);
 
   const handleNew = () => {
     const trimmed = name.trim() || "Untitled Workspace";
@@ -15,7 +19,15 @@ export function HomeScreen({ onNew }: Props) {
 
   const handleLoad = async () => {
     await loadProject();
-    // loadProject sets project in store, App detects it and shows canvas
+  };
+
+  const handleOpenRecent = async (dirPath: string) => {
+    try {
+      await loadProjectFromPath(dirPath);
+    } catch {
+      // Project may have been moved/deleted — remove from recents
+      removeRecentProject(dirPath);
+    }
   };
 
   return (
@@ -80,6 +92,57 @@ export function HomeScreen({ onNew }: Props) {
           Open Folder
         </button>
       </div>
+
+      {/* Recent Projects */}
+      {recentProjects.length > 0 && (
+        <div className="flex flex-col gap-2 w-72">
+          <span
+            className="text-[10px] uppercase tracking-[0.3em] px-1"
+            style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+          >
+            Recent Workspaces
+          </span>
+          <div className="flex flex-col gap-1">
+            {recentProjects.map((project) => (
+              <button
+                key={project.dirPath}
+                type="button"
+                onClick={() => handleOpenRecent(project.dirPath)}
+                className="group flex items-center justify-between gap-2 border px-3 py-2.5 text-left transition-colors hover:border-[var(--color-text-muted)]"
+                style={{
+                  background: "var(--color-surface)",
+                  borderColor: "var(--color-card-border)",
+                }}
+              >
+                <div className="min-w-0 flex-1">
+                  <div
+                    className="text-sm truncate"
+                    style={{ color: "var(--color-text-primary)" }}
+                  >
+                    {project.name}
+                  </div>
+                  <div
+                    className="text-[10px] truncate mt-0.5"
+                    style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+                  >
+                    {project.dirPath}
+                  </div>
+                </div>
+                <span
+                  className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-0.5"
+                  style={{ color: "var(--color-text-muted)" }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeRecentProject(project.dirPath);
+                  }}
+                >
+                  <X size={12} />
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,11 +1,18 @@
 import { useEffect, useState } from "react";
-import { Search, Settings } from "lucide-react";
+import { Search, Settings, ChevronDown } from "lucide-react";
 import { useCanvasStore } from "../store/canvas-store";
 import { useProjectStore, type TabId } from "../store/project-store";
 import { HealthCheckDialog } from "./HealthCheckDialog";
-import { saveProject, loadProject, exportContext } from "../lib/file-ops";
+import { saveProject, loadProject, loadProjectFromPath, exportContext } from "../lib/file-ops";
 import { CommandPalette } from "./CommandPalette";
 import { SettingsPanel } from "./SettingsPanel";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "home", label: "Overview" },
@@ -24,6 +31,7 @@ export function Toolbar() {
   const activeTab = useProjectStore((s) => s.activeTab);
   const setActiveTab = useProjectStore((s) => s.setActiveTab);
   const isDirty = useCanvasStore((s) => s.isDirty);
+  const recentProjects = useProjectStore((s) => s.recentProjects);
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -103,18 +111,64 @@ export function Toolbar() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => loadProject()}
-            className="text-xs px-3 py-1.5 border"
-            style={{
-              background: "var(--color-surface-high)",
-              color: "var(--color-text-primary)",
-              borderColor: "var(--color-card-border)",
-              fontFamily: "var(--font-mono)",
-            }}
-          >
-            Open Folder
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="flex items-center gap-1 text-xs px-3 py-1.5 border"
+                style={{
+                  background: "var(--color-surface-high)",
+                  color: "var(--color-text-primary)",
+                  borderColor: "var(--color-card-border)",
+                  fontFamily: "var(--font-mono)",
+                }}
+              >
+                Open
+                <ChevronDown size={10} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="start"
+              className="min-w-[220px]"
+              style={{
+                background: "var(--color-surface)",
+                borderColor: "var(--color-card-border)",
+              }}
+            >
+              <DropdownMenuItem
+                onClick={() => loadProject()}
+                className="text-xs"
+                style={{ fontFamily: "var(--font-mono)" }}
+              >
+                Open Folder...
+              </DropdownMenuItem>
+              {recentProjects.length > 0 && (
+                <>
+                  <DropdownMenuSeparator />
+                  <div
+                    className="px-2 py-1.5 text-[10px] uppercase tracking-[0.2em]"
+                    style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+                  >
+                    Recent
+                  </div>
+                  {recentProjects.slice(0, 5).map((rp) => (
+                    <DropdownMenuItem
+                      key={rp.dirPath}
+                      onClick={() => loadProjectFromPath(rp.dirPath)}
+                      className="flex flex-col items-start gap-0.5 text-xs"
+                    >
+                      <span style={{ color: "var(--color-text-primary)" }}>{rp.name}</span>
+                      <span
+                        className="text-[10px] truncate max-w-[200px]"
+                        style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+                      >
+                        {rp.dirPath}
+                      </span>
+                    </DropdownMenuItem>
+                  ))}
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <button
             onClick={() => setShowHealthCheck(true)}
             className="text-xs px-3 py-1.5 border"

@@ -21,7 +21,6 @@ import "@xyflow/react/dist/style.css";
 import { useCanvasStore } from "../store/canvas-store";
 import { CardNode } from "./CardNode";
 import { CardEdge } from "./CardEdge";
-import { FloatingToolbar } from "./FloatingToolbar";
 import { ReferenceScopeDialog } from "./ReferenceScopeDialog";
 import { GRID_SIZE } from "../lib/constants";
 
@@ -43,10 +42,9 @@ export function Canvas({ selectedCardId = null, onSelectedCardChange }: CanvasPr
   const storeAddEdge = useCanvasStore((s) => s.addEdge);
   const removeEdge = useCanvasStore((s) => s.removeEdge);
   const setViewport = useCanvasStore((s) => s.setViewport);
-  const editorMode = useCanvasStore((s) => s.editorMode);
   const { fitView } = useReactFlow();
 
-  const [selectedEdgeIds, setSelectedEdgeIds] = useState<string[]>([]);
+  const [, setSelectedEdgeIds] = useState<string[]>([]);
   const [pendingRef, setPendingRef] = useState<{ source: string; target: string } | null>(null);
 
   useEffect(() => {
@@ -145,8 +143,6 @@ export function Canvas({ selectedCardId = null, onSelectedCardChange }: CanvasPr
     [setViewport]
   );
 
-  const isPanMode = editorMode === "pan";
-
   return (
     <div className="w-full h-full relative">
       <ReactFlow
@@ -166,10 +162,11 @@ export function Canvas({ selectedCardId = null, onSelectedCardChange }: CanvasPr
         maxZoom={4}
         proOptions={{ hideAttribution: true }}
         onMoveEnd={onMoveEnd}
-        panOnDrag={isPanMode ? true : [1, 2]}
-        selectionOnDrag={!isPanMode}
-        nodesDraggable={editorMode === "select"}
-        nodesConnectable={editorMode === "select"}
+        panOnDrag={true}
+        selectionOnDrag={false}
+        selectionKeyCode="Shift"
+        nodesDraggable={true}
+        nodesConnectable={true}
         className="canvas-grid-bg"
       >
         {showGrid && (
@@ -191,7 +188,6 @@ export function Canvas({ selectedCardId = null, onSelectedCardChange }: CanvasPr
           />
         )}
       </ReactFlow>
-      <FloatingToolbar selectedEdgeIds={selectedEdgeIds} />
       {pendingRef && (
         <ReferenceScopeDialog
           open={true}

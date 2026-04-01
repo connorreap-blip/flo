@@ -3,6 +3,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
+import { invoke } from "@tauri-apps/api/core";
 import { exportContext, loadProject, saveProject } from "../lib/file-ops";
 import { buildWorkspaceCommandItems } from "../lib/workspace-search";
 import { useCanvasStore } from "../store/canvas-store";
@@ -51,6 +52,8 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
   const [showBacklinks, setShowBacklinks] = useState(true);
   const [showAgentHint, setShowAgentHint] = useState(() => Boolean(card?.agentHint?.trim()));
   const [showComments, setShowComments] = useState(() => (card?.comments?.length ?? 0) > 0);
+  const [dragOver, setDragOver] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
 
   const backlinks = useMemo(() => {
     if (!card?.title) {
@@ -90,6 +93,40 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
       });
     },
     [cards, openEditor, setActiveTab, setActiveView]
+  );
+
+  const handleFileDrop = useCallback(
+    async (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setDragOver(false);
+      setImportError(null);
+
+      const files = Array.from(e.dataTransfer.files);
+      if (files.length === 0) return;
+
+      const file = files[0];
+      const filePath = (file as File & { path?: string }).path;
+      if (!filePath) {
+        setImportError("Could not read file path. Try dragging from Finder.");
+        return;
+      }
+
+      try {
+        const text = await invoke<string>("extract_file_text", { filePath });
+        if (editor && text.trim()) {
+          // Convert text to paragraphs and insert
+          const paragraphs = text
+            .split(/\n{2,}/)
+            .map((p) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
+            .join("");
+          editor.chain().focus().insertContent(paragraphs).run();
+        }
+      } catch (err) {
+        setImportError(typeof err === "string" ? err : "Failed to extract text from file.");
+      }
+    },
+    [editor]
   );
 
   const workspaceItems = useMemo(
@@ -379,7 +416,46 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
       </div>
 
       {/* Editor content */}
-      <div className="flex-1 overflow-y-auto relative">
+      <div
+        className="flex-1 overflow-y-auto relative"
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={handleFileDrop}
+      >
+        {dragOver && (
+          <div
+            className="absolute inset-0 z-20 flex items-center justify-center"
+            style={{ background: "rgba(0,0,0,0.7)", border: "2px dashed var(--color-text-primary)" }}
+          >
+            <div className="text-center">
+              <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
+                Drop file to import content
+              </p>
+              <p className="mt-1 text-xs" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>
+                .txt, .md, .docx supported
+              </p>
+            </div>
+          </div>
+        )}
+        {importError && (
+          <div
+            className="mx-3 mt-2 border px-3 py-2 text-xs"
+            style={{
+              borderColor: "var(--color-accent-error)",
+              background: "var(--color-surface-low)",
+              color: "var(--color-accent-error)",
+            }}
+          >
+            {importError}
+            <button
+              className="ml-2 underline"
+              onClick={() => setImportError(null)}
+              style={{ color: "var(--color-text-muted)" }}
+            >
+              dismiss
+            </button>
+          </div>
+        )}
         <div
           className="h-full"
           onClick={(event) => {

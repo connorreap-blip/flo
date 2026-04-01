@@ -4,6 +4,9 @@ import { v4 as uuid } from "uuid";
 import type { Card, Edge, CanvasViewport, EditorState } from "../lib/types";
 import type { CardType } from "../lib/constants";
 
+export type AgentHintExportMode = "inline" | "section" | "hidden";
+export type ExportGoalOverride = "auto" | "implementation" | "review" | "brainstorm";
+
 interface CanvasStore {
   // Cards
   cards: Card[];
@@ -51,6 +54,46 @@ interface CanvasStore {
   resetHelpers: () => void;
   addComment: (cardId: string, text: string, author?: string) => void;
   removeComment: (cardId: string, commentId: string) => void;
+
+  // Settings — Editor
+  editorFontSize: number;
+  setEditorFontSize: (size: number) => void;
+  spellCheck: boolean;
+  toggleSpellCheck: () => void;
+  autoSave: boolean;
+  toggleAutoSave: () => void;
+  showWordCount: boolean;
+  toggleShowWordCount: () => void;
+
+  // Settings — Export
+  exportIncludeBrainstorm: boolean;
+  toggleExportIncludeBrainstorm: () => void;
+  exportIncludeCardDocs: boolean;
+  toggleExportIncludeCardDocs: () => void;
+  exportIncludeAgentHints: boolean;
+  toggleExportIncludeAgentHints: () => void;
+  exportGoalOverride: ExportGoalOverride;
+  setExportGoalOverride: (v: ExportGoalOverride) => void;
+
+  // Settings — Agent
+  defaultAgentHint: string;
+  setDefaultAgentHint: (v: string) => void;
+  agentHintExportMode: AgentHintExportMode;
+  setAgentHintExportMode: (v: AgentHintExportMode) => void;
+
+  // Settings — Tags
+  excludedTags: string[];
+  toggleTagExclusion: (tag: string) => void;
+
+  // Settings — Governor
+  disabledGovernorRules: string[];
+  toggleGovernorRule: (rule: string) => void;
+
+  // Settings — History
+  autoSnapshot: boolean;
+  toggleAutoSnapshot: () => void;
+  maxSnapshots: number;
+  setMaxSnapshots: (n: number) => void;
 
   // Bulk load (for loading from disk)
   loadState: (cards: Card[], edges: Edge[], viewport: CanvasViewport) => void;
@@ -144,6 +187,56 @@ export const useCanvasStore = create<CanvasStore>()(
 
   isDirty: false,
   markClean: () => set({ isDirty: false }),
+
+  // Settings — Editor
+  editorFontSize: 14,
+  setEditorFontSize: (size) => set({ editorFontSize: size }),
+  spellCheck: true,
+  toggleSpellCheck: () => set((s) => ({ spellCheck: !s.spellCheck })),
+  autoSave: true,
+  toggleAutoSave: () => set((s) => ({ autoSave: !s.autoSave })),
+  showWordCount: false,
+  toggleShowWordCount: () => set((s) => ({ showWordCount: !s.showWordCount })),
+
+  // Settings — Export
+  exportIncludeBrainstorm: false,
+  toggleExportIncludeBrainstorm: () => set((s) => ({ exportIncludeBrainstorm: !s.exportIncludeBrainstorm })),
+  exportIncludeCardDocs: true,
+  toggleExportIncludeCardDocs: () => set((s) => ({ exportIncludeCardDocs: !s.exportIncludeCardDocs })),
+  exportIncludeAgentHints: true,
+  toggleExportIncludeAgentHints: () => set((s) => ({ exportIncludeAgentHints: !s.exportIncludeAgentHints })),
+  exportGoalOverride: "auto",
+  setExportGoalOverride: (v) => set({ exportGoalOverride: v }),
+
+  // Settings — Agent
+  defaultAgentHint: "",
+  setDefaultAgentHint: (v) => set({ defaultAgentHint: v }),
+  agentHintExportMode: "inline",
+  setAgentHintExportMode: (v) => set({ agentHintExportMode: v }),
+
+  // Settings — Tags
+  excludedTags: [],
+  toggleTagExclusion: (tag) =>
+    set((s) => ({
+      excludedTags: s.excludedTags.includes(tag)
+        ? s.excludedTags.filter((t) => t !== tag)
+        : [...s.excludedTags, tag],
+    })),
+
+  // Settings — Governor
+  disabledGovernorRules: [],
+  toggleGovernorRule: (rule) =>
+    set((s) => ({
+      disabledGovernorRules: s.disabledGovernorRules.includes(rule)
+        ? s.disabledGovernorRules.filter((r) => r !== rule)
+        : [...s.disabledGovernorRules, rule],
+    })),
+
+  // Settings — History
+  autoSnapshot: true,
+  toggleAutoSnapshot: () => set((s) => ({ autoSnapshot: !s.autoSnapshot })),
+  maxSnapshots: 50,
+  setMaxSnapshots: (n) => set({ maxSnapshots: n }),
 
   dismissedHelpers: [],
   dismissHelper: (helperId) =>
