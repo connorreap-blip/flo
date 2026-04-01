@@ -1,9 +1,28 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { CARD_DEFAULTS } from "../lib/constants";
 import { generateContextMd } from "../lib/export-context";
 import { estimateContextWords } from "../lib/governor";
 import { useProjectStore } from "../store/project-store";
 import { useCanvasStore } from "../store/canvas-store";
+
+const AGENT_PROMPTS = [
+  {
+    id: "claude",
+    label: "Claude / Claude Code",
+    prompt: "Read the attached context.md and implement the next task in the plan.",
+  },
+  {
+    id: "codex",
+    label: "Codex",
+    prompt: "Use context.md as your project map. Start with the highest-priority incomplete task.",
+  },
+  {
+    id: "general",
+    label: "General",
+    prompt: "I've attached my project context. Review the structure and suggest what to work on next.",
+  },
+] as const;
 
 function estimateTokenCount(words: number): number {
   return Math.max(1, Math.round(words * 1.3));
@@ -129,6 +148,8 @@ export function GhostPreview() {
   const exportGoalOverride = useCanvasStore((state) => state.exportGoalOverride);
   const excludedTags = useCanvasStore((state) => state.excludedTags);
   const sectionReferenceWordCap = useCanvasStore((state) => state.sectionReferenceWordCap);
+  const [showAgentPrompts, setShowAgentPrompts] = useState(false);
+  const [copiedPromptId, setCopiedPromptId] = useState<string | null>(null);
 
   const contextMd = useMemo(
     () => generateContextMd(project.name, cards, edges, project.goal, {
@@ -172,6 +193,15 @@ export function GhostPreview() {
       totalWords: costs.reduce((sum, cost) => sum + cost.words, 0),
     };
   }, [cards, edges, sectionReferenceWordCap]);
+
+  useEffect(() => {
+    if (!copiedPromptId) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => setCopiedPromptId(null), 1800);
+    return () => window.clearTimeout(timer);
+  }, [copiedPromptId]);
 
   if (!ghostPreviewMode) {
     return null;
@@ -249,6 +279,95 @@ export function GhostPreview() {
           </div>
           <div className="h-full overflow-y-auto px-5 py-4">
             <MarkdownPreview markdown={contextMd} />
+            <section
+              className="mt-6 border-t pt-4"
+              style={{ borderColor: "var(--color-card-border)" }}
+              aria-label="Use with your agent"
+            >
+              <button
+                type="button"
+                className="flex w-full items-center justify-between gap-3 border px-3 py-3 text-left"
+                aria-expanded={showAgentPrompts}
+                onClick={() => setShowAgentPrompts((current) => !current)}
+                style={{
+                  borderColor: "var(--color-card-border)",
+                  background: "var(--color-surface-lowest)",
+                }}
+              >
+                <div>
+                  <div
+                    className="text-[10px] uppercase tracking-[0.3em]"
+                    style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+                  >
+                    Use with your agent
+                  </div>
+                  <p className="mt-1 text-sm" style={{ color: "var(--color-text-secondary)" }}>
+                    Copy a starter prompt for your handoff message.
+                  </p>
+                </div>
+                {showAgentPrompts ? (
+                  <ChevronDown size={16} style={{ color: "var(--color-text-muted)" }} />
+                ) : (
+                  <ChevronRight size={16} style={{ color: "var(--color-text-muted)" }} />
+                )}
+              </button>
+
+              {showAgentPrompts ? (
+                <div className="mt-3 space-y-3">
+                  {AGENT_PROMPTS.map((prompt) => (
+                    <div
+                      key={prompt.id}
+                      className="border p-3"
+                      style={{ borderColor: "var(--color-card-border)", background: "rgba(255,255,255,0.02)" }}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div
+                            className="text-[10px] uppercase tracking-[0.28em]"
+                            style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+                          >
+                            {prompt.label}
+                          </div>
+                          <p className="mt-2 text-sm leading-6" style={{ color: "var(--color-text-primary)" }}>
+                            {prompt.prompt}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          className="shrink-0 border px-3 py-2 text-[10px] uppercase tracking-[0.24em]"
+                          onClick={async () => {
+                            if (!navigator.clipboard) {
+                              return;
+                            }
+
+                            try {
+                              await navigator.clipboard.writeText(prompt.prompt);
+                              setCopiedPromptId(prompt.id);
+                            } catch {
+                              setCopiedPromptId(null);
+                            }
+                          }}
+                          style={{
+                            borderColor: "var(--color-card-border)",
+                            color:
+                              copiedPromptId === prompt.id
+                                ? "var(--color-text-primary)"
+                                : "var(--color-text-muted)",
+                            fontFamily: "var(--font-mono)",
+                            background:
+                              copiedPromptId === prompt.id
+                                ? "var(--color-surface-high)"
+                                : "transparent",
+                          }}
+                        >
+                          {copiedPromptId === prompt.id ? "COPIED!" : "COPY"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </section>
           </div>
         </div>
       ) : (
