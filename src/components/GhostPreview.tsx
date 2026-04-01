@@ -122,9 +122,19 @@ export function GhostPreview() {
   const ghostPreviewMode = useCanvasStore((state) => state.ghostPreviewMode);
   const setGhostPreviewMode = useCanvasStore((state) => state.setGhostPreviewMode);
 
+  const agentHintExportMode = useCanvasStore((state) => state.agentHintExportMode);
+  const exportIncludeBrainstorm = useCanvasStore((state) => state.exportIncludeBrainstorm);
+  const exportIncludeCardDocs = useCanvasStore((state) => state.exportIncludeCardDocs);
+  const excludedTags = useCanvasStore((state) => state.excludedTags);
+
   const contextMd = useMemo(
-    () => generateContextMd(project.name, cards, edges, project.goal),
-    [project.name, project.goal, cards, edges]
+    () => generateContextMd(project.name, cards, edges, project.goal, {
+      agentHintExportMode,
+      includeBrainstorm: exportIncludeBrainstorm,
+      includeCardDocs: exportIncludeCardDocs,
+      excludedTags,
+    }),
+    [project.name, project.goal, cards, edges, agentHintExportMode, exportIncludeBrainstorm, exportIncludeCardDocs, excludedTags]
   );
 
   const cardCosts = useMemo(() => {

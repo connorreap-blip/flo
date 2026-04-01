@@ -27,6 +27,7 @@ pub fn run() {
             commands::files::list_project_files,
             commands::files::read_project_file_preview,
             commands::files::import_project_files,
+            commands::extract::extract_file_text,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

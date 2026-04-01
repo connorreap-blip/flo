@@ -2,7 +2,6 @@ import { useMemo } from "react";
 import { useCanvasStore } from "../store/canvas-store";
 import { CARD_TYPE_LABELS, CARD_TYPE_STYLES } from "../lib/constants";
 import { estimateContextWords } from "../lib/governor";
-import { FloatingToolbar } from "./FloatingToolbar";
 import type { Card } from "../lib/types";
 
 export function KanbanView() {
@@ -142,7 +141,6 @@ export function KanbanView() {
           </div>
         ))}
       </div>
-      <FloatingToolbar selectedEdgeIds={[]} />
     </div>
   );
 }
