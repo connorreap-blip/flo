@@ -21,6 +21,7 @@ import "@xyflow/react/dist/style.css";
 import { useCanvasStore } from "../store/canvas-store";
 import { CardNode } from "./CardNode";
 import { CardEdge } from "./CardEdge";
+import { EmptyCanvasPrompt } from "./EmptyCanvasPrompt";
 import { ReferenceScopeDialog } from "./ReferenceScopeDialog";
 import { GRID_SIZE } from "../lib/constants";
 
@@ -195,6 +196,7 @@ export function Canvas({ selectedCardId = null, onSelectedCardChange }: CanvasPr
           />
         )}
       </ReactFlow>
+      {cards.length <= 1 ? <EmptyCanvasPrompt /> : null}
       {pendingRef && (
         <ReferenceScopeDialog
           open={true}
