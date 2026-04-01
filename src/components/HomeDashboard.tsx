@@ -44,6 +44,12 @@ const EDGE_TYPE_LABELS = {
   reference: "Reference",
 } as const;
 
+const PROJECT_GOAL_EXAMPLES = [
+  "Implement user authentication with OAuth providers",
+  "Migrate legacy API to new microservice architecture",
+  "Build and ship v1 of the mobile companion app",
+] as const;
+
 function formatCount(value: number): string {
   return new Intl.NumberFormat("en-US").format(value);
 }
@@ -463,6 +469,7 @@ export function HomeDashboard() {
       [key]: !current[key],
     }));
   }, []);
+  const hasProjectGoal = (project.goal ?? "").trim().length > 0;
 
   const statCards = useMemo(
     () =>
@@ -557,6 +564,40 @@ export function HomeDashboard() {
                       fontFamily: "var(--font-body)",
                     }}
                   />
+                  {!hasProjectGoal ? (
+                    <div className="space-y-2">
+                      <div
+                        className="text-[10px] uppercase tracking-[0.24em]"
+                        style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+                      >
+                        Try one of these
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {PROJECT_GOAL_EXAMPLES.map((exampleGoal) => (
+                          <button
+                            key={exampleGoal}
+                            type="button"
+                            className="min-h-11 border px-3 py-2 text-left text-sm leading-5 transition-colors"
+                            style={{
+                              borderColor: "var(--color-card-border)",
+                              color: "var(--color-text-primary)",
+                              background: "var(--color-surface-low)",
+                              fontFamily: "var(--font-body)",
+                            }}
+                            onClick={() => {
+                              setProject({
+                                ...project,
+                                goal: exampleGoal,
+                              });
+                              setGoalSuggestion(null);
+                            }}
+                          >
+                            {exampleGoal}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                   {goalSuggestion ? (
                     <div
                       className="space-y-3 border px-3 py-3"
