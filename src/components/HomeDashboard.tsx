@@ -6,6 +6,7 @@ import { suggestProjectGoal } from "../lib/suggestions";
 import type { Card, Edge, GovernorWarning } from "../lib/types";
 import { resolveContextTier, resolveContextWarningBand } from "../lib/native-settings";
 import { HealthCheckDialog } from "./HealthCheckDialog";
+import { OnboardingChecklist } from "./OnboardingChecklist";
 import { useCanvasStore } from "../store/canvas-store";
 import { useDashboardStore, type ActivityEntry } from "../store/dashboard-store";
 import { useProjectStore } from "../store/project-store";
@@ -376,6 +377,7 @@ export function HomeDashboard() {
   const setProject = useProjectStore((state) => state.setProject);
   const cards = useCanvasStore((state) => state.cards);
   const edges = useCanvasStore((state) => state.edges);
+  const checklistDismissed = useCanvasStore((state) => state.checklistDismissed);
   const cardCountByType = useDashboardStore((state) => state.cardCountByType);
   const edgeCount = useDashboardStore((state) => state.edgeCount);
   const totalWordCount = useDashboardStore((state) => state.totalWordCount);
@@ -494,6 +496,8 @@ export function HomeDashboard() {
     >
       <div className="mx-auto grid max-w-7xl gap-4 pb-20 lg:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.95fr)]">
         <section className="flex flex-col gap-4">
+          {!checklistDismissed ? <OnboardingChecklist /> : null}
+
           <div
             className="pixel-border overflow-hidden"
             style={{

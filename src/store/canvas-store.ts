@@ -87,6 +87,7 @@ interface CanvasStore {
   closeEditor: (cardId: string) => void;
   ghostPreviewMode: null | "read" | "cost";
   setGhostPreviewMode: (mode: null | "read" | "cost") => void;
+  hasUsedGhostPreview: boolean;
 
   // Viewport
   viewport: CanvasViewport;
@@ -109,6 +110,8 @@ interface CanvasStore {
   dismissedHelpers: string[];
   dismissHelper: (helperId: string) => void;
   resetHelpers: () => void;
+  checklistDismissed: boolean;
+  dismissChecklist: () => void;
   addComment: (cardId: string, text: string, author?: string) => void;
   removeComment: (cardId: string, commentId: string) => void;
 
@@ -253,6 +256,7 @@ type PersistedCanvasSettings = Pick<
   | "defaultKanbanGrouping"
   | "dashboardSectionsCollapsedByDefault"
   | "dashboardPreviewTruncationLength"
+  | "checklistDismissed"
 >;
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -471,6 +475,9 @@ function parseStoredSettings(): Partial<PersistedCanvasSettings> {
         DEFAULT_DASHBOARD_PREVIEW_TRUNCATION_LENGTH
       );
     }
+    if (typeof parsed.checklistDismissed === "boolean") {
+      settings.checklistDismissed = parsed.checklistDismissed;
+    }
 
     if (
       typeof settings.contextSoftWarningWordThreshold === "number" &&
@@ -528,6 +535,7 @@ function extractPersistedCanvasSettings(state: CanvasStore): PersistedCanvasSett
     defaultKanbanGrouping: state.defaultKanbanGrouping,
     dashboardSectionsCollapsedByDefault: state.dashboardSectionsCollapsedByDefault,
     dashboardPreviewTruncationLength: state.dashboardPreviewTruncationLength,
+    checklistDismissed: state.checklistDismissed,
   };
 }
 
@@ -644,7 +652,12 @@ export const useCanvasStore = create<CanvasStore>()(
           openEditors: state.openEditors.filter((editor) => editor.cardId !== cardId),
         })),
       ghostPreviewMode: null,
-      setGhostPreviewMode: (mode) => set({ ghostPreviewMode: mode }),
+      setGhostPreviewMode: (mode) =>
+        set((state) => ({
+          ghostPreviewMode: mode,
+          hasUsedGhostPreview: mode === null ? state.hasUsedGhostPreview : true,
+        })),
+      hasUsedGhostPreview: false,
 
       viewport: { x: 0, y: 0, zoom: 1 },
       setViewport: (viewport) => set({ viewport }),
@@ -668,6 +681,8 @@ export const useCanvasStore = create<CanvasStore>()(
             : [...state.dismissedHelpers, helperId],
         })),
       resetHelpers: () => set({ dismissedHelpers: [] }),
+      checklistDismissed: persistedSettings.checklistDismissed ?? false,
+      dismissChecklist: () => set({ checklistDismissed: true }),
       addComment: (cardId, text, author) =>
         set((state) => ({
           cards: state.cards.map((card) =>
@@ -938,6 +953,7 @@ export const useCanvasStore = create<CanvasStore>()(
           viewport,
           openEditors: [],
           ghostPreviewMode: null,
+          hasUsedGhostPreview: false,
           isDirty: false,
           dismissedHelpers: [],
           editVersion: 0,
@@ -948,6 +964,7 @@ export const useCanvasStore = create<CanvasStore>()(
           edges: [],
           openEditors: [],
           ghostPreviewMode: null,
+          hasUsedGhostPreview: false,
           viewport: { x: 0, y: 0, zoom: 1 },
           isDirty: false,
           dismissedHelpers: [],
