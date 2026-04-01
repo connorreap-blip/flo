@@ -306,6 +306,22 @@ html, body, #root {
   text-decoration: underline;
 }
 
+.tiptap .file-ref {
+  display: inline-block;
+  margin: 0 0.15rem;
+  padding: 0.05rem 0.35rem;
+  border: 1px solid var(--color-card-border);
+  background: var(--color-surface-high);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+}
+
+.tiptap .file-ref:hover {
+  border-color: var(--color-card-border-selected);
+}
+
 .wikilink-suggestion {
   position: fixed;
   z-index: 160;

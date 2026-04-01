@@ -329,6 +329,9 @@ function docHtmlToPlainMarkdown(html: string): string {
     .replace(/<span[^>]*data-wikilink="([^"]*)"[^>]*>.*?<\/span>/g, (_, title) => {
       return `[[${title}]]`;
     })
+    .replace(/<span[^>]*data-file-ref="([^"]*)"[^>]*data-file-name="([^"]*)"[^>]*>.*?<\/span>/g, (_, path, name) => {
+      return `[${name}](${path})`;
+    })
     .replace(/<h1>(.*?)<\/h1>/g, "# $1\n")
     .replace(/<h2>(.*?)<\/h2>/g, "## $1\n")
     .replace(/<h3>(.*?)<\/h3>/g, "### $1\n")

@@ -113,6 +113,8 @@ export function SettingsPanel({ open, onOpenChange }: Props) {
   const togglePromptReferenceScopeOnCreate = useCanvasStore((s) => s.togglePromptReferenceScopeOnCreate);
   const exportFileNamePattern = useCanvasStore((s) => s.exportFileNamePattern);
   const setExportFileNamePattern = useCanvasStore((s) => s.setExportFileNamePattern);
+  const exportTargetPath = useCanvasStore((s) => s.exportTargetPath);
+  const setExportTargetPath = useCanvasStore((s) => s.setExportTargetPath);
   const saveBehaviorPreference = useCanvasStore((s) => s.saveBehaviorPreference);
   const setSaveBehaviorPreference = useCanvasStore((s) => s.setSaveBehaviorPreference);
 
@@ -492,6 +494,13 @@ export function SettingsPanel({ open, onOpenChange }: Props) {
                         value={exportFileNamePattern}
                         placeholder="{project}-context-{date}.md"
                         onChange={setExportFileNamePattern}
+                      />
+                      <TextSetting
+                        label="Auto-export Path"
+                        description="When set, 'Export for AI' writes directly to this file instead of prompting. e.g. /path/to/project/CLAUDE.md"
+                        value={exportTargetPath}
+                        placeholder="/path/to/project/CLAUDE.md"
+                        onChange={setExportTargetPath}
                       />
                       <div>
                         <p className="mb-2 text-xs" style={{ color: "var(--color-text-muted)" }}>

@@ -1,14 +1,24 @@
+import type { ProjectFileEntry } from "../store/asset-store";
 import type { Card } from "./types";
 
 export type WorkspaceCommandCategory = "card" | "doc" | "action" | "setting";
+export type DocSlashCategory = "card" | "doc" | "file";
 
-export interface WorkspaceCommandItem {
+interface SearchableItem {
   id: string;
   label: string;
-  category: WorkspaceCommandCategory;
   keywords: string;
+}
+
+export interface WorkspaceCommandItem extends SearchableItem {
+  category: WorkspaceCommandCategory;
   hint?: string;
-  insertValue?: string;
+  run: () => void | Promise<void>;
+}
+
+export interface DocSlashItem extends SearchableItem {
+  category: DocSlashCategory;
+  hint?: string;
   run: () => void | Promise<void>;
 }
 
@@ -24,6 +34,25 @@ interface BuildWorkspaceCommandItemsArgs {
   toggleMinimap: () => void;
   toggleSnapToGrid: () => void;
   openSettings?: () => void;
+}
+
+interface BuildDocSlashItemsArgs {
+  cards: Card[];
+  files: ProjectFileEntry[];
+  insertCardReference: (cardId: string, title: string) => void;
+  insertFileReference: (file: ProjectFileEntry) => void;
+}
+
+function buildCardKeywords(card: Card, includeDocContent: boolean): string {
+  return [
+    card.title,
+    card.body,
+    includeDocContent ? card.docContent : "",
+    Array.isArray(card.tags) ? card.tags.join(" ") : "",
+    card.type,
+  ]
+    .filter(Boolean)
+    .join(" ");
 }
 
 export function buildWorkspaceCommandItems({
@@ -46,17 +75,8 @@ export function buildWorkspaceCommandItems({
       id: `card:${card.id}`,
       label,
       category: "card" as const,
-      keywords: [
-        card.title,
-        card.body,
-        Array.isArray(card.tags) ? card.tags.join(" ") : "",
-        card.type,
-        "card",
-      ]
-        .filter(Boolean)
-        .join(" "),
+      keywords: `${buildCardKeywords(card, false)} card`,
       hint: card.type,
-      insertValue: `[[${label}]]`,
       run: () => focusCard(card.id),
     };
   });
@@ -70,18 +90,8 @@ export function buildWorkspaceCommandItems({
         id: `doc:${card.id}`,
         label,
         category: "doc" as const,
-        keywords: [
-          card.title,
-          card.body,
-          card.docContent,
-          Array.isArray(card.tags) ? card.tags.join(" ") : "",
-          card.type,
-          "doc document notes",
-        ]
-          .filter(Boolean)
-          .join(" "),
+        keywords: `${buildCardKeywords(card, true)} doc document notes`,
         hint: "document",
-        insertValue: `[[${label}]]`,
         run: () => openDocument(card.id),
       };
     });
@@ -156,6 +166,61 @@ export function buildWorkspaceCommandItems({
   ];
 }
 
+export function buildDocSlashItems({
+  cards,
+  files,
+  insertCardReference,
+  insertFileReference,
+}: BuildDocSlashItemsArgs): DocSlashItem[] {
+  const cardItems = cards.map((card) => {
+    const label = card.title || "Untitled";
+
+    return {
+      id: `card:${card.id}`,
+      label,
+      category: "card" as const,
+      keywords: `${buildCardKeywords(card, false)} reference link`,
+      hint: card.type,
+      run: () => insertCardReference(card.id, label),
+    };
+  });
+
+  const docItems = cards
+    .filter((card) => card.hasDoc)
+    .map((card) => {
+      const label = card.title || "Untitled";
+
+      return {
+        id: `doc:${card.id}`,
+        label,
+        category: "doc" as const,
+        keywords: `${buildCardKeywords(card, true)} doc document reference`,
+        hint: "document",
+        run: () => insertCardReference(card.id, label),
+      };
+    });
+
+  const fileItems = files
+    .filter((file) => file.category === "asset")
+    .map((file) => ({
+      id: `file:${file.relative_path}`,
+      label: file.name,
+      category: "file" as const,
+      keywords: [
+        file.name,
+        file.relative_path,
+        file.extension,
+        "file attachment import asset",
+      ]
+        .filter(Boolean)
+        .join(" "),
+      hint: file.extension?.toUpperCase() ?? "file",
+      run: () => insertFileReference(file),
+    }));
+
+  return [...cardItems, ...docItems, ...fileItems];
+}
+
 export function fuzzyScore(text: string, query: string) {
   const haystack = text.toLowerCase();
   const needle = query.trim().toLowerCase();
@@ -186,7 +251,7 @@ export function fuzzyScore(text: string, query: string) {
   return score;
 }
 
-export function filterWorkspaceCommandItems(items: WorkspaceCommandItem[], query: string): WorkspaceCommandItem[] {
+function filterSearchItems<T extends SearchableItem>(items: T[], query: string): T[] {
   if (!query.trim()) {
     return items;
   }
@@ -199,4 +264,12 @@ export function filterWorkspaceCommandItems(items: WorkspaceCommandItem[], query
     .filter((entry) => entry.score >= 0)
     .sort((left, right) => right.score - left.score || left.item.label.localeCompare(right.item.label))
     .map((entry) => entry.item);
+}
+
+export function filterWorkspaceCommandItems(items: WorkspaceCommandItem[], query: string): WorkspaceCommandItem[] {
+  return filterSearchItems(items, query);
+}
+
+export function filterDocSlashItems(items: DocSlashItem[], query: string): DocSlashItem[] {
+  return filterSearchItems(items, query);
 }

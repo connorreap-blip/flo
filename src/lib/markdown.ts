@@ -15,11 +15,41 @@ interface CardFrontmatter {
  * Handles headings, bold, italic, underline, lists, code blocks,
  * blockquotes, wikilinks, and paragraphs.
  */
+function extractDataAttribute(tag: string, attribute: string): string | null {
+  const match = new RegExp(`${attribute}="([^"]*)"`).exec(tag);
+  return match?.[1] ?? null;
+}
+
+function renderWikilinkSpan(title: string, cardId?: string | null): string {
+  const attrs = [`data-wikilink="${title}"`];
+  if (cardId) {
+    attrs.push(`data-card-id="${cardId}"`);
+  }
+  return `<span ${attrs.join(" ")} class="wikilink">[[${title}]]</span>`;
+}
+
+function renderFileRefSpan(name: string, relativePath: string): string {
+  return `<span data-file-ref="${relativePath}" data-file-name="${name}" class="file-ref">${name}</span>`;
+}
+
 function htmlToMarkdown(html: string): string {
   if (!html) return "";
   return html
-    // Resolve wikilinks: <span data-wikilink="Title" ...>[[Title]]</span>
-    .replace(/<span[^>]*data-wikilink="([^"]*)"[^>]*>.*?<\/span>/g, (_, title) => `[[${title}]]`)
+    .replace(/<span([^>]*)>.*?<\/span>/g, (fullMatch, attrs) => {
+      const title = extractDataAttribute(attrs, "data-wikilink");
+      if (title) {
+        const cardId = extractDataAttribute(attrs, "data-card-id");
+        return `[[${title}]]${cardId ? `<!-- flo-link:${cardId} -->` : ""}`;
+      }
+
+      const relativePath = extractDataAttribute(attrs, "data-file-ref");
+      if (relativePath) {
+        const name = extractDataAttribute(attrs, "data-file-name") ?? relativePath.split("/").pop() ?? relativePath;
+        return `[${name}](${relativePath})<!-- flo-file -->`;
+      }
+
+      return fullMatch;
+    })
     .replace(/<h1>(.*?)<\/h1>/g, "# $1\n")
     .replace(/<h2>(.*?)<\/h2>/g, "## $1\n")
     .replace(/<h3>(.*?)<\/h3>/g, "### $1\n")
@@ -73,7 +103,12 @@ function markdownToHtml(md: string): string {
 
 function inlineMarkdown(text: string): string {
   return text
-    .replace(/\[\[([^\]]+)\]\]/g, '<span data-wikilink="$1" class="wikilink">[[$1]]</span>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)<!--\s*flo-file\s*-->/g, (_, name, relativePath) =>
+      renderFileRefSpan(name, relativePath)
+    )
+    .replace(/\[\[([^\]]+)\]\](?:<!--\s*flo-link:([A-Za-z0-9_-]+)\s*-->)?/g, (_, title, cardId) =>
+      renderWikilinkSpan(title, cardId)
+    )
     .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
     .replace(/\*(.*?)\*/g, "<em>$1</em>");
 }

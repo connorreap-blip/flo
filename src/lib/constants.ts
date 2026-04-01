@@ -20,10 +20,10 @@ export const CARD_TYPE_STYLES: Record<
   CardType,
   { bg: string; text: string; borderStyle: string }
 > = {
-  project: { bg: "#000000", text: "#FFFFFF", borderStyle: "solid" },
-  process: { bg: "#1E1E1E", text: "#888888", borderStyle: "solid" },
-  reference: { bg: "#2A2A2A", text: "#AAAAAA", borderStyle: "solid" },
-  brainstorm: { bg: "#2A2A2A", text: "#FFFFFF", borderStyle: "dashed" },
+  project: { bg: "#1A1400", text: "#C9A84C", borderStyle: "solid" },
+  process: { bg: "#0A1A1A", text: "#5AADAD", borderStyle: "solid" },
+  reference: { bg: "#1A0A1A", text: "#A88ABF", borderStyle: "solid" },
+  brainstorm: { bg: "#1A1A0A", text: "#8A8A5A", borderStyle: "dashed" },
 };
 
 export const EDGE_TYPES = ["hierarchy", "flow", "reference"] as const;

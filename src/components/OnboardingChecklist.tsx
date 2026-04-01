@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useCanvasStore } from "../store/canvas-store";
 import { useProjectStore } from "../store/project-store";
+import { saveProject } from "../lib/file-ops";
 
 type ChecklistItem = {
   id: string;
@@ -53,7 +54,7 @@ export function OnboardingChecklist() {
       {
         id: "ghost-preview",
         label: "Preview what your agent will read",
-        detail: "Open Ghost Preview once to inspect the exported context.",
+        detail: "Open Ghost Preview to inspect exported context. Try Cmd+Shift+P now.",
         complete: hasUsedGhostPreview,
       },
       {
@@ -65,6 +66,29 @@ export function OnboardingChecklist() {
     ],
     [cards.length, edges.length, hasUsedGhostPreview, isDirty, projectDirPath]
   );
+
+  const actions: Record<string, (() => void) | undefined> = {
+    "first-card": () => {
+      useProjectStore.getState().setActiveTab("layers");
+      useProjectStore.getState().setActiveView("canvas");
+    },
+    "first-edge": () => {
+      useProjectStore.getState().setActiveTab("layers");
+      useProjectStore.getState().setActiveView("canvas");
+    },
+    "five-cards": () => {
+      useProjectStore.getState().setActiveTab("layers");
+      useProjectStore.getState().setActiveView("canvas");
+    },
+    "ghost-preview": () => {
+      useProjectStore.getState().setActiveTab("layers");
+      useProjectStore.getState().setActiveView("canvas");
+      useCanvasStore.getState().setGhostPreviewMode("read");
+    },
+    "save-workspace": () => {
+      saveProject();
+    },
+  };
 
   const completedCount = items.filter((item) => item.complete).length;
   const allComplete = completedCount === items.length;
@@ -108,26 +132,35 @@ export function OnboardingChecklist() {
       </div>
 
       <div className="grid gap-px" style={{ background: "var(--color-card-border)" }}>
-        {items.map((item) => (
-          <div
-            key={item.id}
-            className="flex items-start gap-3 px-4 py-3"
-            style={{ background: "var(--color-surface-lowest)" }}
-          >
-            <ChecklistIndicator complete={item.complete} />
-            <div className="min-w-0 space-y-1">
-              <div className="text-sm" style={{ color: "var(--color-text-primary)" }}>
-                {item.label}
+        {items.map((item) => {
+          const action = !item.complete ? actions[item.id] : undefined;
+          const Wrapper = action ? "button" : "div";
+          return (
+            <Wrapper
+              key={item.id}
+              type={action ? "button" : undefined}
+              className="flex items-start gap-3 px-4 py-3 text-left w-full transition-colors"
+              style={{
+                background: "var(--color-surface-lowest)",
+                cursor: action ? "pointer" : "default",
+              }}
+              onClick={action}
+            >
+              <ChecklistIndicator complete={item.complete} />
+              <div className="min-w-0 space-y-1">
+                <div className="text-sm" style={{ color: "var(--color-text-primary)" }}>
+                  {item.label}
+                </div>
+                <div
+                  className="text-[11px] uppercase tracking-[0.18em]"
+                  style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+                >
+                  {item.complete ? "Complete" : "Pending"} · {item.detail}
+                </div>
               </div>
-              <div
-                className="text-[11px] uppercase tracking-[0.18em]"
-                style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
-              >
-                {item.complete ? "Complete" : "Pending"} · {item.detail}
-              </div>
-            </div>
-          </div>
-        ))}
+            </Wrapper>
+          );
+        })}
       </div>
     </section>
   );

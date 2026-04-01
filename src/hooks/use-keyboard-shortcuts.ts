@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useCanvasStore } from "../store/canvas-store";
 import { useProjectStore, type TabId } from "../store/project-store";
-import { saveProject, saveProjectAs, loadProject, exportContext } from "../lib/file-ops";
+import { saveProject, saveProjectAs, loadProject, exportContext, copyContextToClipboard } from "../lib/file-ops";
 
 export function useKeyboardShortcuts() {
   const toggleShowGrid = useCanvasStore((s) => s.toggleShowGrid);
@@ -34,18 +34,26 @@ export function useKeyboardShortcuts() {
       if (meta && e.key === "z" && !e.shiftKey) {
         e.preventDefault();
         useCanvasStore.temporal.getState().undo();
+        window.dispatchEvent(new CustomEvent("flo:undo-redo", { detail: { action: "undo" } }));
       }
 
       // Cmd+Shift+Z — Redo
       if (meta && e.key === "z" && e.shiftKey) {
         e.preventDefault();
         useCanvasStore.temporal.getState().redo();
+        window.dispatchEvent(new CustomEvent("flo:undo-redo", { detail: { action: "redo" } }));
       }
 
       // Cmd+E — Export context.md
       if (meta && e.key === "e") {
         e.preventDefault();
         exportContext();
+      }
+
+      // Cmd+Shift+C — Copy context to clipboard
+      if (meta && e.shiftKey && e.key.toLowerCase() === "c") {
+        e.preventDefault();
+        copyContextToClipboard();
       }
 
       // Cmd+G — Toggle grid
@@ -97,10 +105,14 @@ export function useKeyboardShortcuts() {
         useProjectStore.getState().setActiveTab(tabs[(idx - 1 + tabs.length) % tabs.length]);
       }
 
-      // Escape — Close all editors
+      // Escape — Close ghost preview first, then close all editors
       if (e.key === "Escape") {
         const store = useCanvasStore.getState();
-        store.openEditors.forEach((ed) => store.closeEditor(ed.cardId));
+        if (store.ghostPreviewMode) {
+          store.setGhostPreviewMode(null);
+        } else {
+          store.openEditors.forEach((ed) => store.closeEditor(ed.cardId));
+        }
       }
     };
 

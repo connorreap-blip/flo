@@ -5,13 +5,20 @@ import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { exportContext, loadProject, saveProject, saveProjectAs } from "../lib/file-ops";
-import { buildWorkspaceCommandItems } from "../lib/workspace-search";
+import { openPath, revealItemInDir } from "@tauri-apps/plugin-opener";
+import { buildDocSlashItems } from "../lib/workspace-search";
 import { useCanvasStore } from "../store/canvas-store";
 import { useProjectStore } from "../store/project-store";
+import { useAssetStore } from "../store/asset-store";
 import { SlashCommandMenu } from "./SlashCommandMenu";
 import { Wikilink } from "../lib/tiptap-wikilink";
+import { FileRef } from "../lib/tiptap-file-ref";
 import { CardComments } from "./CardComments";
+import {
+  createAttachmentFromFile,
+  extractCardReferencesFromHtml,
+  resolveWorkspaceFilePath,
+} from "../lib/doc-links";
 
 const EDITOR_EXTENSIONS = [
   StarterKit.configure({
@@ -23,6 +30,7 @@ const EDITOR_EXTENSIONS = [
   Underline,
   TextAlign.configure({ types: ["heading", "paragraph"] }),
   Wikilink,
+  FileRef,
 ];
 
 interface Props {
@@ -36,11 +44,11 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
   const updateCard = useCanvasStore((s) => s.updateCard);
   const closeEditor = useCanvasStore((s) => s.closeEditor);
   const openEditor = useCanvasStore((s) => s.openEditor);
-  const toggleShowGrid = useCanvasStore((s) => s.toggleShowGrid);
-  const toggleMinimap = useCanvasStore((s) => s.toggleMinimap);
-  const toggleSnapToGrid = useCanvasStore((s) => s.toggleSnapToGrid);
   const spellCheck = useCanvasStore((s) => s.spellCheck);
   const showWordCount = useCanvasStore((s) => s.showWordCount);
+  const files = useAssetStore((s) => s.files);
+  const loadFiles = useAssetStore((s) => s.loadFiles);
+  const dirPath = useProjectStore((s) => s.project.dirPath);
   const setActiveTab = useProjectStore((s) => s.setActiveTab);
   const setActiveView = useProjectStore((s) => s.setActiveView);
 
@@ -53,19 +61,31 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
   const [fullscreen, setFullscreen] = useState(false);
   const [slashMenu, setSlashMenu] = useState<{ top: number; left: number } | null>(null);
   const [showBacklinks, setShowBacklinks] = useState(true);
+  const [showAttachments, setShowAttachments] = useState(() => (card?.attachments?.length ?? 0) > 0);
   const [showAgentHint, setShowAgentHint] = useState(() => Boolean(card?.agentHint?.trim()));
   const [showComments, setShowComments] = useState(() => (card?.comments?.length ?? 0) > 0);
   const [dragOver, setDragOver] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
 
   const backlinks = useMemo(() => {
-    if (!card?.title) {
+    if (!card) {
       return [];
     }
 
-    const token = `[[${card.title}]]`;
-    return cards.filter((candidate) => candidate.id !== cardId && candidate.docContent.includes(token));
-  }, [card?.title, cardId, cards]);
+    return cards.filter((candidate) => {
+      if (candidate.id === cardId) {
+        return false;
+      }
+
+      return extractCardReferencesFromHtml(candidate.docContent).some((reference) => {
+        if (reference.cardId) {
+          return reference.cardId === card.id;
+        }
+
+        return Boolean(card.title) && reference.title === card.title;
+      });
+    });
+  }, [card, cardId, cards]);
   const docWordCount = useMemo(() => {
     const plainText = (card?.docContent ?? "")
       .replace(/<[^>]+>/g, " ")
@@ -78,6 +98,8 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
 
     return plainText.split(" ").length;
   }, [card?.docContent]);
+
+  const cardAttachments = card?.attachments ?? [];
 
   const editor = useEditor({
     extensions: EDITOR_EXTENSIONS,
@@ -110,6 +132,63 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
     [cards, openEditor, setActiveTab, setActiveView]
   );
 
+  const attachFileToCurrentCard = useCallback(
+    (entry: (typeof files)[number]) => {
+      if (!card) {
+        return;
+      }
+
+      const nextAttachment = createAttachmentFromFile(entry);
+      const existingAttachments = card.attachments ?? [];
+
+      if (existingAttachments.some((attachment) => attachment.relativePath === entry.relative_path)) {
+        return;
+      }
+
+      updateCard(card.id, {
+        attachments: [...existingAttachments, nextAttachment],
+      });
+    },
+    [card, files, updateCard]
+  );
+
+  const openAttachment = useCallback(
+    async (relativePath: string) => {
+      const resolvedPath = resolveWorkspaceFilePath(dirPath, relativePath);
+      if (!resolvedPath) {
+        return;
+      }
+
+      await openPath(resolvedPath);
+    },
+    [dirPath]
+  );
+
+  const revealAttachment = useCallback(
+    async (relativePath: string) => {
+      const resolvedPath = resolveWorkspaceFilePath(dirPath, relativePath);
+      if (!resolvedPath) {
+        return;
+      }
+
+      await revealItemInDir(resolvedPath);
+    },
+    [dirPath]
+  );
+
+  const removeAttachment = useCallback(
+    (relativePath: string) => {
+      if (!card) {
+        return;
+      }
+
+      updateCard(card.id, {
+        attachments: (card.attachments ?? []).filter((attachment) => attachment.relativePath !== relativePath),
+      });
+    },
+    [card, updateCard]
+  );
+
   const editorContainerRef = useRef<HTMLDivElement>(null);
 
   const importFile = useCallback(
@@ -132,6 +211,20 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
   );
 
   // Tauri native drag-drop: gives us actual file paths
+  useEffect(() => {
+    if (!dirPath || files.length > 0) {
+      return;
+    }
+
+    void loadFiles(dirPath);
+  }, [dirPath, files.length, loadFiles]);
+
+  useEffect(() => {
+    if ((card?.attachments?.length ?? 0) > 0) {
+      setShowAttachments(true);
+    }
+  }, [card?.attachments?.length]);
+
   useEffect(() => {
     const appWindow = getCurrentWindow();
     let cancelled = false;
@@ -169,21 +262,62 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
     };
   }, [importFile]);
 
-  const workspaceItems = useMemo(
+  const insertCardReference = useCallback(
+    (targetCardId: string, title: string) => {
+      editor
+        ?.chain()
+        .focus()
+        .insertContent([
+          {
+            type: "wikilink",
+            attrs: {
+              title,
+              cardId: targetCardId,
+            },
+          },
+          {
+            type: "text",
+            text: " ",
+          },
+        ])
+        .run();
+    },
+    [editor]
+  );
+
+  const insertFileReference = useCallback(
+    (entry: (typeof files)[number]) => {
+      attachFileToCurrentCard(entry);
+      editor
+        ?.chain()
+        .focus()
+        .insertContent([
+          {
+            type: "fileRef",
+            attrs: {
+              relativePath: entry.relative_path,
+              name: entry.name,
+            },
+          },
+          {
+            type: "text",
+            text: " ",
+          },
+        ])
+        .run();
+    },
+    [attachFileToCurrentCard, editor, files]
+  );
+
+  const slashItems = useMemo(
     () =>
-      buildWorkspaceCommandItems({
+      buildDocSlashItems({
         cards,
-        focusCard: (targetId) => focusCard(targetId, false),
-        openDocument: (targetId) => focusCard(targetId, true),
-        saveProject,
-        saveProjectAs,
-        loadProject,
-        exportContext,
-        toggleShowGrid,
-        toggleMinimap,
-        toggleSnapToGrid,
+        files,
+        insertCardReference,
+        insertFileReference,
       }),
-    [cards, focusCard, toggleMinimap, toggleShowGrid, toggleSnapToGrid]
+    [cards, files, insertCardReference, insertFileReference]
   );
 
   // Listen for "/" key to open slash command menu
@@ -511,14 +645,27 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
           className="h-full"
           onClick={(event) => {
             const target = event.target as HTMLElement;
+            const fileRef = target.closest<HTMLElement>("[data-file-ref]");
+            if (fileRef) {
+              const relativePath = fileRef.dataset.fileRef;
+              if (!relativePath) {
+                return;
+              }
+
+              event.preventDefault();
+              void openAttachment(relativePath);
+              return;
+            }
+
             const wikilink = target.closest("[data-wikilink]");
 
             if (!wikilink) {
               return;
             }
 
+            const cardId = wikilink.getAttribute("data-card-id");
             const title = wikilink.getAttribute("data-wikilink");
-            const linkedCard = cards.find((entry) => entry.title === title);
+            const linkedCard = cards.find((entry) => entry.id === cardId) ?? cards.find((entry) => entry.title === title);
             if (!linkedCard) {
               return;
             }
@@ -533,7 +680,7 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
           <SlashCommandMenu
             editor={editor}
             position={slashMenu}
-            items={workspaceItems}
+            items={slashItems}
             onClose={() => setSlashMenu(null)}
           />
         )}
@@ -551,6 +698,81 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
           {docWordCount.toLocaleString()} words
         </div>
       ) : null}
+
+      <div
+        className="border-t px-3 py-2"
+        style={{ borderColor: "var(--color-card-border)", background: "var(--color-surface-low)" }}
+      >
+        <button
+          type="button"
+          className="flex w-full items-center justify-between text-left"
+          onClick={() => setShowAttachments((current) => !current)}
+        >
+          <span className="text-xs font-semibold">Attachments</span>
+          <span
+            className="text-[10px]"
+            style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+          >
+            {showAttachments ? "HIDE" : "SHOW"} {cardAttachments.length > 0 ? `(${cardAttachments.length})` : ""}
+          </span>
+        </button>
+
+        {showAttachments ? (
+          cardAttachments.length > 0 ? (
+            <div className="mt-2 space-y-2">
+              {cardAttachments.map((attachment) => (
+                <div
+                  key={attachment.relativePath}
+                  className="border px-3 py-2"
+                  style={{
+                    borderColor: "var(--color-card-border)",
+                    background: "var(--color-surface-lowest)",
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium">{attachment.name}</div>
+                      <div
+                        className="mt-1 text-[10px]"
+                        style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+                      >
+                        {attachment.relativePath}
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2 text-[10px]" style={{ fontFamily: "var(--font-mono)" }}>
+                      <button
+                        type="button"
+                        style={{ color: "var(--color-text-secondary)" }}
+                        onClick={() => void openAttachment(attachment.relativePath)}
+                      >
+                        OPEN
+                      </button>
+                      <button
+                        type="button"
+                        style={{ color: "var(--color-text-secondary)" }}
+                        onClick={() => void revealAttachment(attachment.relativePath)}
+                      >
+                        REVEAL
+                      </button>
+                      <button
+                        type="button"
+                        style={{ color: "var(--color-accent-error)" }}
+                        onClick={() => removeAttachment(attachment.relativePath)}
+                      >
+                        REMOVE
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-2 text-[10px]" style={{ color: "var(--color-text-muted)" }}>
+              No attachments yet. Add imported files from the Files tab or by typing `/`.
+            </p>
+          )
+        ) : null}
+      </div>
 
       <div
         className="border-t px-3 py-2"
@@ -658,7 +880,7 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
             </div>
           ) : (
             <p className="mt-2 text-[10px]" style={{ color: "var(--color-text-muted)" }}>
-              No incoming wikilinks yet.
+              No incoming references yet.
             </p>
           )
         ) : null}

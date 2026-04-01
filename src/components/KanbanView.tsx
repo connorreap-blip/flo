@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useCanvasStore } from "../store/canvas-store";
+import { useProjectStore } from "../store/project-store";
 import { CARD_TYPE_LABELS, CARD_TYPE_STYLES } from "../lib/constants";
 import { estimateContextWords } from "../lib/governor";
 import type { Card } from "../lib/types";
@@ -72,7 +73,15 @@ export function KanbanView() {
           marginLeft: depth * 16,
         }}
         onClick={() => {
-          if (card.hasDoc) openEditor(card.id, { x: 100, y: 100 });
+          if (card.hasDoc) {
+            openEditor(card.id, { x: 100, y: 100 });
+          } else {
+            useProjectStore.getState().setActiveView("canvas");
+            useProjectStore.getState().setActiveTab("layers");
+            window.requestAnimationFrame(() => {
+              window.dispatchEvent(new CustomEvent("flo:focus-card", { detail: { cardId: card.id } }));
+            });
+          }
         }}
       >
         <div className="flex items-center justify-between gap-2">

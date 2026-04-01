@@ -4,8 +4,17 @@ import { openPath, revealItemInDir } from "@tauri-apps/plugin-opener";
 import { FileImage, FileText, FolderOpen, RefreshCw, Upload } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog";
 import { useProjectStore } from "../store/project-store";
 import { useAssetStore, type ProjectFileEntry } from "../store/asset-store";
+import { useCanvasStore } from "../store/canvas-store";
+import { createAttachmentFromFile } from "../lib/doc-links";
 
 function formatBytes(value: number): string {
   if (value < 1024) return `${value} B`;
@@ -51,10 +60,15 @@ export function FilesTab() {
   const selectFile = useAssetStore((state) => state.selectFile);
   const importFiles = useAssetStore((state) => state.importFiles);
   const clear = useAssetStore((state) => state.clear);
+  const cards = useCanvasStore((state) => state.cards);
+  const updateCard = useCanvasStore((state) => state.updateCard);
 
   const [query, setQuery] = useState("");
   const [showInternal, setShowInternal] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [attachDialogOpen, setAttachDialogOpen] = useState(false);
+  const [attachQuery, setAttachQuery] = useState("");
+  const [attachMessage, setAttachMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!dirPath) {
@@ -106,6 +120,22 @@ export function FilesTab() {
     [files]
   );
 
+  const attachableCards = useMemo(() => {
+    const needle = attachQuery.trim().toLowerCase();
+
+    return cards.filter((entry) => {
+      if (!needle) {
+        return true;
+      }
+
+      return (
+        entry.title.toLowerCase().includes(needle) ||
+        entry.type.toLowerCase().includes(needle) ||
+        entry.body.toLowerCase().includes(needle)
+      );
+    });
+  }, [attachQuery, cards]);
+
   const handleImport = async () => {
     if (!dirPath) return;
 
@@ -126,6 +156,33 @@ export function FilesTab() {
       void selectFile(dirPath, imported[0].relative_path);
     }
     setImporting(false);
+  };
+
+  const attachSelectedFileToCard = (targetCardId: string) => {
+    if (!selectedFile) {
+      return;
+    }
+
+    const targetCard = cards.find((entry) => entry.id === targetCardId);
+    if (!targetCard) {
+      return;
+    }
+
+    const nextAttachment = createAttachmentFromFile(selectedFile);
+    const existingAttachments = targetCard.attachments ?? [];
+    const alreadyAttached = existingAttachments.some(
+      (attachment) => attachment.relativePath === selectedFile.relative_path
+    );
+
+    if (!alreadyAttached) {
+      updateCard(targetCardId, {
+        attachments: [...existingAttachments, nextAttachment],
+      });
+    }
+
+    setAttachDialogOpen(false);
+    setAttachQuery("");
+    setAttachMessage(`${alreadyAttached ? "Already attached to" : "Attached to"} ${targetCard.title || "Untitled"}.`);
   };
 
   if (!dirPath) {
@@ -325,6 +382,24 @@ export function FilesTab() {
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
+                    {selectedFile.category === "asset" ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="border text-xs"
+                        style={{
+                          borderColor: "var(--color-card-border)",
+                          background: "var(--color-surface-high)",
+                          color: "var(--color-text-primary)",
+                        }}
+                        onClick={() => {
+                          setAttachDialogOpen(true);
+                          setAttachQuery("");
+                        }}
+                      >
+                        Add to Card
+                      </Button>
+                    ) : null}
                     <Button
                       type="button"
                       variant="outline"
@@ -353,6 +428,11 @@ export function FilesTab() {
                     </Button>
                   </div>
                 </div>
+                {attachMessage ? (
+                  <div className="mt-3 text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                    {attachMessage}
+                  </div>
+                ) : null}
               </div>
 
               <div className="min-h-0 flex-1 overflow-auto px-4 py-4">
@@ -416,6 +496,57 @@ export function FilesTab() {
           ) : null}
         </section>
       </div>
+      <Dialog open={attachDialogOpen} onOpenChange={setAttachDialogOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Add File to Card</DialogTitle>
+            <DialogDescription>
+              Attach {selectedFile?.name ?? "this file"} to a card. The file stays in `assets/`; this only creates a card association.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <Input
+              value={attachQuery}
+              onChange={(event) => setAttachQuery(event.target.value)}
+              placeholder="Search cards..."
+            />
+            <div
+              className="max-h-[340px] overflow-y-auto border"
+              style={{ borderColor: "var(--color-card-border)", background: "var(--color-surface-lowest)" }}
+            >
+              {attachableCards.length > 0 ? (
+                attachableCards.map((entry) => (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    className="flex w-full items-center justify-between border-b px-3 py-3 text-left last:border-b-0"
+                    style={{ borderColor: "var(--color-card-border)" }}
+                    onClick={() => attachSelectedFileToCard(entry.id)}
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium">{entry.title || "Untitled"}</div>
+                      <div
+                        className="mt-1 text-[10px] uppercase tracking-[0.2em]"
+                        style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+                      >
+                        {entry.type}
+                      </div>
+                    </div>
+                    <div className="text-[10px]" style={{ color: "var(--color-text-secondary)", fontFamily: "var(--font-mono)" }}>
+                      {(entry.attachments?.length ?? 0) > 0 ? `${entry.attachments?.length} ATTACHMENTS` : "ADD"}
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <div className="px-3 py-6 text-center text-sm" style={{ color: "var(--color-text-muted)" }}>
+                  No cards match that search.
+                </div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
