@@ -19,6 +19,9 @@ export interface Card extends Record<string, unknown> {
 
 export type EdgeType = "hierarchy" | "flow" | "reference";
 export type ReferenceScope = "title" | "summary" | "section" | "full";
+export type SaveBehaviorPreference = "update-current" | "always-prompt";
+export type SummarySourcePreference = "title" | "lead" | "headings";
+export type KanbanGrouping = "hierarchy" | "type";
 
 export interface Edge {
   id: string;

@@ -1,9 +1,10 @@
 import { useCallback, useMemo, useState } from "react";
 import { CARD_DEFAULTS, CARD_TYPE_LABELS, CARD_TYPE_STYLES } from "../lib/constants";
 import { saveProject } from "../lib/file-ops";
-import { runGovernor } from "../lib/governor";
+import { estimateContextWords, runGovernor } from "../lib/governor";
 import { suggestProjectGoal } from "../lib/suggestions";
 import type { Card, Edge, GovernorWarning } from "../lib/types";
+import { resolveContextTier, resolveContextWarningBand } from "../lib/native-settings";
 import { HealthCheckDialog } from "./HealthCheckDialog";
 import { useCanvasStore } from "../store/canvas-store";
 import { useDashboardStore, type ActivityEntry } from "../store/dashboard-store";
@@ -212,6 +213,14 @@ function getActivityDetail(entry: ActivityEntry): string | null {
   return `${EDGE_TYPE_LABELS[entry.edgeType]} link`;
 }
 
+function truncatePreview(text: string, maxLength: number): string {
+  if (text.length <= maxLength) {
+    return text;
+  }
+
+  return `${text.slice(0, maxLength).replace(/[,\s]+$/, "")}...`;
+}
+
 function StatCard({
   label,
   value,
@@ -302,6 +311,64 @@ function MetricRibbon({ label, value }: { label: string; value: string }) {
   );
 }
 
+function SectionShell({
+  title,
+  eyebrow,
+  collapsed,
+  onToggle,
+  children,
+  action,
+  className,
+}: {
+  title: string;
+  eyebrow: string;
+  collapsed: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+  action?: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`pixel-border overflow-hidden ${className ?? ""}`}
+      style={{ background: "linear-gradient(180deg, var(--color-surface) 0%, var(--color-surface-lowest) 100%)" }}
+    >
+      <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "var(--color-card-border)" }}>
+        <button type="button" className="min-w-0 flex-1 text-left" onClick={onToggle}>
+          <div
+            className="text-[10px] uppercase tracking-[0.3em]"
+            style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+          >
+            {eyebrow}
+          </div>
+          <div
+            className="mt-1 text-lg font-semibold"
+            style={{ color: "var(--color-text-primary)", fontFamily: "var(--font-headline)" }}
+          >
+            {title}
+          </div>
+        </button>
+        <div className="ml-4 flex items-center gap-3">
+          {action}
+          <button
+            type="button"
+            className="border px-2 py-1 text-[10px] uppercase tracking-[0.24em]"
+            style={{
+              borderColor: "var(--color-card-border)",
+              color: "var(--color-text-secondary)",
+              fontFamily: "var(--font-mono)",
+            }}
+            onClick={onToggle}
+          >
+            {collapsed ? "Expand" : "Collapse"}
+          </button>
+        </div>
+      </div>
+      {!collapsed ? children : null}
+    </div>
+  );
+}
+
 export function HomeDashboard() {
   const [showHealthCheck, setShowHealthCheck] = useState(false);
   const [goalSuggestion, setGoalSuggestion] = useState<string | null>(null);
@@ -319,6 +386,20 @@ export function HomeDashboard() {
   const governorHierarchyDepthThreshold = useCanvasStore((state) => state.governorHierarchyDepthThreshold);
   const governorReferenceChainDepthThreshold = useCanvasStore((state) => state.governorReferenceChainDepthThreshold);
   const governorRedundantOverlapThreshold = useCanvasStore((state) => state.governorRedundantOverlapThreshold);
+  const sectionReferenceWordCap = useCanvasStore((state) => state.sectionReferenceWordCap);
+  const contextLeanWordThreshold = useCanvasStore((state) => state.contextLeanWordThreshold);
+  const contextStandardWordThreshold = useCanvasStore((state) => state.contextStandardWordThreshold);
+  const contextRichWordThreshold = useCanvasStore((state) => state.contextRichWordThreshold);
+  const contextSoftWarningWordThreshold = useCanvasStore((state) => state.contextSoftWarningWordThreshold);
+  const contextHardWarningWordThreshold = useCanvasStore((state) => state.contextHardWarningWordThreshold);
+  const suggestionKeywordAggressiveness = useCanvasStore((state) => state.suggestionKeywordAggressiveness);
+  const dashboardSectionsCollapsedByDefault = useCanvasStore((state) => state.dashboardSectionsCollapsedByDefault);
+  const dashboardPreviewTruncationLength = useCanvasStore((state) => state.dashboardPreviewTruncationLength);
+  const [collapsedSections, setCollapsedSections] = useState(() => ({
+    thumbnail: dashboardSectionsCollapsedByDefault,
+    budget: dashboardSectionsCollapsedByDefault,
+    activity: dashboardSectionsCollapsedByDefault,
+  }));
 
   const warnings = useMemo(
     () =>
@@ -343,8 +424,45 @@ export function HomeDashboard() {
   const minimap = useMemo(() => buildMinimap(cards, edges), [cards, edges]);
   const openHealthCheck = useCallback(() => setShowHealthCheck(true), []);
   const generateGoalSuggestion = useCallback(() => {
-    setGoalSuggestion(suggestProjectGoal(project.name, cards, edges));
-  }, [cards, edges, project.name]);
+    setGoalSuggestion(
+      suggestProjectGoal(project.name, cards, edges, {
+        keywordAggressiveness: suggestionKeywordAggressiveness,
+      })
+    );
+  }, [cards, edges, project.name, suggestionKeywordAggressiveness]);
+  const totalContextWords = useMemo(
+    () =>
+      cards
+        .filter((card) => card.type !== "brainstorm")
+        .reduce(
+          (sum, card) => sum + estimateContextWords(card, cards, edges, { sectionWordCap: sectionReferenceWordCap }),
+          0
+        ),
+    [cards, edges, sectionReferenceWordCap]
+  );
+  const contextTier = useMemo(
+    () =>
+      resolveContextTier(totalContextWords, {
+        lean: contextLeanWordThreshold,
+        standard: contextStandardWordThreshold,
+        rich: contextRichWordThreshold,
+      }),
+    [contextLeanWordThreshold, contextRichWordThreshold, contextStandardWordThreshold, totalContextWords]
+  );
+  const contextWarning = useMemo(
+    () =>
+      resolveContextWarningBand(totalContextWords, {
+        soft: contextSoftWarningWordThreshold,
+        hard: contextHardWarningWordThreshold,
+      }),
+    [contextHardWarningWordThreshold, contextSoftWarningWordThreshold, totalContextWords]
+  );
+  const toggleSection = useCallback((key: keyof typeof collapsedSections) => {
+    setCollapsedSections((current) => ({
+      ...current,
+      [key]: !current[key],
+    }));
+  }, []);
 
   const statCards = useMemo(
     () =>
@@ -516,33 +634,20 @@ export function HomeDashboard() {
             />
           </div>
 
-          <div
-            className="pixel-border overflow-hidden"
-            style={{ background: "linear-gradient(180deg, var(--color-surface) 0%, var(--color-surface-lowest) 100%)" }}
-          >
-            <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "var(--color-card-border)" }}>
-              <div>
-                <div
-                  className="text-[10px] uppercase tracking-[0.3em]"
-                  style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
-                >
-                  Canvas Thumbnail
-                </div>
-                <div
-                  className="mt-1 text-lg font-semibold"
-                  style={{ color: "var(--color-text-primary)", fontFamily: "var(--font-headline)" }}
-                >
-                  Structure at a glance
-                </div>
-              </div>
+          <SectionShell
+            eyebrow="Canvas Thumbnail"
+            title="Structure at a glance"
+            collapsed={collapsedSections.thumbnail}
+            onToggle={() => toggleSection("thumbnail")}
+            action={
               <span
                 className="text-[10px] uppercase tracking-[0.3em]"
                 style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
               >
                 Read only
               </span>
-            </div>
-
+            }
+          >
             <div className="px-4 py-4">
               <div
                 className="pixel-border aspect-[16/9] overflow-hidden"
@@ -604,31 +709,33 @@ export function HomeDashboard() {
                 )}
               </div>
             </div>
-          </div>
+          </SectionShell>
         </section>
 
         <aside className="flex min-h-0 flex-col gap-4">
-          <div
-            className="pixel-border overflow-hidden"
-            style={{ background: "linear-gradient(180deg, var(--color-surface-high) 0%, var(--color-surface-lowest) 100%)" }}
-          >
-            <div className="border-b px-4 py-3" style={{ borderColor: "var(--color-card-border)" }}>
-              <div
-                className="text-[10px] uppercase tracking-[0.3em]"
-                style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
-              >
-                Context Tier
-              </div>
+          <SectionShell
+            eyebrow="Context Budget"
+            title={`${contextWarning.label} · ~${formatCount(totalContextWords)} words`}
+            collapsed={collapsedSections.budget}
+            onToggle={() => toggleSection("budget")}
+            action={
               <button
                 type="button"
-                className="mt-1 text-left text-xl font-semibold"
-                style={{ color: governorHealth.tone, fontFamily: "var(--font-headline)" }}
+                className="text-[10px] uppercase tracking-[0.3em]"
+                style={{ color: contextTier.color, fontFamily: "var(--font-mono)" }}
                 onClick={openHealthCheck}
               >
-                {governorHealth.label}
+                {contextTier.label}
               </button>
-              <p className="mt-2 text-sm" style={{ color: "var(--color-text-secondary)" }}>
-                {governorHealth.detail}
+            }
+          >
+            <div className="border-b px-4 py-3" style={{ borderColor: "var(--color-card-border)" }}>
+              <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+                Soft warning starts at {formatCount(contextSoftWarningWordThreshold)} words. Hard warning starts at{" "}
+                {formatCount(contextHardWarningWordThreshold)} words.
+              </p>
+              <p className="mt-2 text-xs" style={{ color: contextWarning.color, fontFamily: "var(--font-mono)" }}>
+                Tier: {contextTier.label} · Budget: {contextWarning.label}
               </p>
             </div>
             <div className="grid gap-px" style={{ background: "var(--color-card-border)" }}>
@@ -660,7 +767,7 @@ export function HomeDashboard() {
                     </span>
                   </div>
                   <div className="mt-2 text-sm" style={{ color: "var(--color-text-primary)" }}>
-                    {warning.message}
+                    {truncatePreview(warning.message, dashboardPreviewTruncationLength)}
                   </div>
                 </button>
               ))}
@@ -675,34 +782,22 @@ export function HomeDashboard() {
                 </button>
               ) : null}
             </div>
-          </div>
+          </SectionShell>
 
-          <div
-            className="pixel-border flex min-h-0 flex-1 flex-col overflow-hidden"
-            style={{ background: "linear-gradient(180deg, var(--color-surface) 0%, var(--color-surface-lowest) 100%)" }}
-          >
-            <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "var(--color-card-border)" }}>
-              <div>
-                <div
-                  className="text-[10px] uppercase tracking-[0.3em]"
-                  style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
-                >
-                  Activity Feed
-                </div>
-                <div
-                  className="mt-1 text-lg font-semibold"
-                  style={{ color: "var(--color-text-primary)", fontFamily: "var(--font-headline)" }}
-                >
-                  Recent canvas changes
-                </div>
-              </div>
-              {activityLog.length > 0 ? (
+          <SectionShell
+            eyebrow="Activity Feed"
+            title="Recent canvas changes"
+            collapsed={collapsedSections.activity}
+            onToggle={() => toggleSection("activity")}
+            className="flex min-h-0 flex-1 flex-col"
+            action={
+              activityLog.length > 0 ? (
                 <span className="text-[10px]" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>
                   {formatRelativeTime(activityLog[0].timestamp)}
                 </span>
-              ) : null}
-            </div>
-
+              ) : undefined
+            }
+          >
             <div className="min-h-0 flex-1 overflow-y-auto">
               {activityLog.length === 0 ? (
                 <div className="px-4 py-6 text-sm" style={{ color: "var(--color-text-secondary)" }}>
@@ -740,11 +835,11 @@ export function HomeDashboard() {
                             </span>
                           </div>
                           <div className="mt-2 truncate text-sm" style={{ color: "var(--color-text-primary)" }}>
-                            {getActivityTitle(entry)}
+                            {truncatePreview(getActivityTitle(entry), dashboardPreviewTruncationLength)}
                           </div>
                           {detail ? (
                             <div className="mt-1 text-xs" style={{ color: "var(--color-text-secondary)" }}>
-                              {detail}
+                              {truncatePreview(detail, dashboardPreviewTruncationLength)}
                             </div>
                           ) : null}
                         </div>
@@ -760,7 +855,7 @@ export function HomeDashboard() {
                 </div>
               )}
             </div>
-          </div>
+          </SectionShell>
         </aside>
       </div>
       <HealthCheckDialog open={showHealthCheck} onClose={() => setShowHealthCheck(false)} onSave={saveProject} />

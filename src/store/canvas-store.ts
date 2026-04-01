@@ -1,27 +1,61 @@
 import { create } from "zustand";
 import { temporal } from "zundo";
 import { v4 as uuid } from "uuid";
-import type { Card, Edge, CanvasViewport, EditorState, ReferenceScope } from "../lib/types";
+import type {
+  Card,
+  CanvasViewport,
+  Edge,
+  EdgeType,
+  EditorState,
+  KanbanGrouping,
+  ReferenceScope,
+  SaveBehaviorPreference,
+  SummarySourcePreference,
+} from "../lib/types";
 import type { CardType } from "../lib/constants";
 import type { GovernorRuleId } from "../lib/native-settings";
 import {
   DEFAULT_CARD_SUMMARY_MAX_LENGTH,
+  DEFAULT_CONTEXT_HARD_WARNING_THRESHOLD,
   DEFAULT_CONTEXT_LEAN_WORD_THRESHOLD,
   DEFAULT_CONTEXT_RICH_WORD_THRESHOLD,
+  DEFAULT_CONTEXT_SOFT_WARNING_THRESHOLD,
   DEFAULT_CONTEXT_STANDARD_WORD_THRESHOLD,
+  DEFAULT_DASHBOARD_PREVIEW_TRUNCATION_LENGTH,
+  DEFAULT_DASHBOARD_SECTIONS_COLLAPSED,
+  DEFAULT_DRAG_CONNECT_EDGE_TYPE,
+  DEFAULT_EXPORT_FILENAME_PATTERN,
   DEFAULT_GOVERNOR_BODY_LINE_THRESHOLD,
   DEFAULT_GOVERNOR_HIERARCHY_DEPTH_THRESHOLD,
   DEFAULT_GOVERNOR_REDUNDANT_OVERLAP_THRESHOLD,
   DEFAULT_GOVERNOR_REFERENCE_CHAIN_THRESHOLD,
+  DEFAULT_HELPER_COOLDOWN_MS,
+  DEFAULT_HELPER_DISMISS_FOR_SESSION,
+  DEFAULT_HELPER_MIN_EDIT_DISTANCE,
   DEFAULT_HELPER_UNSCOPED_REFERENCE_THRESHOLD,
+  DEFAULT_KANBAN_GROUPING,
+  DEFAULT_MAX_SNAPSHOTS,
+  DEFAULT_PROMPT_REFERENCE_SCOPE_ON_CREATE,
   DEFAULT_REFERENCE_SCOPE,
+  DEFAULT_SAVE_BEHAVIOR_PREFERENCE,
   DEFAULT_SECTION_REFERENCE_WORD_CAP,
+  DEFAULT_SUGGESTION_KEYWORD_AGGRESSIVENESS,
+  DEFAULT_SUGGESTION_MIN_DOC_WORDS,
+  DEFAULT_SUMMARY_SOURCE_PREFERENCE,
   clampFloat,
   clampInteger,
 } from "../lib/native-settings";
 
 export type AgentHintExportMode = "inline" | "section" | "hidden";
 export type ExportGoalOverride = "auto" | "implementation" | "review" | "brainstorm";
+
+const CANVAS_SETTINGS_STORAGE_KEY = "flo:canvas-settings:v1";
+const EXPORT_GOAL_OVERRIDES: ExportGoalOverride[] = ["auto", "implementation", "review", "brainstorm"];
+const AGENT_HINT_EXPORT_MODES: AgentHintExportMode[] = ["inline", "section", "hidden"];
+const SAVE_BEHAVIOR_PREFERENCES: SaveBehaviorPreference[] = ["update-current", "always-prompt"];
+const SUMMARY_SOURCE_PREFERENCES: SummarySourcePreference[] = ["title", "lead", "headings"];
+const KANBAN_GROUPINGS: KanbanGrouping[] = ["hierarchy", "type"];
+const EDGE_TYPES: EdgeType[] = ["hierarchy", "flow", "reference"];
 
 interface CanvasStore {
   // Cards
@@ -33,7 +67,13 @@ interface CanvasStore {
 
   // Edges
   edges: Edge[];
-  addEdge: (source: string, target: string, edgeType?: import("../lib/types").EdgeType, referenceScope?: import("../lib/types").ReferenceScope, referenceSectionHint?: string) => void;
+  addEdge: (
+    source: string,
+    target: string,
+    edgeType?: EdgeType,
+    referenceScope?: ReferenceScope,
+    referenceSectionHint?: string
+  ) => void;
   removeEdge: (id: string) => void;
   updateEdge: (id: string, updates: Partial<Edge>) => void;
 
@@ -63,6 +103,7 @@ interface CanvasStore {
   // Dirty flag
   isDirty: boolean;
   markClean: () => void;
+  editVersion: number;
 
   // Helpers
   dismissedHelpers: string[];
@@ -89,13 +130,23 @@ interface CanvasStore {
   exportIncludeAgentHints: boolean;
   toggleExportIncludeAgentHints: () => void;
   exportGoalOverride: ExportGoalOverride;
-  setExportGoalOverride: (v: ExportGoalOverride) => void;
+  setExportGoalOverride: (value: ExportGoalOverride) => void;
+  exportFileNamePattern: string;
+  setExportFileNamePattern: (value: string) => void;
+  saveBehaviorPreference: SaveBehaviorPreference;
+  setSaveBehaviorPreference: (value: SaveBehaviorPreference) => void;
 
   // Settings — Agent
   defaultAgentHint: string;
-  setDefaultAgentHint: (v: string) => void;
+  setDefaultAgentHint: (value: string) => void;
   agentHintExportMode: AgentHintExportMode;
-  setAgentHintExportMode: (v: AgentHintExportMode) => void;
+  setAgentHintExportMode: (value: AgentHintExportMode) => void;
+  suggestionMinDocWords: number;
+  setSuggestionMinDocWords: (value: number) => void;
+  suggestionKeywordAggressiveness: number;
+  setSuggestionKeywordAggressiveness: (value: number) => void;
+  summarySourcePreference: SummarySourcePreference;
+  setSummarySourcePreference: (value: SummarySourcePreference) => void;
 
   // Settings — Tags
   excludedTags: string[];
@@ -117,11 +168,15 @@ interface CanvasStore {
   autoSnapshot: boolean;
   toggleAutoSnapshot: () => void;
   maxSnapshots: number;
-  setMaxSnapshots: (n: number) => void;
+  setMaxSnapshots: (value: number) => void;
 
   // Settings — Native UX
   defaultReferenceScope: ReferenceScope;
   setDefaultReferenceScope: (scope: ReferenceScope) => void;
+  dragConnectEdgeType: EdgeType;
+  setDragConnectEdgeType: (value: EdgeType) => void;
+  promptReferenceScopeOnCreate: boolean;
+  togglePromptReferenceScopeOnCreate: () => void;
   sectionReferenceWordCap: number;
   setSectionReferenceWordCap: (value: number) => void;
   contextLeanWordThreshold: number;
@@ -130,319 +185,774 @@ interface CanvasStore {
   setContextStandardWordThreshold: (value: number) => void;
   contextRichWordThreshold: number;
   setContextRichWordThreshold: (value: number) => void;
+  contextSoftWarningWordThreshold: number;
+  setContextSoftWarningWordThreshold: (value: number) => void;
+  contextHardWarningWordThreshold: number;
+  setContextHardWarningWordThreshold: (value: number) => void;
   cardSummaryMaxLength: number;
   setCardSummaryMaxLength: (value: number) => void;
   helperUnscopedReferenceThreshold: number;
   setHelperUnscopedReferenceThreshold: (value: number) => void;
+  helperCooldownMs: number;
+  setHelperCooldownMs: (value: number) => void;
+  helperMinEditDistance: number;
+  setHelperMinEditDistance: (value: number) => void;
+  helperDismissForSession: boolean;
+  toggleHelperDismissForSession: () => void;
+  defaultKanbanGrouping: KanbanGrouping;
+  setDefaultKanbanGrouping: (value: KanbanGrouping) => void;
+  dashboardSectionsCollapsedByDefault: boolean;
+  toggleDashboardSectionsCollapsedByDefault: () => void;
+  dashboardPreviewTruncationLength: number;
+  setDashboardPreviewTruncationLength: (value: number) => void;
 
   // Bulk load (for loading from disk)
   loadState: (cards: Card[], edges: Edge[], viewport: CanvasViewport) => void;
   clearAll: () => void;
 }
 
-export const useCanvasStore = create<CanvasStore>()(
-  temporal(
-    (set, get) => ({
-  cards: [],
-  addCard: (type, title, position) => {
-    const id = uuid();
-    const defaultAgentHint = get().defaultAgentHint.trim();
-    const card: Card = {
-      id,
-      type,
-      title,
-      body: "",
-      position,
-      collapsed: false,
-      hasDoc: false,
-      docContent: "",
-      agentHint: defaultAgentHint ? defaultAgentHint : undefined,
-    };
-    set((s) => ({ cards: [...s.cards, card], isDirty: true }));
-    return id;
-  },
-  updateCard: (id, updates) =>
-    set((s) => ({
-      cards: s.cards.map((c) => (c.id === id ? { ...c, ...updates } : c)),
-      isDirty: true,
-    })),
-  removeCard: (id) =>
-    set((s) => ({
-      cards: s.cards.filter((c) => c.id !== id),
-      edges: s.edges.filter((e) => e.source !== id && e.target !== id),
-      openEditors: s.openEditors.filter((e) => e.cardId !== id),
-      isDirty: true,
-    })),
-  getCard: (id) => get().cards.find((c) => c.id === id),
+type PersistedCanvasSettings = Pick<
+  CanvasStore,
+  | "editorFontSize"
+  | "spellCheck"
+  | "autoSave"
+  | "showWordCount"
+  | "exportIncludeBrainstorm"
+  | "exportIncludeCardDocs"
+  | "exportIncludeAgentHints"
+  | "exportGoalOverride"
+  | "exportFileNamePattern"
+  | "saveBehaviorPreference"
+  | "defaultAgentHint"
+  | "agentHintExportMode"
+  | "suggestionMinDocWords"
+  | "suggestionKeywordAggressiveness"
+  | "summarySourcePreference"
+  | "excludedTags"
+  | "disabledGovernorRules"
+  | "governorBodyLineThreshold"
+  | "governorHierarchyDepthThreshold"
+  | "governorReferenceChainDepthThreshold"
+  | "governorRedundantOverlapThreshold"
+  | "autoSnapshot"
+  | "maxSnapshots"
+  | "defaultReferenceScope"
+  | "dragConnectEdgeType"
+  | "promptReferenceScopeOnCreate"
+  | "sectionReferenceWordCap"
+  | "contextLeanWordThreshold"
+  | "contextStandardWordThreshold"
+  | "contextRichWordThreshold"
+  | "contextSoftWarningWordThreshold"
+  | "contextHardWarningWordThreshold"
+  | "cardSummaryMaxLength"
+  | "helperUnscopedReferenceThreshold"
+  | "helperCooldownMs"
+  | "helperMinEditDistance"
+  | "helperDismissForSession"
+  | "defaultKanbanGrouping"
+  | "dashboardSectionsCollapsedByDefault"
+  | "dashboardPreviewTruncationLength"
+>;
 
-  edges: [],
-  addEdge: (source, target, edgeType = "hierarchy", referenceScope, referenceSectionHint) => {
-    const id = uuid();
-    const defaultReferenceScope = get().defaultReferenceScope;
-    const edge: Edge = {
-      id,
-      source,
-      target,
-      edgeType,
-      sourceArrow: edgeType === "reference" ? false : undefined,
-      targetArrow: edgeType === "reference" ? false : true,
-      referenceScope: edgeType === "reference" ? (referenceScope ?? defaultReferenceScope) : undefined,
-      referenceSectionHint: edgeType === "reference" ? referenceSectionHint : undefined,
-    };
-    set((s) => ({ edges: [...s.edges, edge], isDirty: true }));
-  },
-  removeEdge: (id) =>
-    set((s) => ({
-      edges: s.edges.filter((e) => e.id !== id),
-      isDirty: true,
-    })),
-  updateEdge: (id, updates) =>
-    set((s) => ({
-      edges: s.edges.map((e) => (e.id === id ? { ...e, ...updates } : e)),
-      isDirty: true,
-    })),
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
 
-  editorMode: "select",
-  setEditorMode: (mode) => set({ editorMode: mode }),
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((entry) => typeof entry === "string");
+}
 
-  openEditors: [],
-  openEditor: (cardId, position) =>
-    set((s) => {
-      if (s.openEditors.some((e) => e.cardId === cardId)) return s;
-      return { openEditors: [...s.openEditors, { cardId, position }] };
-    }),
-  closeEditor: (cardId) =>
-    set((s) => ({
-      openEditors: s.openEditors.filter((e) => e.cardId !== cardId),
-    })),
-  ghostPreviewMode: null,
-  setGhostPreviewMode: (mode) => set({ ghostPreviewMode: mode }),
+function parseStoredSettings(): Partial<PersistedCanvasSettings> {
+  if (typeof window === "undefined") {
+    return {};
+  }
 
-  viewport: { x: 0, y: 0, zoom: 1 },
-  setViewport: (viewport) => set({ viewport }),
+  try {
+    const raw = localStorage.getItem(CANVAS_SETTINGS_STORAGE_KEY);
+    if (!raw) {
+      return {};
+    }
 
-  snapToGrid: true,
-  toggleSnapToGrid: () => set((s) => ({ snapToGrid: !s.snapToGrid })),
-  showGrid: true,
-  toggleShowGrid: () => set((s) => ({ showGrid: !s.showGrid })),
-  showMinimap: true,
-  toggleMinimap: () => set((s) => ({ showMinimap: !s.showMinimap })),
+    const parsed = JSON.parse(raw);
+    if (!isObject(parsed)) {
+      return {};
+    }
 
-  isDirty: false,
-  markClean: () => set({ isDirty: false }),
+    const settings: Partial<PersistedCanvasSettings> = {};
 
-  // Settings — Editor
-  editorFontSize: 14,
-  setEditorFontSize: (size) => set({ editorFontSize: size }),
-  spellCheck: true,
-  toggleSpellCheck: () => set((s) => ({ spellCheck: !s.spellCheck })),
-  autoSave: true,
-  toggleAutoSave: () => set((s) => ({ autoSave: !s.autoSave })),
-  showWordCount: false,
-  toggleShowWordCount: () => set((s) => ({ showWordCount: !s.showWordCount })),
-
-  // Settings — Export
-  exportIncludeBrainstorm: false,
-  toggleExportIncludeBrainstorm: () => set((s) => ({ exportIncludeBrainstorm: !s.exportIncludeBrainstorm })),
-  exportIncludeCardDocs: true,
-  toggleExportIncludeCardDocs: () => set((s) => ({ exportIncludeCardDocs: !s.exportIncludeCardDocs })),
-  exportIncludeAgentHints: true,
-  toggleExportIncludeAgentHints: () => set((s) => ({ exportIncludeAgentHints: !s.exportIncludeAgentHints })),
-  exportGoalOverride: "auto",
-  setExportGoalOverride: (v) => set({ exportGoalOverride: v }),
-
-  // Settings — Agent
-  defaultAgentHint: "",
-  setDefaultAgentHint: (v) => set({ defaultAgentHint: v }),
-  agentHintExportMode: "inline",
-  setAgentHintExportMode: (v) => set({ agentHintExportMode: v }),
-
-  // Settings — Tags
-  excludedTags: [],
-  toggleTagExclusion: (tag) =>
-    set((s) => ({
-      excludedTags: s.excludedTags.includes(tag)
-        ? s.excludedTags.filter((t) => t !== tag)
-        : [...s.excludedTags, tag],
-    })),
-
-  // Settings — Governor
-  disabledGovernorRules: [],
-  toggleGovernorRule: (rule) =>
-    set((s) => ({
-      disabledGovernorRules: s.disabledGovernorRules.includes(rule)
-        ? s.disabledGovernorRules.filter((r) => r !== rule)
-        : [...s.disabledGovernorRules, rule],
-    })),
-  governorBodyLineThreshold: DEFAULT_GOVERNOR_BODY_LINE_THRESHOLD,
-  setGovernorBodyLineThreshold: (value) =>
-    set({
-      governorBodyLineThreshold: clampInteger(
-        value,
+    if (typeof parsed.editorFontSize === "number") {
+      settings.editorFontSize = clampInteger(parsed.editorFontSize, 12, 18, 14);
+    }
+    if (typeof parsed.spellCheck === "boolean") {
+      settings.spellCheck = parsed.spellCheck;
+    }
+    if (typeof parsed.autoSave === "boolean") {
+      settings.autoSave = parsed.autoSave;
+    }
+    if (typeof parsed.showWordCount === "boolean") {
+      settings.showWordCount = parsed.showWordCount;
+    }
+    if (typeof parsed.exportIncludeBrainstorm === "boolean") {
+      settings.exportIncludeBrainstorm = parsed.exportIncludeBrainstorm;
+    }
+    if (typeof parsed.exportIncludeCardDocs === "boolean") {
+      settings.exportIncludeCardDocs = parsed.exportIncludeCardDocs;
+    }
+    if (typeof parsed.exportIncludeAgentHints === "boolean") {
+      settings.exportIncludeAgentHints = parsed.exportIncludeAgentHints;
+    }
+    if (EXPORT_GOAL_OVERRIDES.includes(parsed.exportGoalOverride as ExportGoalOverride)) {
+      settings.exportGoalOverride = parsed.exportGoalOverride as ExportGoalOverride;
+    }
+    if (typeof parsed.exportFileNamePattern === "string") {
+      settings.exportFileNamePattern = parsed.exportFileNamePattern.trim() || DEFAULT_EXPORT_FILENAME_PATTERN;
+    }
+    if (SAVE_BEHAVIOR_PREFERENCES.includes(parsed.saveBehaviorPreference as SaveBehaviorPreference)) {
+      settings.saveBehaviorPreference = parsed.saveBehaviorPreference as SaveBehaviorPreference;
+    }
+    if (typeof parsed.defaultAgentHint === "string") {
+      settings.defaultAgentHint = parsed.defaultAgentHint;
+    }
+    if (AGENT_HINT_EXPORT_MODES.includes(parsed.agentHintExportMode as AgentHintExportMode)) {
+      settings.agentHintExportMode = parsed.agentHintExportMode as AgentHintExportMode;
+    }
+    if (typeof parsed.suggestionMinDocWords === "number") {
+      settings.suggestionMinDocWords = clampInteger(parsed.suggestionMinDocWords, 20, 400, DEFAULT_SUGGESTION_MIN_DOC_WORDS);
+    }
+    if (typeof parsed.suggestionKeywordAggressiveness === "number") {
+      settings.suggestionKeywordAggressiveness = clampInteger(
+        parsed.suggestionKeywordAggressiveness,
+        1,
+        3,
+        DEFAULT_SUGGESTION_KEYWORD_AGGRESSIVENESS
+      );
+    }
+    if (SUMMARY_SOURCE_PREFERENCES.includes(parsed.summarySourcePreference as SummarySourcePreference)) {
+      settings.summarySourcePreference = parsed.summarySourcePreference as SummarySourcePreference;
+    }
+    if (isStringArray(parsed.excludedTags)) {
+      settings.excludedTags = parsed.excludedTags;
+    }
+    if (isStringArray(parsed.disabledGovernorRules)) {
+      settings.disabledGovernorRules = parsed.disabledGovernorRules as GovernorRuleId[];
+    }
+    if (typeof parsed.governorBodyLineThreshold === "number") {
+      settings.governorBodyLineThreshold = clampInteger(
+        parsed.governorBodyLineThreshold,
         1,
         12,
         DEFAULT_GOVERNOR_BODY_LINE_THRESHOLD
-      ),
-    }),
-  governorHierarchyDepthThreshold: DEFAULT_GOVERNOR_HIERARCHY_DEPTH_THRESHOLD,
-  setGovernorHierarchyDepthThreshold: (value) =>
-    set({
-      governorHierarchyDepthThreshold: clampInteger(
-        value,
+      );
+    }
+    if (typeof parsed.governorHierarchyDepthThreshold === "number") {
+      settings.governorHierarchyDepthThreshold = clampInteger(
+        parsed.governorHierarchyDepthThreshold,
         2,
         8,
         DEFAULT_GOVERNOR_HIERARCHY_DEPTH_THRESHOLD
-      ),
-    }),
-  governorReferenceChainDepthThreshold: DEFAULT_GOVERNOR_REFERENCE_CHAIN_THRESHOLD,
-  setGovernorReferenceChainDepthThreshold: (value) =>
-    set({
-      governorReferenceChainDepthThreshold: clampInteger(
-        value,
+      );
+    }
+    if (typeof parsed.governorReferenceChainDepthThreshold === "number") {
+      settings.governorReferenceChainDepthThreshold = clampInteger(
+        parsed.governorReferenceChainDepthThreshold,
         2,
         8,
         DEFAULT_GOVERNOR_REFERENCE_CHAIN_THRESHOLD
-      ),
-    }),
-  governorRedundantOverlapThreshold: DEFAULT_GOVERNOR_REDUNDANT_OVERLAP_THRESHOLD,
-  setGovernorRedundantOverlapThreshold: (value) =>
-    set({
-      governorRedundantOverlapThreshold: clampFloat(
-        value,
+      );
+    }
+    if (typeof parsed.governorRedundantOverlapThreshold === "number") {
+      settings.governorRedundantOverlapThreshold = clampFloat(
+        parsed.governorRedundantOverlapThreshold,
         0.2,
         0.95,
         DEFAULT_GOVERNOR_REDUNDANT_OVERLAP_THRESHOLD
-      ),
-    }),
-
-  // Settings — History
-  autoSnapshot: true,
-  toggleAutoSnapshot: () => set((s) => ({ autoSnapshot: !s.autoSnapshot })),
-  maxSnapshots: 50,
-  setMaxSnapshots: (n) => set({ maxSnapshots: n }),
-
-  // Settings — Native UX
-  defaultReferenceScope: DEFAULT_REFERENCE_SCOPE,
-  setDefaultReferenceScope: (scope) => set({ defaultReferenceScope: scope }),
-  sectionReferenceWordCap: DEFAULT_SECTION_REFERENCE_WORD_CAP,
-  setSectionReferenceWordCap: (value) =>
-    set({
-      sectionReferenceWordCap: clampInteger(
-        value,
+      );
+    }
+    if (typeof parsed.autoSnapshot === "boolean") {
+      settings.autoSnapshot = parsed.autoSnapshot;
+    }
+    if (typeof parsed.maxSnapshots === "number") {
+      settings.maxSnapshots = clampInteger(parsed.maxSnapshots, 5, 500, DEFAULT_MAX_SNAPSHOTS);
+    }
+    if (["title", "summary", "section", "full"].includes(parsed.defaultReferenceScope as string)) {
+      settings.defaultReferenceScope = parsed.defaultReferenceScope as ReferenceScope;
+    }
+    if (EDGE_TYPES.includes(parsed.dragConnectEdgeType as EdgeType)) {
+      settings.dragConnectEdgeType = parsed.dragConnectEdgeType as EdgeType;
+    }
+    if (typeof parsed.promptReferenceScopeOnCreate === "boolean") {
+      settings.promptReferenceScopeOnCreate = parsed.promptReferenceScopeOnCreate;
+    }
+    if (typeof parsed.sectionReferenceWordCap === "number") {
+      settings.sectionReferenceWordCap = clampInteger(
+        parsed.sectionReferenceWordCap,
         50,
         1000,
         DEFAULT_SECTION_REFERENCE_WORD_CAP
-      ),
-    }),
-  contextLeanWordThreshold: DEFAULT_CONTEXT_LEAN_WORD_THRESHOLD,
-  setContextLeanWordThreshold: (value) =>
-    set({
-      contextLeanWordThreshold: clampInteger(
-        value,
+      );
+    }
+    if (typeof parsed.contextLeanWordThreshold === "number") {
+      settings.contextLeanWordThreshold = clampInteger(
+        parsed.contextLeanWordThreshold,
         500,
         20000,
         DEFAULT_CONTEXT_LEAN_WORD_THRESHOLD
-      ),
-    }),
-  contextStandardWordThreshold: DEFAULT_CONTEXT_STANDARD_WORD_THRESHOLD,
-  setContextStandardWordThreshold: (value) =>
-    set({
-      contextStandardWordThreshold: clampInteger(
-        value,
+      );
+    }
+    if (typeof parsed.contextStandardWordThreshold === "number") {
+      settings.contextStandardWordThreshold = clampInteger(
+        parsed.contextStandardWordThreshold,
         1000,
         30000,
         DEFAULT_CONTEXT_STANDARD_WORD_THRESHOLD
-      ),
-    }),
-  contextRichWordThreshold: DEFAULT_CONTEXT_RICH_WORD_THRESHOLD,
-  setContextRichWordThreshold: (value) =>
-    set({
-      contextRichWordThreshold: clampInteger(
-        value,
+      );
+    }
+    if (typeof parsed.contextRichWordThreshold === "number") {
+      settings.contextRichWordThreshold = clampInteger(
+        parsed.contextRichWordThreshold,
         1500,
         40000,
         DEFAULT_CONTEXT_RICH_WORD_THRESHOLD
-      ),
-    }),
-  cardSummaryMaxLength: DEFAULT_CARD_SUMMARY_MAX_LENGTH,
-  setCardSummaryMaxLength: (value) =>
-    set({
-      cardSummaryMaxLength: clampInteger(
-        value,
-        80,
-        400,
-        DEFAULT_CARD_SUMMARY_MAX_LENGTH
-      ),
-    }),
-  helperUnscopedReferenceThreshold: DEFAULT_HELPER_UNSCOPED_REFERENCE_THRESHOLD,
-  setHelperUnscopedReferenceThreshold: (value) =>
-    set({
-      helperUnscopedReferenceThreshold: clampInteger(
-        value,
+      );
+    }
+    if (typeof parsed.contextSoftWarningWordThreshold === "number") {
+      settings.contextSoftWarningWordThreshold = clampInteger(
+        parsed.contextSoftWarningWordThreshold,
+        1000,
+        50000,
+        DEFAULT_CONTEXT_SOFT_WARNING_THRESHOLD
+      );
+    }
+    if (typeof parsed.contextHardWarningWordThreshold === "number") {
+      settings.contextHardWarningWordThreshold = clampInteger(
+        parsed.contextHardWarningWordThreshold,
+        1500,
+        60000,
+        DEFAULT_CONTEXT_HARD_WARNING_THRESHOLD
+      );
+    }
+    if (typeof parsed.cardSummaryMaxLength === "number") {
+      settings.cardSummaryMaxLength = clampInteger(parsed.cardSummaryMaxLength, 80, 400, DEFAULT_CARD_SUMMARY_MAX_LENGTH);
+    }
+    if (typeof parsed.helperUnscopedReferenceThreshold === "number") {
+      settings.helperUnscopedReferenceThreshold = clampInteger(
+        parsed.helperUnscopedReferenceThreshold,
         1,
         20,
         DEFAULT_HELPER_UNSCOPED_REFERENCE_THRESHOLD
-      ),
-    }),
+      );
+    }
+    if (typeof parsed.helperCooldownMs === "number") {
+      settings.helperCooldownMs = clampInteger(parsed.helperCooldownMs, 10000, 300000, DEFAULT_HELPER_COOLDOWN_MS);
+    }
+    if (typeof parsed.helperMinEditDistance === "number") {
+      settings.helperMinEditDistance = clampInteger(
+        parsed.helperMinEditDistance,
+        1,
+        20,
+        DEFAULT_HELPER_MIN_EDIT_DISTANCE
+      );
+    }
+    if (typeof parsed.helperDismissForSession === "boolean") {
+      settings.helperDismissForSession = parsed.helperDismissForSession;
+    }
+    if (KANBAN_GROUPINGS.includes(parsed.defaultKanbanGrouping as KanbanGrouping)) {
+      settings.defaultKanbanGrouping = parsed.defaultKanbanGrouping as KanbanGrouping;
+    }
+    if (typeof parsed.dashboardSectionsCollapsedByDefault === "boolean") {
+      settings.dashboardSectionsCollapsedByDefault = parsed.dashboardSectionsCollapsedByDefault;
+    }
+    if (typeof parsed.dashboardPreviewTruncationLength === "number") {
+      settings.dashboardPreviewTruncationLength = clampInteger(
+        parsed.dashboardPreviewTruncationLength,
+        60,
+        240,
+        DEFAULT_DASHBOARD_PREVIEW_TRUNCATION_LENGTH
+      );
+    }
 
-  dismissedHelpers: [],
-  dismissHelper: (helperId) =>
-    set((s) => ({
-      dismissedHelpers: [...s.dismissedHelpers, helperId],
-    })),
-  resetHelpers: () => set({ dismissedHelpers: [] }),
-  addComment: (cardId, text, author) =>
-    set((s) => ({
-      cards: s.cards.map((card) =>
-        card.id === cardId
-          ? {
-              ...card,
-              comments: [
-                ...(Array.isArray(card.comments) ? card.comments : []),
-                {
-                  id: uuid(),
-                  text,
-                  timestamp: Date.now(),
-                  author: author?.trim() ? author.trim() : undefined,
-                },
-              ],
-            }
-          : card
-      ),
-      isDirty: true,
-    })),
-  removeComment: (cardId, commentId) =>
-    set((s) => ({
-      cards: s.cards.map((card) =>
-        card.id === cardId
-          ? {
-              ...card,
-              comments: (card.comments ?? []).filter((comment) => comment.id !== commentId),
-            }
-          : card
-      ),
-      isDirty: true,
-    })),
+    if (
+      typeof settings.contextSoftWarningWordThreshold === "number" &&
+      typeof settings.contextHardWarningWordThreshold === "number" &&
+      settings.contextSoftWarningWordThreshold >= settings.contextHardWarningWordThreshold
+    ) {
+      settings.contextHardWarningWordThreshold = settings.contextSoftWarningWordThreshold + 250;
+    }
 
-  loadState: (cards, edges, viewport) =>
-    set({
-      cards,
-      edges,
-      viewport,
-      openEditors: [],
-      ghostPreviewMode: null,
-      isDirty: false,
-    }),
-  clearAll: () =>
-    set({
+    return settings;
+  } catch {
+    return {};
+  }
+}
+
+function extractPersistedCanvasSettings(state: CanvasStore): PersistedCanvasSettings {
+  return {
+    editorFontSize: state.editorFontSize,
+    spellCheck: state.spellCheck,
+    autoSave: state.autoSave,
+    showWordCount: state.showWordCount,
+    exportIncludeBrainstorm: state.exportIncludeBrainstorm,
+    exportIncludeCardDocs: state.exportIncludeCardDocs,
+    exportIncludeAgentHints: state.exportIncludeAgentHints,
+    exportGoalOverride: state.exportGoalOverride,
+    exportFileNamePattern: state.exportFileNamePattern,
+    saveBehaviorPreference: state.saveBehaviorPreference,
+    defaultAgentHint: state.defaultAgentHint,
+    agentHintExportMode: state.agentHintExportMode,
+    suggestionMinDocWords: state.suggestionMinDocWords,
+    suggestionKeywordAggressiveness: state.suggestionKeywordAggressiveness,
+    summarySourcePreference: state.summarySourcePreference,
+    excludedTags: state.excludedTags,
+    disabledGovernorRules: state.disabledGovernorRules,
+    governorBodyLineThreshold: state.governorBodyLineThreshold,
+    governorHierarchyDepthThreshold: state.governorHierarchyDepthThreshold,
+    governorReferenceChainDepthThreshold: state.governorReferenceChainDepthThreshold,
+    governorRedundantOverlapThreshold: state.governorRedundantOverlapThreshold,
+    autoSnapshot: state.autoSnapshot,
+    maxSnapshots: state.maxSnapshots,
+    defaultReferenceScope: state.defaultReferenceScope,
+    dragConnectEdgeType: state.dragConnectEdgeType,
+    promptReferenceScopeOnCreate: state.promptReferenceScopeOnCreate,
+    sectionReferenceWordCap: state.sectionReferenceWordCap,
+    contextLeanWordThreshold: state.contextLeanWordThreshold,
+    contextStandardWordThreshold: state.contextStandardWordThreshold,
+    contextRichWordThreshold: state.contextRichWordThreshold,
+    contextSoftWarningWordThreshold: state.contextSoftWarningWordThreshold,
+    contextHardWarningWordThreshold: state.contextHardWarningWordThreshold,
+    cardSummaryMaxLength: state.cardSummaryMaxLength,
+    helperUnscopedReferenceThreshold: state.helperUnscopedReferenceThreshold,
+    helperCooldownMs: state.helperCooldownMs,
+    helperMinEditDistance: state.helperMinEditDistance,
+    helperDismissForSession: state.helperDismissForSession,
+    defaultKanbanGrouping: state.defaultKanbanGrouping,
+    dashboardSectionsCollapsedByDefault: state.dashboardSectionsCollapsedByDefault,
+    dashboardPreviewTruncationLength: state.dashboardPreviewTruncationLength,
+  };
+}
+
+function persistCanvasSettings(state: CanvasStore) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    localStorage.setItem(
+      CANVAS_SETTINGS_STORAGE_KEY,
+      JSON.stringify(extractPersistedCanvasSettings(state))
+    );
+  } catch {
+    // localStorage may be unavailable
+  }
+}
+
+function sanitizeExportFileNamePattern(value: string): string {
+  const trimmed = value.trim().replace(/[\\/]+/g, "-");
+  return trimmed ? trimmed : DEFAULT_EXPORT_FILENAME_PATTERN;
+}
+
+const persistedSettings = parseStoredSettings();
+
+export const useCanvasStore = create<CanvasStore>()(
+  temporal(
+    (set, get) => ({
       cards: [],
+      addCard: (type, title, position) => {
+        const id = uuid();
+        const defaultAgentHint = get().defaultAgentHint.trim();
+        const card: Card = {
+          id,
+          type,
+          title,
+          body: "",
+          position,
+          collapsed: false,
+          hasDoc: false,
+          docContent: "",
+          agentHint: defaultAgentHint ? defaultAgentHint : undefined,
+        };
+        set((state) => ({
+          cards: [...state.cards, card],
+          isDirty: true,
+          editVersion: state.editVersion + 1,
+        }));
+        return id;
+      },
+      updateCard: (id, updates) =>
+        set((state) => ({
+          cards: state.cards.map((card) => (card.id === id ? { ...card, ...updates } : card)),
+          isDirty: true,
+          editVersion: state.editVersion + 1,
+        })),
+      removeCard: (id) =>
+        set((state) => ({
+          cards: state.cards.filter((card) => card.id !== id),
+          edges: state.edges.filter((edge) => edge.source !== id && edge.target !== id),
+          openEditors: state.openEditors.filter((editor) => editor.cardId !== id),
+          isDirty: true,
+          editVersion: state.editVersion + 1,
+        })),
+      getCard: (id) => get().cards.find((card) => card.id === id),
+
       edges: [],
+      addEdge: (source, target, edgeType = "hierarchy", referenceScope, referenceSectionHint) => {
+        const id = uuid();
+        const defaultReferenceScope = get().defaultReferenceScope;
+        const edge: Edge = {
+          id,
+          source,
+          target,
+          edgeType,
+          sourceArrow: edgeType === "reference" ? false : undefined,
+          targetArrow: edgeType === "reference" ? false : true,
+          referenceScope: edgeType === "reference" ? (referenceScope ?? defaultReferenceScope) : undefined,
+          referenceSectionHint: edgeType === "reference" ? referenceSectionHint : undefined,
+        };
+        set((state) => ({
+          edges: [...state.edges, edge],
+          isDirty: true,
+          editVersion: state.editVersion + 1,
+        }));
+      },
+      removeEdge: (id) =>
+        set((state) => ({
+          edges: state.edges.filter((edge) => edge.id !== id),
+          isDirty: true,
+          editVersion: state.editVersion + 1,
+        })),
+      updateEdge: (id, updates) =>
+        set((state) => ({
+          edges: state.edges.map((edge) => (edge.id === id ? { ...edge, ...updates } : edge)),
+          isDirty: true,
+          editVersion: state.editVersion + 1,
+        })),
+
+      editorMode: "select",
+      setEditorMode: (mode) => set({ editorMode: mode }),
+
       openEditors: [],
+      openEditor: (cardId, position) =>
+        set((state) => {
+          if (state.openEditors.some((editor) => editor.cardId === cardId)) {
+            return state;
+          }
+
+          return { openEditors: [...state.openEditors, { cardId, position }] };
+        }),
+      closeEditor: (cardId) =>
+        set((state) => ({
+          openEditors: state.openEditors.filter((editor) => editor.cardId !== cardId),
+        })),
       ghostPreviewMode: null,
+      setGhostPreviewMode: (mode) => set({ ghostPreviewMode: mode }),
+
       viewport: { x: 0, y: 0, zoom: 1 },
+      setViewport: (viewport) => set({ viewport }),
+
+      snapToGrid: true,
+      toggleSnapToGrid: () => set((state) => ({ snapToGrid: !state.snapToGrid })),
+      showGrid: true,
+      toggleShowGrid: () => set((state) => ({ showGrid: !state.showGrid })),
+      showMinimap: true,
+      toggleMinimap: () => set((state) => ({ showMinimap: !state.showMinimap })),
+
       isDirty: false,
+      markClean: () => set({ isDirty: false }),
+      editVersion: 0,
+
       dismissedHelpers: [],
-    }),
+      dismissHelper: (helperId) =>
+        set((state) => ({
+          dismissedHelpers: state.dismissedHelpers.includes(helperId)
+            ? state.dismissedHelpers
+            : [...state.dismissedHelpers, helperId],
+        })),
+      resetHelpers: () => set({ dismissedHelpers: [] }),
+      addComment: (cardId, text, author) =>
+        set((state) => ({
+          cards: state.cards.map((card) =>
+            card.id === cardId
+              ? {
+                  ...card,
+                  comments: [
+                    ...(Array.isArray(card.comments) ? card.comments : []),
+                    {
+                      id: uuid(),
+                      text,
+                      timestamp: Date.now(),
+                      author: author?.trim() ? author.trim() : undefined,
+                    },
+                  ],
+                }
+              : card
+          ),
+          isDirty: true,
+          editVersion: state.editVersion + 1,
+        })),
+      removeComment: (cardId, commentId) =>
+        set((state) => ({
+          cards: state.cards.map((card) =>
+            card.id === cardId
+              ? {
+                  ...card,
+                  comments: (card.comments ?? []).filter((comment) => comment.id !== commentId),
+                }
+              : card
+          ),
+          isDirty: true,
+          editVersion: state.editVersion + 1,
+        })),
+
+      // Settings — Editor
+      editorFontSize: persistedSettings.editorFontSize ?? 14,
+      setEditorFontSize: (size) =>
+        set({
+          editorFontSize: clampInteger(size, 12, 18, 14),
+        }),
+      spellCheck: persistedSettings.spellCheck ?? true,
+      toggleSpellCheck: () => set((state) => ({ spellCheck: !state.spellCheck })),
+      autoSave: persistedSettings.autoSave ?? true,
+      toggleAutoSave: () => set((state) => ({ autoSave: !state.autoSave })),
+      showWordCount: persistedSettings.showWordCount ?? false,
+      toggleShowWordCount: () => set((state) => ({ showWordCount: !state.showWordCount })),
+
+      // Settings — Export
+      exportIncludeBrainstorm: persistedSettings.exportIncludeBrainstorm ?? false,
+      toggleExportIncludeBrainstorm: () =>
+        set((state) => ({ exportIncludeBrainstorm: !state.exportIncludeBrainstorm })),
+      exportIncludeCardDocs: persistedSettings.exportIncludeCardDocs ?? true,
+      toggleExportIncludeCardDocs: () =>
+        set((state) => ({ exportIncludeCardDocs: !state.exportIncludeCardDocs })),
+      exportIncludeAgentHints: persistedSettings.exportIncludeAgentHints ?? true,
+      toggleExportIncludeAgentHints: () =>
+        set((state) => ({ exportIncludeAgentHints: !state.exportIncludeAgentHints })),
+      exportGoalOverride: persistedSettings.exportGoalOverride ?? "auto",
+      setExportGoalOverride: (value) => set({ exportGoalOverride: value }),
+      exportFileNamePattern: persistedSettings.exportFileNamePattern ?? DEFAULT_EXPORT_FILENAME_PATTERN,
+      setExportFileNamePattern: (value) =>
+        set({
+          exportFileNamePattern: sanitizeExportFileNamePattern(value),
+        }),
+      saveBehaviorPreference: persistedSettings.saveBehaviorPreference ?? DEFAULT_SAVE_BEHAVIOR_PREFERENCE,
+      setSaveBehaviorPreference: (value) => set({ saveBehaviorPreference: value }),
+
+      // Settings — Agent
+      defaultAgentHint: persistedSettings.defaultAgentHint ?? "",
+      setDefaultAgentHint: (value) => set({ defaultAgentHint: value }),
+      agentHintExportMode: persistedSettings.agentHintExportMode ?? "inline",
+      setAgentHintExportMode: (value) => set({ agentHintExportMode: value }),
+      suggestionMinDocWords: persistedSettings.suggestionMinDocWords ?? DEFAULT_SUGGESTION_MIN_DOC_WORDS,
+      setSuggestionMinDocWords: (value) =>
+        set({
+          suggestionMinDocWords: clampInteger(value, 20, 400, DEFAULT_SUGGESTION_MIN_DOC_WORDS),
+        }),
+      suggestionKeywordAggressiveness:
+        persistedSettings.suggestionKeywordAggressiveness ?? DEFAULT_SUGGESTION_KEYWORD_AGGRESSIVENESS,
+      setSuggestionKeywordAggressiveness: (value) =>
+        set({
+          suggestionKeywordAggressiveness: clampInteger(
+            value,
+            1,
+            3,
+            DEFAULT_SUGGESTION_KEYWORD_AGGRESSIVENESS
+          ),
+        }),
+      summarySourcePreference: persistedSettings.summarySourcePreference ?? DEFAULT_SUMMARY_SOURCE_PREFERENCE,
+      setSummarySourcePreference: (value) => set({ summarySourcePreference: value }),
+
+      // Settings — Tags
+      excludedTags: persistedSettings.excludedTags ?? [],
+      toggleTagExclusion: (tag) =>
+        set((state) => ({
+          excludedTags: state.excludedTags.includes(tag)
+            ? state.excludedTags.filter((value) => value !== tag)
+            : [...state.excludedTags, tag],
+        })),
+
+      // Settings — Governor
+      disabledGovernorRules: persistedSettings.disabledGovernorRules ?? [],
+      toggleGovernorRule: (rule) =>
+        set((state) => ({
+          disabledGovernorRules: state.disabledGovernorRules.includes(rule)
+            ? state.disabledGovernorRules.filter((value) => value !== rule)
+            : [...state.disabledGovernorRules, rule],
+        })),
+      governorBodyLineThreshold:
+        persistedSettings.governorBodyLineThreshold ?? DEFAULT_GOVERNOR_BODY_LINE_THRESHOLD,
+      setGovernorBodyLineThreshold: (value) =>
+        set({
+          governorBodyLineThreshold: clampInteger(value, 1, 12, DEFAULT_GOVERNOR_BODY_LINE_THRESHOLD),
+        }),
+      governorHierarchyDepthThreshold:
+        persistedSettings.governorHierarchyDepthThreshold ?? DEFAULT_GOVERNOR_HIERARCHY_DEPTH_THRESHOLD,
+      setGovernorHierarchyDepthThreshold: (value) =>
+        set({
+          governorHierarchyDepthThreshold: clampInteger(
+            value,
+            2,
+            8,
+            DEFAULT_GOVERNOR_HIERARCHY_DEPTH_THRESHOLD
+          ),
+        }),
+      governorReferenceChainDepthThreshold:
+        persistedSettings.governorReferenceChainDepthThreshold ?? DEFAULT_GOVERNOR_REFERENCE_CHAIN_THRESHOLD,
+      setGovernorReferenceChainDepthThreshold: (value) =>
+        set({
+          governorReferenceChainDepthThreshold: clampInteger(
+            value,
+            2,
+            8,
+            DEFAULT_GOVERNOR_REFERENCE_CHAIN_THRESHOLD
+          ),
+        }),
+      governorRedundantOverlapThreshold:
+        persistedSettings.governorRedundantOverlapThreshold ?? DEFAULT_GOVERNOR_REDUNDANT_OVERLAP_THRESHOLD,
+      setGovernorRedundantOverlapThreshold: (value) =>
+        set({
+          governorRedundantOverlapThreshold: clampFloat(
+            value,
+            0.2,
+            0.95,
+            DEFAULT_GOVERNOR_REDUNDANT_OVERLAP_THRESHOLD
+          ),
+        }),
+
+      // Settings — History
+      autoSnapshot: persistedSettings.autoSnapshot ?? true,
+      toggleAutoSnapshot: () => set((state) => ({ autoSnapshot: !state.autoSnapshot })),
+      maxSnapshots: persistedSettings.maxSnapshots ?? DEFAULT_MAX_SNAPSHOTS,
+      setMaxSnapshots: (value) =>
+        set({
+          maxSnapshots: clampInteger(value, 5, 500, DEFAULT_MAX_SNAPSHOTS),
+        }),
+
+      // Settings — Native UX
+      defaultReferenceScope: persistedSettings.defaultReferenceScope ?? DEFAULT_REFERENCE_SCOPE,
+      setDefaultReferenceScope: (scope) => set({ defaultReferenceScope: scope }),
+      dragConnectEdgeType: persistedSettings.dragConnectEdgeType ?? DEFAULT_DRAG_CONNECT_EDGE_TYPE,
+      setDragConnectEdgeType: (value) => set({ dragConnectEdgeType: value }),
+      promptReferenceScopeOnCreate:
+        persistedSettings.promptReferenceScopeOnCreate ?? DEFAULT_PROMPT_REFERENCE_SCOPE_ON_CREATE,
+      togglePromptReferenceScopeOnCreate: () =>
+        set((state) => ({ promptReferenceScopeOnCreate: !state.promptReferenceScopeOnCreate })),
+      sectionReferenceWordCap: persistedSettings.sectionReferenceWordCap ?? DEFAULT_SECTION_REFERENCE_WORD_CAP,
+      setSectionReferenceWordCap: (value) =>
+        set({
+          sectionReferenceWordCap: clampInteger(value, 50, 1000, DEFAULT_SECTION_REFERENCE_WORD_CAP),
+        }),
+      contextLeanWordThreshold:
+        persistedSettings.contextLeanWordThreshold ?? DEFAULT_CONTEXT_LEAN_WORD_THRESHOLD,
+      setContextLeanWordThreshold: (value) =>
+        set({
+          contextLeanWordThreshold: clampInteger(value, 500, 20000, DEFAULT_CONTEXT_LEAN_WORD_THRESHOLD),
+        }),
+      contextStandardWordThreshold:
+        persistedSettings.contextStandardWordThreshold ?? DEFAULT_CONTEXT_STANDARD_WORD_THRESHOLD,
+      setContextStandardWordThreshold: (value) =>
+        set({
+          contextStandardWordThreshold: clampInteger(
+            value,
+            1000,
+            30000,
+            DEFAULT_CONTEXT_STANDARD_WORD_THRESHOLD
+          ),
+        }),
+      contextRichWordThreshold:
+        persistedSettings.contextRichWordThreshold ?? DEFAULT_CONTEXT_RICH_WORD_THRESHOLD,
+      setContextRichWordThreshold: (value) =>
+        set({
+          contextRichWordThreshold: clampInteger(value, 1500, 40000, DEFAULT_CONTEXT_RICH_WORD_THRESHOLD),
+        }),
+      contextSoftWarningWordThreshold:
+        persistedSettings.contextSoftWarningWordThreshold ?? DEFAULT_CONTEXT_SOFT_WARNING_THRESHOLD,
+      setContextSoftWarningWordThreshold: (value) =>
+        set((state) => {
+          const nextValue = clampInteger(value, 1000, 50000, DEFAULT_CONTEXT_SOFT_WARNING_THRESHOLD);
+          return {
+            contextSoftWarningWordThreshold: Math.min(nextValue, state.contextHardWarningWordThreshold - 250),
+          };
+        }),
+      contextHardWarningWordThreshold:
+        persistedSettings.contextHardWarningWordThreshold ?? DEFAULT_CONTEXT_HARD_WARNING_THRESHOLD,
+      setContextHardWarningWordThreshold: (value) =>
+        set((state) => {
+          const nextValue = clampInteger(value, 1500, 60000, DEFAULT_CONTEXT_HARD_WARNING_THRESHOLD);
+          return {
+            contextHardWarningWordThreshold: Math.max(nextValue, state.contextSoftWarningWordThreshold + 250),
+          };
+        }),
+      cardSummaryMaxLength: persistedSettings.cardSummaryMaxLength ?? DEFAULT_CARD_SUMMARY_MAX_LENGTH,
+      setCardSummaryMaxLength: (value) =>
+        set({
+          cardSummaryMaxLength: clampInteger(value, 80, 400, DEFAULT_CARD_SUMMARY_MAX_LENGTH),
+        }),
+      helperUnscopedReferenceThreshold:
+        persistedSettings.helperUnscopedReferenceThreshold ?? DEFAULT_HELPER_UNSCOPED_REFERENCE_THRESHOLD,
+      setHelperUnscopedReferenceThreshold: (value) =>
+        set({
+          helperUnscopedReferenceThreshold: clampInteger(
+            value,
+            1,
+            20,
+            DEFAULT_HELPER_UNSCOPED_REFERENCE_THRESHOLD
+          ),
+        }),
+      helperCooldownMs: persistedSettings.helperCooldownMs ?? DEFAULT_HELPER_COOLDOWN_MS,
+      setHelperCooldownMs: (value) =>
+        set({
+          helperCooldownMs: clampInteger(value, 10000, 300000, DEFAULT_HELPER_COOLDOWN_MS),
+        }),
+      helperMinEditDistance: persistedSettings.helperMinEditDistance ?? DEFAULT_HELPER_MIN_EDIT_DISTANCE,
+      setHelperMinEditDistance: (value) =>
+        set({
+          helperMinEditDistance: clampInteger(value, 1, 20, DEFAULT_HELPER_MIN_EDIT_DISTANCE),
+        }),
+      helperDismissForSession:
+        persistedSettings.helperDismissForSession ?? DEFAULT_HELPER_DISMISS_FOR_SESSION,
+      toggleHelperDismissForSession: () =>
+        set((state) => ({ helperDismissForSession: !state.helperDismissForSession })),
+      defaultKanbanGrouping: persistedSettings.defaultKanbanGrouping ?? DEFAULT_KANBAN_GROUPING,
+      setDefaultKanbanGrouping: (value) => set({ defaultKanbanGrouping: value }),
+      dashboardSectionsCollapsedByDefault:
+        persistedSettings.dashboardSectionsCollapsedByDefault ?? DEFAULT_DASHBOARD_SECTIONS_COLLAPSED,
+      toggleDashboardSectionsCollapsedByDefault: () =>
+        set((state) => ({
+          dashboardSectionsCollapsedByDefault: !state.dashboardSectionsCollapsedByDefault,
+        })),
+      dashboardPreviewTruncationLength:
+        persistedSettings.dashboardPreviewTruncationLength ?? DEFAULT_DASHBOARD_PREVIEW_TRUNCATION_LENGTH,
+      setDashboardPreviewTruncationLength: (value) =>
+        set({
+          dashboardPreviewTruncationLength: clampInteger(
+            value,
+            60,
+            240,
+            DEFAULT_DASHBOARD_PREVIEW_TRUNCATION_LENGTH
+          ),
+        }),
+
+      loadState: (cards, edges, viewport) =>
+        set({
+          cards,
+          edges,
+          viewport,
+          openEditors: [],
+          ghostPreviewMode: null,
+          isDirty: false,
+          dismissedHelpers: [],
+          editVersion: 0,
+        }),
+      clearAll: () =>
+        set({
+          cards: [],
+          edges: [],
+          openEditors: [],
+          ghostPreviewMode: null,
+          viewport: { x: 0, y: 0, zoom: 1 },
+          isDirty: false,
+          dismissedHelpers: [],
+          editVersion: 0,
+        }),
     }),
     {
       partialize: (state) => ({
@@ -453,3 +963,7 @@ export const useCanvasStore = create<CanvasStore>()(
     }
   )
 );
+
+useCanvasStore.subscribe((state) => {
+  persistCanvasSettings(state);
+});

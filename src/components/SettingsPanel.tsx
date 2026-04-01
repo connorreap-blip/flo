@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./ui/dial
 import { useCanvasStore, type AgentHintExportMode, type ExportGoalOverride } from "../store/canvas-store";
 import { useProjectStore } from "../store/project-store";
 import { REFERENCE_SCOPES, REFERENCE_SCOPE_LABELS } from "../lib/constants";
+import type { EdgeType, KanbanGrouping, SaveBehaviorPreference, SummarySourcePreference } from "../lib/types";
 import { GOVERNOR_RULE_DEFINITIONS } from "../lib/native-settings";
 
 const SETTINGS_SECTIONS = [
@@ -102,6 +103,18 @@ export function SettingsPanel({ open, onOpenChange }: Props) {
   const setContextStandardWordThreshold = useCanvasStore((s) => s.setContextStandardWordThreshold);
   const contextRichWordThreshold = useCanvasStore((s) => s.contextRichWordThreshold);
   const setContextRichWordThreshold = useCanvasStore((s) => s.setContextRichWordThreshold);
+  const contextSoftWarningWordThreshold = useCanvasStore((s) => s.contextSoftWarningWordThreshold);
+  const setContextSoftWarningWordThreshold = useCanvasStore((s) => s.setContextSoftWarningWordThreshold);
+  const contextHardWarningWordThreshold = useCanvasStore((s) => s.contextHardWarningWordThreshold);
+  const setContextHardWarningWordThreshold = useCanvasStore((s) => s.setContextHardWarningWordThreshold);
+  const dragConnectEdgeType = useCanvasStore((s) => s.dragConnectEdgeType);
+  const setDragConnectEdgeType = useCanvasStore((s) => s.setDragConnectEdgeType);
+  const promptReferenceScopeOnCreate = useCanvasStore((s) => s.promptReferenceScopeOnCreate);
+  const togglePromptReferenceScopeOnCreate = useCanvasStore((s) => s.togglePromptReferenceScopeOnCreate);
+  const exportFileNamePattern = useCanvasStore((s) => s.exportFileNamePattern);
+  const setExportFileNamePattern = useCanvasStore((s) => s.setExportFileNamePattern);
+  const saveBehaviorPreference = useCanvasStore((s) => s.saveBehaviorPreference);
+  const setSaveBehaviorPreference = useCanvasStore((s) => s.setSaveBehaviorPreference);
 
   // Agent settings
   const defaultAgentHint = useCanvasStore((s) => s.defaultAgentHint);
@@ -110,8 +123,26 @@ export function SettingsPanel({ open, onOpenChange }: Props) {
   const setAgentHintExportMode = useCanvasStore((s) => s.setAgentHintExportMode);
   const cardSummaryMaxLength = useCanvasStore((s) => s.cardSummaryMaxLength);
   const setCardSummaryMaxLength = useCanvasStore((s) => s.setCardSummaryMaxLength);
+  const suggestionMinDocWords = useCanvasStore((s) => s.suggestionMinDocWords);
+  const setSuggestionMinDocWords = useCanvasStore((s) => s.setSuggestionMinDocWords);
+  const suggestionKeywordAggressiveness = useCanvasStore((s) => s.suggestionKeywordAggressiveness);
+  const setSuggestionKeywordAggressiveness = useCanvasStore((s) => s.setSuggestionKeywordAggressiveness);
+  const summarySourcePreference = useCanvasStore((s) => s.summarySourcePreference);
+  const setSummarySourcePreference = useCanvasStore((s) => s.setSummarySourcePreference);
   const helperUnscopedReferenceThreshold = useCanvasStore((s) => s.helperUnscopedReferenceThreshold);
   const setHelperUnscopedReferenceThreshold = useCanvasStore((s) => s.setHelperUnscopedReferenceThreshold);
+  const helperCooldownMs = useCanvasStore((s) => s.helperCooldownMs);
+  const setHelperCooldownMs = useCanvasStore((s) => s.setHelperCooldownMs);
+  const helperMinEditDistance = useCanvasStore((s) => s.helperMinEditDistance);
+  const setHelperMinEditDistance = useCanvasStore((s) => s.setHelperMinEditDistance);
+  const helperDismissForSession = useCanvasStore((s) => s.helperDismissForSession);
+  const toggleHelperDismissForSession = useCanvasStore((s) => s.toggleHelperDismissForSession);
+  const defaultKanbanGrouping = useCanvasStore((s) => s.defaultKanbanGrouping);
+  const setDefaultKanbanGrouping = useCanvasStore((s) => s.setDefaultKanbanGrouping);
+  const dashboardSectionsCollapsedByDefault = useCanvasStore((s) => s.dashboardSectionsCollapsedByDefault);
+  const toggleDashboardSectionsCollapsedByDefault = useCanvasStore((s) => s.toggleDashboardSectionsCollapsedByDefault);
+  const dashboardPreviewTruncationLength = useCanvasStore((s) => s.dashboardPreviewTruncationLength);
+  const setDashboardPreviewTruncationLength = useCanvasStore((s) => s.setDashboardPreviewTruncationLength);
 
   // Tags
   const cards = useCanvasStore((s) => s.cards);
@@ -235,6 +266,47 @@ export function SettingsPanel({ open, onOpenChange }: Props) {
                       <ToggleCard title="Snap to Grid" description="Lock drag operations to the grid rhythm." active={snapToGrid} onToggle={toggleSnapToGrid} />
                     </div>
                   </SettingsGroup>
+                  <SettingsGroup title="Dashboard Defaults" description="Choose how overview surfaces open and how much preview content they show.">
+                    <div className="space-y-4">
+                      <div>
+                        <p className="mb-2 text-xs" style={{ color: "var(--color-text-muted)" }}>
+                          Default Kanban Grouping
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {([
+                            { value: "hierarchy" as KanbanGrouping, label: "Hierarchy" },
+                            { value: "type" as KanbanGrouping, label: "Type" },
+                          ]).map((option) => (
+                            <SegmentButton
+                              key={option.value}
+                              active={defaultKanbanGrouping === option.value}
+                              onClick={() => setDefaultKanbanGrouping(option.value)}
+                            >
+                              {option.label}
+                            </SegmentButton>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <ToggleCard
+                          title="Start Sections Collapsed"
+                          description="Open overview panels in a compact state by default."
+                          active={dashboardSectionsCollapsedByDefault}
+                          onToggle={toggleDashboardSectionsCollapsedByDefault}
+                        />
+                        <NumberSetting
+                          label="Preview Truncation"
+                          description="Maximum characters shown in dashboard and kanban previews before truncation."
+                          value={dashboardPreviewTruncationLength}
+                          min={60}
+                          max={240}
+                          step={10}
+                          suffix="chars"
+                          onChange={setDashboardPreviewTruncationLength}
+                        />
+                      </div>
+                    </div>
+                  </SettingsGroup>
                 </>
               )}
 
@@ -304,6 +376,26 @@ export function SettingsPanel({ open, onOpenChange }: Props) {
                     <div className="space-y-4">
                       <div>
                         <p className="mb-2 text-xs" style={{ color: "var(--color-text-muted)" }}>
+                          Drag-Connect Edge Type
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {([
+                            { value: "hierarchy" as EdgeType, label: "Hierarchy" },
+                            { value: "flow" as EdgeType, label: "Flow" },
+                            { value: "reference" as EdgeType, label: "Reference" },
+                          ]).map((option) => (
+                            <SegmentButton
+                              key={option.value}
+                              active={dragConnectEdgeType === option.value}
+                              onClick={() => setDragConnectEdgeType(option.value)}
+                            >
+                              {option.label}
+                            </SegmentButton>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="mb-2 text-xs" style={{ color: "var(--color-text-muted)" }}>
                           Default Reference Scope
                         </p>
                         <div className="flex flex-wrap gap-2">
@@ -318,6 +410,12 @@ export function SettingsPanel({ open, onOpenChange }: Props) {
                           ))}
                         </div>
                       </div>
+                      <ToggleCard
+                        title="Prompt for Scope"
+                        description="When new reference edges are created by drag-connect, ask for the scope before linking."
+                        active={promptReferenceScopeOnCreate}
+                        onToggle={togglePromptReferenceScopeOnCreate}
+                      />
                       <NumberSetting
                         label="Section Scope Word Cap"
                         description="Estimated words counted when a reference uses a section scope."
@@ -362,6 +460,58 @@ export function SettingsPanel({ open, onOpenChange }: Props) {
                         suffix="words"
                         onChange={setContextRichWordThreshold}
                       />
+                    </div>
+                    <div className="mt-3 grid gap-3 md:grid-cols-2">
+                      <NumberSetting
+                        label="Soft Warning"
+                        description="Word count where previews and health checks start showing a warning band."
+                        value={contextSoftWarningWordThreshold}
+                        min={1000}
+                        max={50000}
+                        step={250}
+                        suffix="words"
+                        onChange={setContextSoftWarningWordThreshold}
+                      />
+                      <NumberSetting
+                        label="Hard Warning"
+                        description="Word count where context is treated as high-risk for export size."
+                        value={contextHardWarningWordThreshold}
+                        min={1500}
+                        max={60000}
+                        step={250}
+                        suffix="words"
+                        onChange={setContextHardWarningWordThreshold}
+                      />
+                    </div>
+                  </SettingsGroup>
+                  <SettingsGroup title="Save and Export Defaults" description="Set the default file naming and save-path behavior for repeated exports.">
+                    <div className="space-y-4">
+                      <TextSetting
+                        label="Export Filename Pattern"
+                        description="Available tokens: {project}, {date}, {time}, {datetime}."
+                        value={exportFileNamePattern}
+                        placeholder="{project}-context-{date}.md"
+                        onChange={setExportFileNamePattern}
+                      />
+                      <div>
+                        <p className="mb-2 text-xs" style={{ color: "var(--color-text-muted)" }}>
+                          Save Button Behavior
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {([
+                            { value: "update-current" as SaveBehaviorPreference, label: "Update Current" },
+                            { value: "always-prompt" as SaveBehaviorPreference, label: "Always Prompt" },
+                          ]).map((option) => (
+                            <SegmentButton
+                              key={option.value}
+                              active={saveBehaviorPreference === option.value}
+                              onClick={() => setSaveBehaviorPreference(option.value)}
+                            >
+                              {option.label}
+                            </SegmentButton>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </SettingsGroup>
                 </>
@@ -414,6 +564,52 @@ export function SettingsPanel({ open, onOpenChange }: Props) {
                         onChange={setCardSummaryMaxLength}
                       />
                       <NumberSetting
+                        label="Min Doc Length"
+                        description="Minimum document word count before summary suggestions appear."
+                        value={suggestionMinDocWords}
+                        min={20}
+                        max={400}
+                        step={10}
+                        suffix="words"
+                        onChange={setSuggestionMinDocWords}
+                      />
+                      <NumberSetting
+                        label="Keyword Aggressiveness"
+                        description="How strongly project-goal suggestions pull recurring title and tag keywords."
+                        value={suggestionKeywordAggressiveness}
+                        min={1}
+                        max={3}
+                        step={1}
+                        onChange={setSuggestionKeywordAggressiveness}
+                      />
+                      <div
+                        className="border px-4 py-4"
+                        style={{
+                          borderColor: "var(--color-card-border)",
+                          background: "var(--color-surface-low)",
+                        }}
+                      >
+                        <div className="text-sm font-semibold">Summary Preference</div>
+                        <p className="mt-2 text-sm" style={{ color: "var(--color-text-secondary)" }}>
+                          Prefer document titles, lead sentences, or section headings when generating native summaries.
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {([
+                            { value: "title" as SummarySourcePreference, label: "Title" },
+                            { value: "lead" as SummarySourcePreference, label: "Lead Sentence" },
+                            { value: "headings" as SummarySourcePreference, label: "Section Headings" },
+                          ]).map((option) => (
+                            <SegmentButton
+                              key={option.value}
+                              active={summarySourcePreference === option.value}
+                              onClick={() => setSummarySourcePreference(option.value)}
+                            >
+                              {option.label}
+                            </SegmentButton>
+                          ))}
+                        </div>
+                      </div>
+                      <NumberSetting
                         label="Helper Trigger"
                         description="How many unscoped references trigger the helper toast."
                         value={helperUnscopedReferenceThreshold}
@@ -422,6 +618,38 @@ export function SettingsPanel({ open, onOpenChange }: Props) {
                         step={1}
                         suffix="refs"
                         onChange={setHelperUnscopedReferenceThreshold}
+                      />
+                    </div>
+                  </SettingsGroup>
+                  <SettingsGroup title="Helper Cadence" description="Control how often native helper toasts reappear while you edit.">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <NumberSetting
+                        label="Cooldown"
+                        description="Minimum wait between helper toasts."
+                        value={Math.round(helperCooldownMs / 1000)}
+                        min={10}
+                        max={300}
+                        step={5}
+                        suffix="sec"
+                        onChange={(value) => setHelperCooldownMs(value * 1000)}
+                      />
+                      <NumberSetting
+                        label="Min Edit Distance"
+                        description="Minimum number of structural edits before another helper can appear."
+                        value={helperMinEditDistance}
+                        min={1}
+                        max={20}
+                        step={1}
+                        suffix="edits"
+                        onChange={setHelperMinEditDistance}
+                      />
+                    </div>
+                    <div className="mt-3">
+                      <ToggleCard
+                        title="Dismiss for Session"
+                        description="When dismissed, suppress that helper until the session is reset."
+                        active={helperDismissForSession}
+                        onToggle={toggleHelperDismissForSession}
                       />
                     </div>
                   </SettingsGroup>
@@ -538,7 +766,7 @@ export function SettingsPanel({ open, onOpenChange }: Props) {
                         value={maxSnapshots}
                         onChange={(e) => {
                           const n = parseInt(e.target.value, 10);
-                          if (!isNaN(n) && n >= 5 && n <= 500) setMaxSnapshots(n);
+                          if (!isNaN(n)) setMaxSnapshots(n);
                         }}
                         className="w-24 border px-3 py-2 text-sm outline-none"
                         style={{
@@ -552,6 +780,9 @@ export function SettingsPanel({ open, onOpenChange }: Props) {
                         snapshots
                       </span>
                     </div>
+                    <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                      Older snapshots are removed automatically after each save once this limit is exceeded.
+                    </p>
                   </SettingsGroup>
                 </>
               )}
@@ -712,6 +943,50 @@ function NumberSetting({
             </span>
           ) : null}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function TextSetting({
+  label,
+  description,
+  value,
+  placeholder,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  value: string;
+  placeholder?: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div
+      className="border px-4 py-4"
+      style={{
+        borderColor: "var(--color-card-border)",
+        background: "var(--color-surface-low)",
+      }}
+    >
+      <div className="space-y-2">
+        <div className="text-sm font-semibold">{label}</div>
+        <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+          {description}
+        </p>
+        <input
+          type="text"
+          value={value}
+          placeholder={placeholder}
+          onChange={(event) => onChange(event.target.value)}
+          className="w-full border px-3 py-2 text-sm outline-none"
+          style={{
+            borderColor: "var(--color-card-border)",
+            background: "var(--color-surface-lowest)",
+            color: "var(--color-text-primary)",
+            fontFamily: "var(--font-mono)",
+          }}
+        />
       </div>
     </div>
   );

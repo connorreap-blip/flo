@@ -51,6 +51,41 @@ function getDefaultWorkspacePath(projectName: string, dirPath: string | null): s
   return dirPath ?? `${projectName}.flo`;
 }
 
+function slugifyFileSegment(value: string): string {
+  const slug = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return slug || "workspace";
+}
+
+function resolveExportFileName(projectName: string, pattern: string, now = new Date()): string {
+  const pad = (value: number) => value.toString().padStart(2, "0");
+  const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const time = `${pad(now.getHours())}${pad(now.getMinutes())}`;
+  const datetime = `${date}-${time}`;
+  const replacements: Record<string, string> = {
+    "{project}": slugifyFileSegment(projectName),
+    "{date}": date,
+    "{time}": time,
+    "{datetime}": datetime,
+  };
+  const resolved = Object.entries(replacements).reduce(
+    (current, [token, value]) => current.split(token).join(value),
+    pattern
+  )
+    .replace(/[\\/]+/g, "-")
+    .trim();
+
+  if (!resolved) {
+    return `${slugifyFileSegment(projectName)}-context-${date}.md`;
+  }
+
+  return resolved.endsWith(".md") ? resolved : `${resolved}.md`;
+}
+
 async function chooseWorkspacePath(projectName: string, dirPath: string | null): Promise<string | null> {
   const selected = await save({
     title: "Save flo Workspace",
@@ -74,8 +109,9 @@ function buildProjectMeta(project: ProjectMeta, savedAt: string): LoadedProjectP
 async function saveProjectInternal(forcePrompt: boolean): Promise<void> {
   const canvasStore = useCanvasStore.getState();
   const projectStore = useProjectStore.getState();
+  const shouldPromptForPath = forcePrompt || canvasStore.saveBehaviorPreference === "always-prompt";
   const dirPath =
-    forcePrompt || !projectStore.project.dirPath
+    shouldPromptForPath || !projectStore.project.dirPath
       ? await chooseWorkspacePath(projectStore.project.name, projectStore.project.dirPath)
       : projectStore.project.dirPath;
   if (!dirPath) return;
@@ -183,6 +219,10 @@ async function saveProjectInternal(forcePrompt: boolean): Promise<void> {
           summary,
         },
       });
+      await invoke("enforce_snapshot_retention", {
+        dirPath,
+        maxSnapshots: canvasStore.maxSnapshots,
+      });
     } catch {
       // Snapshot failure should not block save
     }
@@ -285,7 +325,7 @@ export async function exportContext(): Promise<void> {
 
   const selected = await save({
     title: "Export for AI",
-    defaultPath: "context.md",
+    defaultPath: resolveExportFileName(projectStore.project.name, store.exportFileNamePattern),
     filters: [{ name: "Markdown", extensions: ["md"] }],
   });
   if (!selected) return;

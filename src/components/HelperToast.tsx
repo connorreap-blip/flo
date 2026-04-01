@@ -14,14 +14,38 @@ export function HelperToast() {
   const dismissHelper = useCanvasStore((s) => s.dismissHelper);
   const helperUnscopedReferenceThreshold = useCanvasStore((s) => s.helperUnscopedReferenceThreshold);
   const governorBodyLineThreshold = useCanvasStore((s) => s.governorBodyLineThreshold);
+  const helperCooldownMs = useCanvasStore((s) => s.helperCooldownMs);
+  const helperMinEditDistance = useCanvasStore((s) => s.helperMinEditDistance);
+  const helperDismissForSession = useCanvasStore((s) => s.helperDismissForSession);
+  const editVersion = useCanvasStore((s) => s.editVersion);
   const [activeHelper, setActiveHelper] = useState<HelperMessage | null>(null);
   const [prevCounts, setPrevCounts] = useState({ cards: 0, edges: 0 });
+  const lastPromptAtRef = useRef(0);
+  const lastPromptEditVersionRef = useRef(0);
 
   // Keep a stable ref so the effect reads the latest value without re-running
   const activeHelperRef = useRef(activeHelper);
   useEffect(() => {
     activeHelperRef.current = activeHelper;
   }, [activeHelper]);
+
+  const showHelper = (message: HelperMessage) => {
+    const now = Date.now();
+    if (activeHelperRef.current) {
+      return;
+    }
+    const hasShownBefore = lastPromptAtRef.current > 0;
+    if (hasShownBefore && now - lastPromptAtRef.current < helperCooldownMs) {
+      return;
+    }
+    if (hasShownBefore && editVersion - lastPromptEditVersionRef.current < helperMinEditDistance) {
+      return;
+    }
+
+    lastPromptAtRef.current = now;
+    lastPromptEditVersionRef.current = editVersion;
+    setActiveHelper(message);
+  };
 
   useEffect(() => {
     const unscopedRefCount = edges.filter(
@@ -34,7 +58,7 @@ export function HelperToast() {
       prevCounts.edges < edges.length &&
       !dismissedHelpers.includes("first-reference")
     ) {
-      setActiveHelper({
+      showHelper({
         id: "first-reference",
         message: "References let agents see related cards.",
         detail:
@@ -48,7 +72,7 @@ export function HelperToast() {
       !dismissedHelpers.includes("many-unscoped") &&
       !activeHelperRef.current
     ) {
-      setActiveHelper({
+      showHelper({
         id: "many-unscoped",
         message: `${unscopedRefCount} references have no scope set.`,
         detail:
@@ -66,7 +90,7 @@ export function HelperToast() {
       !dismissedHelpers.includes("long-body") &&
       !activeHelperRef.current
     ) {
-      setActiveHelper({
+      showHelper({
         id: "long-body",
         message: "Card bodies should be short statements.",
         detail:
@@ -80,8 +104,12 @@ export function HelperToast() {
   }, [
     cards,
     dismissedHelpers,
+    editVersion,
     edges,
     governorBodyLineThreshold,
+    helperCooldownMs,
+    helperDismissForSession,
+    helperMinEditDistance,
     helperUnscopedReferenceThreshold,
   ]);
 
@@ -108,7 +136,9 @@ export function HelperToast() {
         </p>
         <button
           onClick={() => {
-            dismissHelper(activeHelper.id);
+            if (helperDismissForSession) {
+              dismissHelper(activeHelper.id);
+            }
             setActiveHelper(null);
           }}
           className="text-[10px] shrink-0 px-1"
@@ -122,7 +152,9 @@ export function HelperToast() {
       </p>
       <button
         onClick={() => {
-          dismissHelper(activeHelper.id);
+          if (helperDismissForSession) {
+            dismissHelper(activeHelper.id);
+          }
           setActiveHelper(null);
         }}
         className="text-[10px] self-end mt-1 px-2 py-0.5"

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useCanvasStore } from "../store/canvas-store";
 import { runGovernor, estimateContextWords } from "../lib/governor";
 import type { GovernorWarning } from "../lib/types";
-import { resolveContextTier } from "../lib/native-settings";
+import { resolveContextTier, resolveContextWarningBand } from "../lib/native-settings";
 
 interface Props {
   open: boolean;
@@ -30,6 +30,8 @@ export function HealthCheckDialog({ open, onClose, onSave }: Props) {
   const contextLeanWordThreshold = useCanvasStore((s) => s.contextLeanWordThreshold);
   const contextStandardWordThreshold = useCanvasStore((s) => s.contextStandardWordThreshold);
   const contextRichWordThreshold = useCanvasStore((s) => s.contextRichWordThreshold);
+  const contextSoftWarningWordThreshold = useCanvasStore((s) => s.contextSoftWarningWordThreshold);
+  const contextHardWarningWordThreshold = useCanvasStore((s) => s.contextHardWarningWordThreshold);
 
   const warnings = runGovernor(cards, edges, {
     disabledRules: disabledGovernorRules,
@@ -49,6 +51,10 @@ export function HealthCheckDialog({ open, onClose, onSave }: Props) {
     lean: contextLeanWordThreshold,
     standard: contextStandardWordThreshold,
     rich: contextRichWordThreshold,
+  });
+  const contextWarning = resolveContextWarningBand(totalWords, {
+    soft: contextSoftWarningWordThreshold,
+    hard: contextHardWarningWordThreshold,
   });
 
   const handleFix = (warning: GovernorWarning) => {
@@ -117,12 +123,22 @@ export function HealthCheckDialog({ open, onClose, onSave }: Props) {
         </DialogHeader>
 
         <div className="flex items-center justify-between py-2 border-b" style={{ borderColor: "var(--color-card-border)" }}>
-          <span className="text-[10px]" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>
-            EXPORT ESTIMATE
-          </span>
-          <span className="text-xs font-semibold" style={{ color: contextTier.color, fontFamily: "var(--font-mono)" }}>
-            ~{totalWords.toLocaleString()} words ({contextTier.label})
-          </span>
+          <div>
+            <span className="text-[10px]" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>
+              EXPORT ESTIMATE
+            </span>
+            <div className="mt-1 text-[10px]" style={{ color: "var(--color-text-secondary)", fontFamily: "var(--font-mono)" }}>
+              {contextWarning.label} at {contextSoftWarningWordThreshold.toLocaleString()} / {contextHardWarningWordThreshold.toLocaleString()} words
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-xs font-semibold" style={{ color: contextTier.color, fontFamily: "var(--font-mono)" }}>
+              ~{totalWords.toLocaleString()} words ({contextTier.label})
+            </div>
+            <div className="mt-1 text-[10px]" style={{ color: contextWarning.color, fontFamily: "var(--font-mono)" }}>
+              {contextWarning.label}
+            </div>
+          </div>
         </div>
 
         <div className="space-y-0">

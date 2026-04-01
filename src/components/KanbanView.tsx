@@ -9,8 +9,19 @@ export function KanbanView() {
   const edges = useCanvasStore((s) => s.edges);
   const openEditor = useCanvasStore((s) => s.openEditor);
   const sectionReferenceWordCap = useCanvasStore((s) => s.sectionReferenceWordCap);
+  const defaultKanbanGrouping = useCanvasStore((s) => s.defaultKanbanGrouping);
+  const dashboardPreviewTruncationLength = useCanvasStore((s) => s.dashboardPreviewTruncationLength);
 
   const columns = useMemo(() => {
+    if (defaultKanbanGrouping === "type") {
+      return [
+        { header: "Project", children: cards.filter((card) => card.type === "project").map((card) => ({ card, depth: 0 })) },
+        { header: "Process", children: cards.filter((card) => card.type === "process").map((card) => ({ card, depth: 0 })) },
+        { header: "Reference", children: cards.filter((card) => card.type === "reference").map((card) => ({ card, depth: 0 })) },
+        { header: "Brainstorm", children: cards.filter((card) => card.type === "brainstorm").map((card) => ({ card, depth: 0 })) },
+      ].filter((column) => column.children.length > 0);
+    }
+
     const hierarchyEdges = edges.filter((e) => e.edgeType === "hierarchy");
     const childTargets = new Set(hierarchyEdges.map((e) => e.target));
 
@@ -27,7 +38,7 @@ export function KanbanView() {
       (c) => !allHierarchyIds.has(c.id) && roots.indexOf(c) === -1
     );
 
-    const cols: { header: Card | null; children: { card: Card; depth: number }[] }[] = [];
+    const cols: { header: Card | string | null; children: { card: Card; depth: number }[] }[] = [];
 
     for (const root of roots) {
       const allChildren: { card: Card; depth: number }[] = [];
@@ -46,7 +57,7 @@ export function KanbanView() {
     }
 
     return cols;
-  }, [cards, edges]);
+  }, [cards, defaultKanbanGrouping, edges]);
 
   const renderCard = (card: Card, depth: number) => {
     const typeStyle = CARD_TYPE_STYLES[card.type];
@@ -87,7 +98,9 @@ export function KanbanView() {
         </div>
         {card.body && (
           <p className="text-[10px] line-clamp-2" style={{ color: "var(--color-text-secondary)" }}>
-            {card.body}
+            {card.body.length > dashboardPreviewTruncationLength
+              ? `${card.body.slice(0, dashboardPreviewTruncationLength).replace(/[,\s]+$/, "")}...`
+              : card.body}
           </p>
         )}
         <div className="flex items-center justify-between mt-0.5">
@@ -109,7 +122,7 @@ export function KanbanView() {
       <div className="flex gap-4 p-4 h-full items-start" style={{ minWidth: "max-content" }}>
         {columns.map((col, i) => (
           <div
-            key={col.header?.id ?? `orphan-${i}`}
+            key={typeof col.header === "string" ? col.header : col.header?.id ?? `orphan-${i}`}
             className="w-64 shrink-0 flex flex-col gap-2"
           >
             <div
@@ -122,13 +135,16 @@ export function KanbanView() {
               <span
                 className="text-xs font-bold uppercase tracking-wider"
                 style={{
-                  color: col.header?.type === "project" ? "#C9A84C" : "var(--color-text-primary)",
+                  color:
+                    typeof col.header !== "string" && col.header?.type === "project"
+                      ? "#C9A84C"
+                      : "var(--color-text-primary)",
                   fontFamily: "var(--font-headline)",
                 }}
               >
-                {col.header?.title ?? "Uncategorized"}
+                {typeof col.header === "string" ? col.header : col.header?.title ?? "Uncategorized"}
               </span>
-              {col.header && (
+              {col.header && typeof col.header !== "string" && (
                 <span className="text-[9px] ml-2" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>
                   {col.children.length}
                 </span>
@@ -136,7 +152,7 @@ export function KanbanView() {
             </div>
 
             <div className="flex flex-col gap-1.5 overflow-y-auto flex-1 pb-4">
-              {col.header && renderCard(col.header, 0)}
+              {col.header && typeof col.header !== "string" ? renderCard(col.header, 0) : null}
               {col.children.map(({ card, depth }) => renderCard(card, depth))}
             </div>
           </div>

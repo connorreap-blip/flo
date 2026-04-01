@@ -40,6 +40,8 @@ export function Canvas({ selectedCardId = null, onSelectedCardChange }: CanvasPr
   const snapToGrid = useCanvasStore((s) => s.snapToGrid);
   const updateCard = useCanvasStore((s) => s.updateCard);
   const storeAddEdge = useCanvasStore((s) => s.addEdge);
+  const dragConnectEdgeType = useCanvasStore((s) => s.dragConnectEdgeType);
+  const promptReferenceScopeOnCreate = useCanvasStore((s) => s.promptReferenceScopeOnCreate);
   const removeEdge = useCanvasStore((s) => s.removeEdge);
   const setViewport = useCanvasStore((s) => s.setViewport);
   const { fitView } = useReactFlow();
@@ -130,10 +132,15 @@ export function Canvas({ selectedCardId = null, onSelectedCardChange }: CanvasPr
   const onConnect: OnConnect = useCallback(
     (connection: Connection) => {
       if (connection.source && connection.target) {
-        storeAddEdge(connection.source, connection.target, "hierarchy");
+        if (dragConnectEdgeType === "reference" && promptReferenceScopeOnCreate) {
+          setPendingRef({ source: connection.source, target: connection.target });
+          return;
+        }
+
+        storeAddEdge(connection.source, connection.target, dragConnectEdgeType);
       }
     },
-    [storeAddEdge]
+    [dragConnectEdgeType, promptReferenceScopeOnCreate, storeAddEdge]
   );
 
   const onMoveEnd = useCallback(

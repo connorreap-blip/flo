@@ -1,4 +1,10 @@
-import type { ReferenceScope } from "./types";
+import type {
+  EdgeType,
+  KanbanGrouping,
+  ReferenceScope,
+  SaveBehaviorPreference,
+  SummarySourcePreference,
+} from "./types";
 
 export const GOVERNOR_RULE_DEFINITIONS = [
   {
@@ -59,6 +65,22 @@ export const DEFAULT_CONTEXT_RICH_WORD_THRESHOLD = 10000;
 
 export const DEFAULT_CARD_SUMMARY_MAX_LENGTH = 180;
 export const DEFAULT_HELPER_UNSCOPED_REFERENCE_THRESHOLD = 5;
+export const DEFAULT_MAX_SNAPSHOTS = 50;
+export const DEFAULT_CONTEXT_SOFT_WARNING_THRESHOLD = 8000;
+export const DEFAULT_CONTEXT_HARD_WARNING_THRESHOLD = 12000;
+export const DEFAULT_DRAG_CONNECT_EDGE_TYPE: EdgeType = "hierarchy";
+export const DEFAULT_PROMPT_REFERENCE_SCOPE_ON_CREATE = true;
+export const DEFAULT_EXPORT_FILENAME_PATTERN = "{project}-context-{date}.md";
+export const DEFAULT_SAVE_BEHAVIOR_PREFERENCE: SaveBehaviorPreference = "update-current";
+export const DEFAULT_SUGGESTION_MIN_DOC_WORDS = 60;
+export const DEFAULT_SUGGESTION_KEYWORD_AGGRESSIVENESS = 2;
+export const DEFAULT_SUMMARY_SOURCE_PREFERENCE: SummarySourcePreference = "lead";
+export const DEFAULT_HELPER_COOLDOWN_MS = 60000;
+export const DEFAULT_HELPER_MIN_EDIT_DISTANCE = 3;
+export const DEFAULT_HELPER_DISMISS_FOR_SESSION = true;
+export const DEFAULT_KANBAN_GROUPING: KanbanGrouping = "hierarchy";
+export const DEFAULT_DASHBOARD_SECTIONS_COLLAPSED = false;
+export const DEFAULT_DASHBOARD_PREVIEW_TRUNCATION_LENGTH = 120;
 
 export function clampInteger(value: number, min: number, max: number, fallback: number): number {
   if (!Number.isFinite(value)) {
@@ -104,4 +126,41 @@ export function resolveContextTier(
   }
 
   return { label: "Heavy", color: "#FF4444" };
+}
+
+export function resolveContextWarningBand(
+  totalWords: number,
+  thresholds: {
+    soft: number;
+    hard: number;
+  }
+): {
+  label: "Within Budget" | "Soft Warning" | "Hard Warning";
+  color: string;
+  severity: "clear" | "soft" | "hard";
+} {
+  const soft = thresholds.soft;
+  const hard = Math.max(thresholds.hard, soft + 1);
+
+  if (totalWords < soft) {
+    return {
+      label: "Within Budget",
+      color: "#44FF44",
+      severity: "clear",
+    };
+  }
+
+  if (totalWords < hard) {
+    return {
+      label: "Soft Warning",
+      color: "#FFAA00",
+      severity: "soft",
+    };
+  }
+
+  return {
+    label: "Hard Warning",
+    color: "#FF4444",
+    severity: "hard",
+  };
 }
