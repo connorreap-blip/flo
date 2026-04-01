@@ -46,6 +46,9 @@ export interface ProjectMeta {
   name: string;
   dirPath: string | null;
   goal?: string;
+  workspaceId?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CardComment {

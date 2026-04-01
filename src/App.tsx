@@ -20,7 +20,7 @@ import { HomeDashboard } from "./components/HomeDashboard";
 import { HistoryTab } from "./components/HistoryTab";
 import { FilesTab } from "./components/FilesTab";
 import { parseContextMd } from "./lib/context-parser";
-import { applyLoadedProject, type LoadedProjectPayload } from "./lib/file-ops";
+import { applyLoadedProject, saveProject, type LoadedProjectPayload } from "./lib/file-ops";
 import { cn } from "./lib/utils";
 import type { Card, Edge, ProjectMeta } from "./lib/types";
 import {
@@ -110,6 +110,7 @@ export default function App() {
   const edges = useCanvasStore((s) => s.edges);
   const viewport = useCanvasStore((s) => s.viewport);
   const isDirty = useCanvasStore((s) => s.isDirty);
+  const autoSave = useCanvasStore((s) => s.autoSave);
   const openEditors = useCanvasStore((s) => s.openEditors);
   const loadState = useCanvasStore((s) => s.loadState);
   const ghostPreviewMode = useCanvasStore((s) => s.ghostPreviewMode);
@@ -171,6 +172,20 @@ export default function App() {
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
   }, []);
+
+  useEffect(() => {
+    if (!autoSave || !project.dirPath || !isDirty) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      void saveProject().catch((error) => {
+        console.error("Auto-save failed", error);
+      });
+    }, 1500);
+
+    return () => window.clearTimeout(timer);
+  }, [autoSave, cards, edges, isDirty, project, viewport]);
 
   useEffect(() => {
     const savedHandler = (event: Event) => {

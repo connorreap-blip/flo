@@ -15,6 +15,7 @@ function CardEdgeComponent(props: EdgeProps) {
   const style = EDGE_TYPE_STYLES[edgeType] ?? EDGE_TYPE_STYLES.hierarchy;
 
   const updateEdge = useCanvasStore((s) => s.updateEdge);
+  const defaultReferenceScope = useCanvasStore((s) => s.defaultReferenceScope);
   const [editingLabel, setEditingLabel] = useState(false);
   const [showTypeMenu, setShowTypeMenu] = useState(false);
 
@@ -38,7 +39,7 @@ function CardEdgeComponent(props: EdgeProps) {
       edgeType: newType,
       sourceArrow: isRef ? false : undefined,
       targetArrow: isRef ? false : true,
-      referenceScope: isRef ? "summary" : undefined,
+      referenceScope: isRef ? defaultReferenceScope : undefined,
     });
     setShowTypeMenu(false);
   };

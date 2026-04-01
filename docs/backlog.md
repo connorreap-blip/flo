@@ -53,6 +53,52 @@ Vercel (website)          GitHub Releases (binaries)        User's machine
 
 ## Feature Backlog
 
+### Delivery Split
+
+The current app can deliver a meaningful native product without any AI provider, but the roadmap should separate deterministic product logic from true AI-assisted behavior.
+
+#### Native-first work
+
+These can and should ship without an AI plug-in or hosted model:
+
+- governor rules, thresholds, and quick-fix actions
+- reference scoping UX and export shaping
+- agent hints, goal-based export ordering, and context previews
+- heuristic suggestion helpers for summaries and goals
+- dashboard drill-in, command/search unification, and file navigation
+- save, save as, snapshots, retention, external-change merge flow, and status feedback
+
+#### AI-dependent work
+
+These should be treated as a separate workstream because they require a provider layer:
+
+- semantic project-goal generation from workspace content
+- semantic card-summary generation from document content
+- version change summaries on save or export
+- chat / copilot surfaces
+- natural-language critique, rewrite, or synthesis features
+
+### AI Workstream
+
+#### Provider abstraction
+
+Before adding more AI-facing UI, add one provider layer that owns model access and fallback behavior.
+
+Light spec:
+
+- frontend calls a single typed service such as `generateAiSuggestion()`
+- service accepts structured inputs: `kind`, `project`, `cards`, `edges`, `selection`, and optional `instructions`
+- service returns structured outputs: `text`, `title`, `bullets`, `warnings`, and `providerMeta`
+- provider implementations can target hosted APIs or a future local model path
+- when no provider is configured, AI actions must stay visible but degrade to native heuristics or a clear disabled state
+- AI output must always be previewed and user-applied; it should never overwrite card or project state silently
+
+#### Initial AI-backed feature targets
+
+1. Project goal suggestion from full workspace structure and document content.
+2. Card summary suggestion that synthesizes a short summary instead of taking the first sentence.
+3. Save/export change summaries for history entries and release notes.
+
 ### Tier 1 — Critical (pre-launch)
 
 | Feature | Notes |
@@ -61,6 +107,9 @@ Vercel (website)          GitHub Releases (binaries)        User's machine
 | Spotlight Search (Cmd+F) | Search cards in current map, highlight + pan to match |
 | Starter Templates | 3-4 pre-built maps (Product Strategy, System Architecture, Research Project) |
 | Drag-to-Connect with edge type | Drag from handle directly, edge type pre-selected from handle hover |
+| Governor hardening | Wire settings to real rule execution, add actionable fixes, and make dashboard/governor drill-in consistent |
+| Reference scope workflow | Make reference scope selectable at creation time and editable after creation |
+| Save workflow completion | Add `Save As`, save feedback, snapshot toggle wiring, and snapshot retention |
 
 ### Tier 2 — Competitive (within 3 months)
 
@@ -72,6 +121,8 @@ Vercel (website)          GitHub Releases (binaries)        User's machine
 | Map Gallery Dashboard | Replace HomeScreen with visual gallery of all maps |
 | Governor Bar | Persistent bottom bar showing real-time word count + context tier |
 | Ghost Preview (Agent View) | Cmd+Shift+P toggles "what the agent sees" overlay |
+| Native suggestion helpers | Improve summary and goal suggestions with better heuristics, keyword extraction, and graph-aware templates |
+| Discovery unification | Align dashboard drill-in, command palette, slash menu, and future file tree around one search/detail model |
 
 ### Tier 3 — Moat (within 6 months)
 
@@ -79,14 +130,15 @@ Vercel (website)          GitHub Releases (binaries)        User's machine
 |---------|-------|
 | File Watcher + Hot Reload | Watch .flo/ dir, update canvas when agent edits files externally |
 | Local API Server (localhost) | REST API for agents to read/write cards, create connections |
-| Claude Chat Sidebar | Built-in chat panel with API key / subscription auth config |
+| Claude Chat Sidebar | Built-in chat panel with API key / subscription auth config; depends on provider abstraction |
 | Version History / Snapshots | Auto-snapshot on save, timeline slider, git-native |
-| Plugin / Extension System | Custom card types, edge types, export formats, governor rules |
+| Plugin / Extension System | Custom card types, edge types, export formats, governor rules; separate from AI provider plumbing |
 | Cross-Map References | Cards in one map reference cards in another |
 | Image / Attachment Support | Cards can hold images, PDFs, files |
 | Card Tags | Tags addable to cards for filtering, categorization |
 | Card Attachments | Attach files, images, PDFs to individual cards |
 | Card Comments | Comment threads on cards — comments excluded from agent export (like brainstorm cards) |
+| AI provider layer | Configurable provider service for suggestions, synthesis, and future assistant/chat features |
 
 ### UX Improvements (ongoing)
 
@@ -97,6 +149,7 @@ Vercel (website)          GitHub Releases (binaries)        User's machine
 | Context Diff (Cmd+D) | Show diff of context.md changes before/after edits |
 | Animated transitions | Spring physics on drag, smooth zoom, staggered card reveals |
 | Version change summaries | Automated change notes on save/export (requires LLM) |
+| AI suggestion preview pattern | Shared review/apply UI for goal, summary, and future AI-generated content |
 | `[[` card picker in docs | TipTap extension for wikilink-style card references |
 | Backlinks in EditorBubble | Show what other cards reference this one |
 

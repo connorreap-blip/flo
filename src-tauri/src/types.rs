@@ -1,5 +1,9 @@
 use serde::{Deserialize, Serialize};
 
+fn default_format_version() -> u32 {
+    2
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CardComment {
     pub id: String,
@@ -68,9 +72,16 @@ pub struct ProjectState {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ProjectMeta {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workspace_id: Option<String>,
     pub name: String,
-    pub created: String,
+    #[serde(default, alias = "created", skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+    #[serde(default = "default_format_version")]
     pub format_version: u32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub goal: Option<String>,
 }
 

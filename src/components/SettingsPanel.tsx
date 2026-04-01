@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./ui/dialog";
 import { useCanvasStore, type AgentHintExportMode, type ExportGoalOverride } from "../store/canvas-store";
 import { useProjectStore } from "../store/project-store";
+import { REFERENCE_SCOPES, REFERENCE_SCOPE_LABELS } from "../lib/constants";
+import { GOVERNOR_RULE_DEFINITIONS } from "../lib/native-settings";
 
 const SETTINGS_SECTIONS = [
   "appearance",
@@ -40,6 +42,7 @@ const SECTION_DESCRIPTIONS: Record<SettingsSection, string> = {
 
 const SHORTCUTS = [
   { keys: "Cmd+S", description: "Save workspace" },
+  { keys: "Cmd+Shift+S", description: "Save workspace as" },
   { keys: "Cmd+O", description: "Open workspace folder" },
   { keys: "Cmd+E", description: "Export for AI" },
   { keys: "Cmd+G", description: "Toggle grid" },
@@ -54,14 +57,6 @@ const SHORTCUTS = [
 ];
 
 const FONT_SIZES = [12, 14, 16, 18] as const;
-
-const GOVERNOR_RULES = [
-  { id: "orphan-cards", label: "Orphan cards", description: "Cards with no edges" },
-  { id: "large-body", label: "Large card body", description: "Card body text exceeding ~300 words" },
-  { id: "deep-nesting", label: "Deep nesting", description: "Hierarchy depth exceeding 4 levels" },
-  { id: "missing-doc", label: "Missing docs", description: "Non-brainstorm cards without documents" },
-  { id: "circular-ref", label: "Circular references", description: "Reference loops in the graph" },
-];
 
 interface Props {
   open: boolean;
@@ -97,12 +92,26 @@ export function SettingsPanel({ open, onOpenChange }: Props) {
   const toggleExportIncludeAgentHints = useCanvasStore((s) => s.toggleExportIncludeAgentHints);
   const exportGoalOverride = useCanvasStore((s) => s.exportGoalOverride);
   const setExportGoalOverride = useCanvasStore((s) => s.setExportGoalOverride);
+  const defaultReferenceScope = useCanvasStore((s) => s.defaultReferenceScope);
+  const setDefaultReferenceScope = useCanvasStore((s) => s.setDefaultReferenceScope);
+  const sectionReferenceWordCap = useCanvasStore((s) => s.sectionReferenceWordCap);
+  const setSectionReferenceWordCap = useCanvasStore((s) => s.setSectionReferenceWordCap);
+  const contextLeanWordThreshold = useCanvasStore((s) => s.contextLeanWordThreshold);
+  const setContextLeanWordThreshold = useCanvasStore((s) => s.setContextLeanWordThreshold);
+  const contextStandardWordThreshold = useCanvasStore((s) => s.contextStandardWordThreshold);
+  const setContextStandardWordThreshold = useCanvasStore((s) => s.setContextStandardWordThreshold);
+  const contextRichWordThreshold = useCanvasStore((s) => s.contextRichWordThreshold);
+  const setContextRichWordThreshold = useCanvasStore((s) => s.setContextRichWordThreshold);
 
   // Agent settings
   const defaultAgentHint = useCanvasStore((s) => s.defaultAgentHint);
   const setDefaultAgentHint = useCanvasStore((s) => s.setDefaultAgentHint);
   const agentHintExportMode = useCanvasStore((s) => s.agentHintExportMode);
   const setAgentHintExportMode = useCanvasStore((s) => s.setAgentHintExportMode);
+  const cardSummaryMaxLength = useCanvasStore((s) => s.cardSummaryMaxLength);
+  const setCardSummaryMaxLength = useCanvasStore((s) => s.setCardSummaryMaxLength);
+  const helperUnscopedReferenceThreshold = useCanvasStore((s) => s.helperUnscopedReferenceThreshold);
+  const setHelperUnscopedReferenceThreshold = useCanvasStore((s) => s.setHelperUnscopedReferenceThreshold);
 
   // Tags
   const cards = useCanvasStore((s) => s.cards);
@@ -112,6 +121,14 @@ export function SettingsPanel({ open, onOpenChange }: Props) {
   // Governor
   const disabledGovernorRules = useCanvasStore((s) => s.disabledGovernorRules);
   const toggleGovernorRule = useCanvasStore((s) => s.toggleGovernorRule);
+  const governorBodyLineThreshold = useCanvasStore((s) => s.governorBodyLineThreshold);
+  const setGovernorBodyLineThreshold = useCanvasStore((s) => s.setGovernorBodyLineThreshold);
+  const governorHierarchyDepthThreshold = useCanvasStore((s) => s.governorHierarchyDepthThreshold);
+  const setGovernorHierarchyDepthThreshold = useCanvasStore((s) => s.setGovernorHierarchyDepthThreshold);
+  const governorReferenceChainDepthThreshold = useCanvasStore((s) => s.governorReferenceChainDepthThreshold);
+  const setGovernorReferenceChainDepthThreshold = useCanvasStore((s) => s.setGovernorReferenceChainDepthThreshold);
+  const governorRedundantOverlapThreshold = useCanvasStore((s) => s.governorRedundantOverlapThreshold);
+  const setGovernorRedundantOverlapThreshold = useCanvasStore((s) => s.setGovernorRedundantOverlapThreshold);
 
   // History
   const autoSnapshot = useCanvasStore((s) => s.autoSnapshot);
@@ -283,6 +300,70 @@ export function SettingsPanel({ open, onOpenChange }: Props) {
                       ))}
                     </div>
                   </SettingsGroup>
+                  <SettingsGroup title="Reference Defaults" description="Control how newly created reference edges behave in previews and exports.">
+                    <div className="space-y-4">
+                      <div>
+                        <p className="mb-2 text-xs" style={{ color: "var(--color-text-muted)" }}>
+                          Default Reference Scope
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {REFERENCE_SCOPES.map((scope) => (
+                            <SegmentButton
+                              key={scope}
+                              active={defaultReferenceScope === scope}
+                              onClick={() => setDefaultReferenceScope(scope)}
+                            >
+                              {REFERENCE_SCOPE_LABELS[scope].label}
+                            </SegmentButton>
+                          ))}
+                        </div>
+                      </div>
+                      <NumberSetting
+                        label="Section Scope Word Cap"
+                        description="Estimated words counted when a reference uses a section scope."
+                        value={sectionReferenceWordCap}
+                        min={50}
+                        max={1000}
+                        step={25}
+                        suffix="words"
+                        onChange={setSectionReferenceWordCap}
+                      />
+                    </div>
+                  </SettingsGroup>
+                  <SettingsGroup title="Context Budget" description="Tune the context-tier boundaries used in health checks and previews.">
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <NumberSetting
+                        label="Lean Max"
+                        description="Upper bound for lean exports."
+                        value={contextLeanWordThreshold}
+                        min={500}
+                        max={20000}
+                        step={250}
+                        suffix="words"
+                        onChange={setContextLeanWordThreshold}
+                      />
+                      <NumberSetting
+                        label="Standard Max"
+                        description="Upper bound before exports become rich."
+                        value={contextStandardWordThreshold}
+                        min={1000}
+                        max={30000}
+                        step={250}
+                        suffix="words"
+                        onChange={setContextStandardWordThreshold}
+                      />
+                      <NumberSetting
+                        label="Rich Max"
+                        description="Upper bound before exports are considered heavy."
+                        value={contextRichWordThreshold}
+                        min={1500}
+                        max={40000}
+                        step={250}
+                        suffix="words"
+                        onChange={setContextRichWordThreshold}
+                      />
+                    </div>
+                  </SettingsGroup>
                 </>
               )}
 
@@ -320,6 +401,30 @@ export function SettingsPanel({ open, onOpenChange }: Props) {
                       <strong>Hidden:</strong> Hints are stored but not exported.
                     </p>
                   </SettingsGroup>
+                  <SettingsGroup title="Native Suggestion Controls" description="Tune the non-AI heuristics used across the app.">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <NumberSetting
+                        label="Summary Length"
+                        description="Maximum length for document-to-summary suggestions."
+                        value={cardSummaryMaxLength}
+                        min={80}
+                        max={400}
+                        step={10}
+                        suffix="chars"
+                        onChange={setCardSummaryMaxLength}
+                      />
+                      <NumberSetting
+                        label="Helper Trigger"
+                        description="How many unscoped references trigger the helper toast."
+                        value={helperUnscopedReferenceThreshold}
+                        min={1}
+                        max={20}
+                        step={1}
+                        suffix="refs"
+                        onChange={setHelperUnscopedReferenceThreshold}
+                      />
+                    </div>
+                  </SettingsGroup>
                 </>
               )}
 
@@ -351,7 +456,7 @@ export function SettingsPanel({ open, onOpenChange }: Props) {
                 <>
                   <SettingsGroup title="Governor Rules" description="Enable or disable individual structural checks the governor runs.">
                     <div className="grid gap-2">
-                      {GOVERNOR_RULES.map((rule) => (
+                      {GOVERNOR_RULE_DEFINITIONS.map((rule) => (
                         <ToggleCard
                           key={rule.id}
                           title={rule.label}
@@ -362,10 +467,54 @@ export function SettingsPanel({ open, onOpenChange }: Props) {
                       ))}
                     </div>
                   </SettingsGroup>
+                  <SettingsGroup title="Governor Thresholds" description="Adjust how sensitive the native governor is before it warns.">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <NumberSetting
+                        label="Body Lines"
+                        description="Maximum summary lines before a body-length warning appears."
+                        value={governorBodyLineThreshold}
+                        min={1}
+                        max={12}
+                        step={1}
+                        suffix="lines"
+                        onChange={setGovernorBodyLineThreshold}
+                      />
+                      <NumberSetting
+                        label="Hierarchy Depth"
+                        description="Depth at which nesting warnings begin."
+                        value={governorHierarchyDepthThreshold}
+                        min={2}
+                        max={8}
+                        step={1}
+                        suffix="levels"
+                        onChange={setGovernorHierarchyDepthThreshold}
+                      />
+                      <NumberSetting
+                        label="Reference Chain"
+                        description="Depth at which reference-chain warnings begin."
+                        value={governorReferenceChainDepthThreshold}
+                        min={2}
+                        max={8}
+                        step={1}
+                        suffix="hops"
+                        onChange={setGovernorReferenceChainDepthThreshold}
+                      />
+                      <NumberSetting
+                        label="Redundant Overlap"
+                        description="Word-overlap ratio before two bodies are treated as redundant."
+                        value={Math.round(governorRedundantOverlapThreshold * 100)}
+                        min={20}
+                        max={95}
+                        step={5}
+                        suffix="%"
+                        onChange={(value) => setGovernorRedundantOverlapThreshold(value / 100)}
+                      />
+                    </div>
+                  </SettingsGroup>
                   <SettingsGroup title="About the Governor" description="">
                     <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
                       The governor analyzes your workspace structure and flags potential issues
-                      like orphan cards, overly deep hierarchies, and missing documentation.
+                      like orphan cards, overly deep hierarchies, long card bodies, and costly reference patterns.
                       Warnings appear on the Overview dashboard and in the AI Health Check dialog.
                     </p>
                   </SettingsGroup>
@@ -499,5 +648,71 @@ function ToggleCard({
         {description}
       </p>
     </button>
+  );
+}
+
+function NumberSetting({
+  label,
+  description,
+  value,
+  min,
+  max,
+  step = 1,
+  suffix,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  value: number;
+  min: number;
+  max: number;
+  step?: number;
+  suffix?: string;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <div
+      className="border px-4 py-4"
+      style={{
+        borderColor: "var(--color-card-border)",
+        background: "var(--color-surface-low)",
+      }}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="text-sm font-semibold">{label}</div>
+          <p className="mt-2 text-sm" style={{ color: "var(--color-text-secondary)" }}>
+            {description}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            min={min}
+            max={max}
+            step={step}
+            value={value}
+            onChange={(event) => {
+              const nextValue = Number(event.target.value);
+              if (!Number.isNaN(nextValue)) {
+                onChange(nextValue);
+              }
+            }}
+            className="w-24 border px-3 py-2 text-sm outline-none"
+            style={{
+              borderColor: "var(--color-card-border)",
+              background: "var(--color-surface-lowest)",
+              color: "var(--color-text-primary)",
+              fontFamily: "var(--font-mono)",
+            }}
+          />
+          {suffix ? (
+            <span className="text-xs" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>
+              {suffix}
+            </span>
+          ) : null}
+        </div>
+      </div>
+    </div>
   );
 }

@@ -8,6 +8,7 @@ export function KanbanView() {
   const cards = useCanvasStore((s) => s.cards);
   const edges = useCanvasStore((s) => s.edges);
   const openEditor = useCanvasStore((s) => s.openEditor);
+  const sectionReferenceWordCap = useCanvasStore((s) => s.sectionReferenceWordCap);
 
   const columns = useMemo(() => {
     const hierarchyEdges = edges.filter((e) => e.edgeType === "hierarchy");
@@ -49,7 +50,7 @@ export function KanbanView() {
 
   const renderCard = (card: Card, depth: number) => {
     const typeStyle = CARD_TYPE_STYLES[card.type];
-    const words = estimateContextWords(card, cards, edges);
+    const words = estimateContextWords(card, cards, edges, { sectionWordCap: sectionReferenceWordCap });
 
     return (
       <div

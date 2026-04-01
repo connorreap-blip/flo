@@ -314,8 +314,31 @@ export function HomeDashboard() {
   const totalWordCount = useDashboardStore((state) => state.totalWordCount);
   const activityLog = useDashboardStore((state) => state.activityLog);
   const lastEditedAt = useDashboardStore((state) => state.lastEditedAt);
+  const disabledGovernorRules = useCanvasStore((state) => state.disabledGovernorRules);
+  const governorBodyLineThreshold = useCanvasStore((state) => state.governorBodyLineThreshold);
+  const governorHierarchyDepthThreshold = useCanvasStore((state) => state.governorHierarchyDepthThreshold);
+  const governorReferenceChainDepthThreshold = useCanvasStore((state) => state.governorReferenceChainDepthThreshold);
+  const governorRedundantOverlapThreshold = useCanvasStore((state) => state.governorRedundantOverlapThreshold);
 
-  const warnings = useMemo(() => runGovernor(cards, edges), [cards, edges]);
+  const warnings = useMemo(
+    () =>
+      runGovernor(cards, edges, {
+        disabledRules: disabledGovernorRules,
+        bodyLineThreshold: governorBodyLineThreshold,
+        hierarchyDepthThreshold: governorHierarchyDepthThreshold,
+        referenceChainDepthThreshold: governorReferenceChainDepthThreshold,
+        redundantBodyOverlapThreshold: governorRedundantOverlapThreshold,
+      }),
+    [
+      cards,
+      disabledGovernorRules,
+      edges,
+      governorBodyLineThreshold,
+      governorHierarchyDepthThreshold,
+      governorRedundantOverlapThreshold,
+      governorReferenceChainDepthThreshold,
+    ]
+  );
   const governorHealth = useMemo(() => resolveGovernorHealth(warnings), [warnings]);
   const minimap = useMemo(() => buildMinimap(cards, edges), [cards, edges]);
   const openHealthCheck = useCallback(() => setShowHealthCheck(true), []);

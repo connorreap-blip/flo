@@ -13,8 +13,10 @@ export interface SnapshotMeta {
 export interface SnapshotData {
   timestamp: string;
   meta?: {
+    workspace_id?: string | null;
     name: string;
-    created: string;
+    created_at?: string | null;
+    updated_at?: string | null;
     format_version: number;
     goal?: string | null;
   } | null;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -19,14 +19,23 @@ interface Props {
 }
 
 export function ReferenceScopeDialog({ open, onClose, sourceId, targetId }: Props) {
-  const [scope, setScope] = useState<ReferenceScope>("summary");
+  const defaultReferenceScope = useCanvasStore((s) => s.defaultReferenceScope);
+  const [scope, setScope] = useState<ReferenceScope>(defaultReferenceScope);
   const [sectionHint, setSectionHint] = useState("");
   const addEdge = useCanvasStore((s) => s.addEdge);
   const targetCard = useCanvasStore((s) => s.cards.find((c) => c.id === targetId));
 
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    setScope(defaultReferenceScope);
+  }, [defaultReferenceScope, open]);
+
   const handleCreate = () => {
     addEdge(sourceId, targetId, "reference", scope, scope === "section" ? sectionHint : undefined);
-    setScope("summary");
+    setScope(defaultReferenceScope);
     setSectionHint("");
     onClose();
   };
