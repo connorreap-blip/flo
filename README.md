@@ -1,6 +1,6 @@
 # flo
 
-`flo` is a local-first desktop app for turning messy notes, docs, and whiteboard thinking into structured context that coding agents can actually use.
+`flo` is a local-first desktop app for mac, designed to turn messy notes, docs, and whiteboard thinking into structured context that coding agents can actually use.
 
 It gives you a visual workspace with cards, relationships, document editing, file import, and AI-shaped export so your project structure stays visible all the way to handoff.
 
