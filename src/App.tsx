@@ -19,8 +19,10 @@ import { BottomActionBar } from "./components/BottomActionBar";
 import { HomeDashboard } from "./components/HomeDashboard";
 import { HistoryTab } from "./components/HistoryTab";
 import { FilesTab } from "./components/FilesTab";
+import { TemplateChooser } from "./components/TemplateChooser";
 import { parseContextMd } from "./lib/context-parser";
 import { applyLoadedProject, saveProject, type LoadedProjectPayload } from "./lib/file-ops";
+import { sampleWorkspaceTemplate, type WorkspaceTemplate } from "./lib/templates";
 import { cn } from "./lib/utils";
 import type { Card, Edge, ProjectMeta } from "./lib/types";
 import {
@@ -100,12 +102,27 @@ function hierarchySignature(edges: Edge[]): string {
     .join("|");
 }
 
+function cloneTemplate(template: WorkspaceTemplate): WorkspaceTemplate {
+  return {
+    ...template,
+    cards: template.cards.map((card) => ({
+      ...card,
+      position: { ...card.position },
+      tags: card.tags ? [...card.tags] : undefined,
+      comments: card.comments ? card.comments.map((comment) => ({ ...comment })) : undefined,
+    })),
+    edges: template.edges.map((edge) => ({ ...edge })),
+    viewport: { ...template.viewport },
+  };
+}
+
 export default function App() {
   const project = useProjectStore((s) => s.project);
   const setProject = useProjectStore((s) => s.setProject);
   const activeTab = useProjectStore((s) => s.activeTab);
   const activeView = useProjectStore((s) => s.activeView);
   const setActiveView = useProjectStore((s) => s.setActiveView);
+  const setActiveTab = useProjectStore((s) => s.setActiveTab);
   const cards = useCanvasStore((s) => s.cards);
   const edges = useCanvasStore((s) => s.edges);
   const viewport = useCanvasStore((s) => s.viewport);
@@ -124,6 +141,7 @@ export default function App() {
   const [started, setStarted] = useState(false);
   const [externalChange, setExternalChange] = useState<ExternalChangePrompt | null>(null);
   const [showExternalDiff, setShowExternalDiff] = useState(false);
+  const [showTemplateChooser, setShowTemplateChooser] = useState(false);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [pendingFocusCardId, setPendingFocusCardId] = useState<string | null>(null);
 
@@ -311,8 +329,31 @@ export default function App() {
     setViewport({ x: 0, y: 0, zoom: 1 });
     setProject({ name, dirPath: null, goal: undefined });
     addCard("project", name, { x: 240, y: 160 });
+    setActiveTab("layers");
     setActiveView("canvas");
     setStarted(true);
+  };
+
+  const handleLoadTemplate = (template: WorkspaceTemplate) => {
+    const nextTemplate = cloneTemplate(template);
+    loadState(nextTemplate.cards, nextTemplate.edges, nextTemplate.viewport);
+    setProject({
+      name: nextTemplate.name,
+      dirPath: null,
+      goal: nextTemplate.goal,
+    });
+    setActiveTab("layers");
+    setActiveView("canvas");
+    setShowTemplateChooser(false);
+    setStarted(true);
+  };
+
+  const handleOpenSample = () => {
+    handleLoadTemplate(sampleWorkspaceTemplate);
+  };
+
+  const handleOpenTemplates = () => {
+    setShowTemplateChooser(true);
   };
 
   const hasProject = project.dirPath !== null || cards.length > 0;
@@ -327,7 +368,16 @@ export default function App() {
   };
 
   if (!started && !hasProject) {
-    return <HomeScreen onNew={handleNewMap} />;
+    return (
+      <>
+        <HomeScreen onNew={handleNewMap} onOpenSample={handleOpenSample} onOpenTemplates={handleOpenTemplates} />
+        <TemplateChooser
+          open={showTemplateChooser}
+          onOpenChange={setShowTemplateChooser}
+          onSelect={handleLoadTemplate}
+        />
+      </>
+    );
   }
 
   return (

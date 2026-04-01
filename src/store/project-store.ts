@@ -29,6 +29,8 @@ function persistRecentProjects(projects: RecentProject[]) {
   }
 }
 
+const initialRecentProjects = loadRecentProjects();
+
 interface ProjectStore {
   project: ProjectMeta;
   setProject: (project: ProjectMeta) => void;
@@ -43,6 +45,7 @@ interface ProjectStore {
   setTheme: (theme: "dark" | "light") => void;
 
   recentProjects: RecentProject[];
+  isFirstRun: boolean;
   addRecentProject: (name: string, dirPath: string) => void;
   removeRecentProject: (dirPath: string) => void;
 
@@ -62,19 +65,20 @@ export const useProjectStore = create<ProjectStore>()((set) => ({
   theme: "dark",
   setTheme: (theme) => set({ theme }),
 
-  recentProjects: loadRecentProjects(),
+  recentProjects: initialRecentProjects,
+  isFirstRun: initialRecentProjects.length === 0,
   addRecentProject: (name, dirPath) =>
     set((s) => {
       const filtered = s.recentProjects.filter((p) => p.dirPath !== dirPath);
       const updated = [{ name, dirPath, lastOpened: new Date().toISOString() }, ...filtered].slice(0, MAX_RECENT);
       persistRecentProjects(updated);
-      return { recentProjects: updated };
+      return { recentProjects: updated, isFirstRun: updated.length === 0 };
     }),
   removeRecentProject: (dirPath) =>
     set((s) => {
       const updated = s.recentProjects.filter((p) => p.dirPath !== dirPath);
       persistRecentProjects(updated);
-      return { recentProjects: updated };
+      return { recentProjects: updated, isFirstRun: updated.length === 0 };
     }),
 
   clearAll: () =>
@@ -82,5 +86,6 @@ export const useProjectStore = create<ProjectStore>()((set) => ({
       project: { name: "Untitled Workspace", dirPath: null },
       activeTab: "layers",
       activeView: "canvas",
+      isFirstRun: loadRecentProjects().length === 0,
     }),
 }));

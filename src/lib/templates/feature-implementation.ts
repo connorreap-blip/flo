@@ -1,0 +1,98 @@
+import type { WorkspaceTemplate } from "./index";
+
+export const featureImplementationTemplate: WorkspaceTemplate = {
+  id: "feature-implementation",
+  name: "Feature Implementation Plan",
+  description: "Break a feature into scope, execution steps, rollout sequencing, and the references an agent should keep in view.",
+  category: "Delivery",
+  goal: "Ship a scoped feature plan with clear milestones, dependencies, and implementation references.",
+  viewport: { x: 0, y: 0, zoom: 0.78 },
+  cards: [
+    {
+      id: "feat-goal",
+      type: "project",
+      title: "Launch team permissions dashboard",
+      body: "Coordinate backend policies, UI states, and rollout so admins can manage access without support tickets.",
+      position: { x: 120, y: 120 },
+      collapsed: false,
+      hasDoc: true,
+      docContent:
+        "<h2>Success definition</h2><ul><li>Admins can invite, remove, and update member roles.</li><li>Permission changes propagate within one request cycle.</li><li>Support has a rollback checklist.</li></ul>",
+    },
+    {
+      id: "feat-spec",
+      type: "reference",
+      title: "Product spec and UX acceptance",
+      body: "Source of truth for role matrix, empty states, and approval copy.",
+      position: { x: 760, y: 80 },
+      collapsed: false,
+      hasDoc: true,
+      docContent:
+        "<h2>Key requirements</h2><p>Owners can change any role. Managers can invite contributors. Viewers cannot see billing or security sections.</p><h3>UX notes</h3><p>Keep destructive actions behind confirmation and surface pending invites inline.</p>",
+    },
+    {
+      id: "feat-api",
+      type: "process",
+      title: "Model roles and policy checks",
+      body: "Add permission enums, service-layer guards, and audit log entries for each change.",
+      position: { x: 120, y: 340 },
+      collapsed: false,
+      hasDoc: true,
+      docContent:
+        "<h2>Implementation notes</h2><ul><li>Add role mutation endpoints.</li><li>Return a policy summary with each member row.</li><li>Record actor, target, old role, and new role.</li></ul>",
+    },
+    {
+      id: "feat-ui",
+      type: "process",
+      title: "Build dashboard states",
+      body: "Implement table, invite sheet, disabled states, and optimistic feedback for role changes.",
+      position: { x: 430, y: 340 },
+      collapsed: false,
+      hasDoc: false,
+      docContent: "",
+      agentHint: "Preserve the role matrix from the spec. Avoid introducing local-only permission logic that drifts from the API response.",
+    },
+    {
+      id: "feat-rollout",
+      type: "process",
+      title: "Stage rollout and QA pass",
+      body: "Gate behind staff access first, verify audit output, then widen to all teams.",
+      position: { x: 740, y: 340 },
+      collapsed: false,
+      hasDoc: true,
+      docContent:
+        "<h2>Rollout checklist</h2><ol><li>Seed orgs with each role combination.</li><li>QA invite expiry and role downgrade flows.</li><li>Enable for three pilot accounts before general release.</li></ol>",
+    },
+    {
+      id: "feat-risks",
+      type: "brainstorm",
+      title: "Open risks and follow-ups",
+      body: "Migration timing, support messaging, and role-change notifications still need decisions.",
+      position: { x: 430, y: 540 },
+      collapsed: false,
+      hasDoc: false,
+      docContent: "",
+    },
+  ],
+  edges: [
+    { id: "feat-h1", source: "feat-goal", target: "feat-api", edgeType: "hierarchy" },
+    { id: "feat-h2", source: "feat-goal", target: "feat-ui", edgeType: "hierarchy" },
+    { id: "feat-f1", source: "feat-api", target: "feat-ui", edgeType: "flow" },
+    { id: "feat-f2", source: "feat-ui", target: "feat-rollout", edgeType: "flow" },
+    {
+      id: "feat-r1",
+      source: "feat-ui",
+      target: "feat-spec",
+      edgeType: "reference",
+      referenceScope: "summary",
+    },
+    {
+      id: "feat-r2",
+      source: "feat-api",
+      target: "feat-spec",
+      edgeType: "reference",
+      referenceScope: "section",
+      referenceSectionHint: "Key requirements",
+    },
+  ],
+};
