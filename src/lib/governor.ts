@@ -1,5 +1,13 @@
 import type { Card, Edge, GovernorWarning } from "./types";
 import { v4 as uuid } from "uuid";
+import type { GovernorRuleId } from "./native-settings";
+import {
+  DEFAULT_GOVERNOR_BODY_LINE_THRESHOLD,
+  DEFAULT_GOVERNOR_HIERARCHY_DEPTH_THRESHOLD,
+  DEFAULT_GOVERNOR_REDUNDANT_OVERLAP_THRESHOLD,
+  DEFAULT_GOVERNOR_REFERENCE_CHAIN_THRESHOLD,
+  DEFAULT_SECTION_REFERENCE_WORD_CAP,
+} from "./native-settings";
 
 /**
  * Governor rules grounded in how Claude reads context:
@@ -14,39 +22,58 @@ import { v4 as uuid } from "uuid";
  * 8. ORPHAN_CARD: Card with no edges at all.
  */
 
-export function runGovernor(cards: Card[], edges: Edge[]): GovernorWarning[] {
+type GovernorRunOptions = {
+  disabledRules?: GovernorRuleId[];
+  bodyLineThreshold?: number;
+  hierarchyDepthThreshold?: number;
+  referenceChainDepthThreshold?: number;
+  redundantBodyOverlapThreshold?: number;
+};
+
+export function runGovernor(cards: Card[], edges: Edge[], options?: GovernorRunOptions): GovernorWarning[] {
   const warnings: GovernorWarning[] = [];
+  const disabledRules = new Set(options?.disabledRules ?? []);
+  const bodyLineThreshold = options?.bodyLineThreshold ?? DEFAULT_GOVERNOR_BODY_LINE_THRESHOLD;
+  const hierarchyDepthThreshold = options?.hierarchyDepthThreshold ?? DEFAULT_GOVERNOR_HIERARCHY_DEPTH_THRESHOLD;
+  const referenceChainDepthThreshold =
+    options?.referenceChainDepthThreshold ?? DEFAULT_GOVERNOR_REFERENCE_CHAIN_THRESHOLD;
+  const redundantBodyOverlapThreshold =
+    options?.redundantBodyOverlapThreshold ?? DEFAULT_GOVERNOR_REDUNDANT_OVERLAP_THRESHOLD;
 
   // Rule 1: Body length
-  for (const card of cards) {
-    const lineCount = card.body.split("\n").filter((l) => l.trim()).length;
-    if (lineCount > 3) {
-      warnings.push({
-        id: uuid(),
-        severity: "info",
-        cardId: card.id,
-        message: `"${card.title}" has a long body (${lineCount} lines)`,
-        detail: "Card bodies are always included in agent context. Move detailed content to the card's document — the body should be a short statement of purpose.",
-      });
+  if (!disabledRules.has("body-length")) {
+    for (const card of cards) {
+      const lineCount = card.body.split("\n").filter((l) => l.trim()).length;
+      if (lineCount > bodyLineThreshold) {
+        warnings.push({
+          id: uuid(),
+          severity: "info",
+          cardId: card.id,
+          message: `"${card.title}" has a long body (${lineCount} lines)`,
+          detail: "Card bodies are always included in agent context. Move detailed content to the card's document — the body should be a short statement of purpose.",
+        });
+      }
     }
   }
 
   // Rule 2: Unscoped reference
-  for (const edge of edges) {
-    if (edge.edgeType === "reference" && (edge.referenceScope === "full" || !edge.referenceScope)) {
-      const source = cards.find((c) => c.id === edge.source);
-      const target = cards.find((c) => c.id === edge.target);
-      const targetWordCount = (target?.body || "").split(/\s+/).length +
-        (target?.docContent || "").split(/\s+/).length;
-      warnings.push({
-        id: uuid(),
-        severity: "warning",
-        edgeId: edge.id,
-        cardId: edge.source,
-        message: `${source?.title || "Card"} references ${target?.title || "Card"} with no scope`,
-        detail: `Agent will read all ~${targetWordCount} words of ${target?.title || "the card"}'s content. Set a scope to control what the agent sees.`,
-        fix: { label: "Set to summary", action: "set-scope" },
-      });
+  if (!disabledRules.has("unscoped-reference")) {
+    for (const edge of edges) {
+      if (edge.edgeType === "reference" && (edge.referenceScope === "full" || !edge.referenceScope)) {
+        const source = cards.find((c) => c.id === edge.source);
+        const target = cards.find((c) => c.id === edge.target);
+        const targetWordCount = (target?.body || "").split(/\s+/).length +
+          (target?.docContent || "").split(/\s+/).length;
+        warnings.push({
+          id: uuid(),
+          severity: "warning",
+          edgeId: edge.id,
+          cardId: edge.source,
+          message: `${source?.title || "Card"} references ${target?.title || "Card"} with no scope`,
+          detail: `Agent will read all ~${targetWordCount} words of ${target?.title || "the card"}'s content. Set a scope to control what the agent sees.`,
+          fix: { label: "Set to summary", action: "set-scope" },
+        });
+      }
     }
   }
 
@@ -70,21 +97,23 @@ export function runGovernor(cards: Card[], edges: Edge[]): GovernorWarning[] {
     return null;
   }
 
-  const cycleChecked = new Set<string>();
-  for (const card of cards) {
-    if (!cycleChecked.has(card.id)) {
-      visited.clear();
-      inStack.clear();
-      const cycle = detectCycle(card.id, []);
-      if (cycle) {
-        cycle.forEach((id) => cycleChecked.add(id));
-        const names = cycle.map((id) => cards.find((c) => c.id === id)?.title || "?").join(" -> ");
-        warnings.push({
-          id: uuid(),
-          severity: "error",
-          message: `Circular reference detected`,
-          detail: `${names}. Agent may re-read the same context multiple times.`,
-        });
+  if (!disabledRules.has("circular-reference")) {
+    const cycleChecked = new Set<string>();
+    for (const card of cards) {
+      if (!cycleChecked.has(card.id)) {
+        visited.clear();
+        inStack.clear();
+        const cycle = detectCycle(card.id, []);
+        if (cycle) {
+          cycle.forEach((id) => cycleChecked.add(id));
+          const names = cycle.map((id) => cards.find((c) => c.id === id)?.title || "?").join(" -> ");
+          warnings.push({
+            id: uuid(),
+            severity: "error",
+            message: "Circular reference detected",
+            detail: `${names}. Agent may re-read the same context multiple times.`,
+          });
+        }
       }
     }
   }
@@ -108,16 +137,18 @@ export function runGovernor(cards: Card[], edges: Edge[]): GovernorWarning[] {
     return depth;
   }
 
-  for (const card of cards) {
-    const depth = getDepth(card.id);
-    if (depth >= 4) {
-      warnings.push({
-        id: uuid(),
-        severity: "warning",
-        cardId: card.id,
-        message: `"${card.title}" is nested ${depth} levels deep`,
-        detail: "Claude works best with 2-3 levels of hierarchy. Deep nesting dilutes the relationship between this card and its root.",
-      });
+  if (!disabledRules.has("hierarchy-depth")) {
+    for (const card of cards) {
+      const depth = getDepth(card.id);
+      if (depth >= hierarchyDepthThreshold) {
+        warnings.push({
+          id: uuid(),
+          severity: "warning",
+          cardId: card.id,
+          message: `"${card.title}" is nested ${depth} levels deep`,
+          detail: "Claude works best with 2-3 levels of hierarchy. Deep nesting dilutes the relationship between this card and its root.",
+        });
+      }
     }
   }
 
@@ -126,40 +157,44 @@ export function runGovernor(cards: Card[], edges: Edge[]): GovernorWarning[] {
     .filter((c) => c.body.trim().length > 20)
     .map((c) => ({ id: c.id, title: c.title, words: new Set(c.body.toLowerCase().split(/\s+/)) }));
 
-  for (let i = 0; i < cardBodies.length; i++) {
-    for (let j = i + 1; j < cardBodies.length; j++) {
-      const a = cardBodies[i];
-      const b = cardBodies[j];
-      const intersection = [...a.words].filter((w) => b.words.has(w)).length;
-      const union = new Set([...a.words, ...b.words]).size;
-      const overlap = union > 0 ? intersection / union : 0;
-      if (overlap > 0.6) {
-        warnings.push({
-          id: uuid(),
-          severity: "warning",
-          cardId: a.id,
-          message: `"${a.title}" and "${b.title}" have similar body text`,
-          detail: "Redundant rules can confuse agents when wording differs. Keep the rule in one card and reference it from the other.",
-          fix: { label: "Review", action: "merge-cards" },
-        });
+  if (!disabledRules.has("redundant-body")) {
+    for (let i = 0; i < cardBodies.length; i++) {
+      for (let j = i + 1; j < cardBodies.length; j++) {
+        const a = cardBodies[i];
+        const b = cardBodies[j];
+        const intersection = [...a.words].filter((w) => b.words.has(w)).length;
+        const union = new Set([...a.words, ...b.words]).size;
+        const overlap = union > 0 ? intersection / union : 0;
+        if (overlap > redundantBodyOverlapThreshold) {
+          warnings.push({
+            id: uuid(),
+            severity: "warning",
+            cardId: a.id,
+            message: `"${a.title}" and "${b.title}" have similar body text`,
+            detail: "Redundant rules can confuse agents when wording differs. Keep the rule in one card and reference it from the other.",
+            fix: { label: "Review", action: "merge-cards" },
+          });
+        }
       }
     }
   }
 
   // Rule 6: Brainstorm referenced by non-brainstorm
-  for (const edge of refEdges) {
-    const source = cards.find((c) => c.id === edge.source);
-    const target = cards.find((c) => c.id === edge.target);
-    if (source && target && source.type !== "brainstorm" && target.type === "brainstorm") {
-      warnings.push({
-        id: uuid(),
-        severity: "warning",
-        edgeId: edge.id,
-        cardId: edge.source,
-        message: `"${source.title}" references brainstorm card "${target.title}"`,
-        detail: "Brainstorm cards are excluded from agent context. This reference will be invisible to agents. Convert the brainstorm to a Process or Reference card if the idea has been decided.",
-        fix: { label: "Convert to reference", action: "convert-type" },
-      });
+  if (!disabledRules.has("brainstorm-referenced")) {
+    for (const edge of refEdges) {
+      const source = cards.find((c) => c.id === edge.source);
+      const target = cards.find((c) => c.id === edge.target);
+      if (source && target && source.type !== "brainstorm" && target.type === "brainstorm") {
+        warnings.push({
+          id: uuid(),
+          severity: "warning",
+          edgeId: edge.id,
+          cardId: edge.source,
+          message: `"${source.title}" references brainstorm card "${target.title}"`,
+          detail: "Brainstorm cards are excluded from agent context. This reference will be invisible to agents. Convert the brainstorm to a Process or Reference card if the idea has been decided.",
+          fix: { label: "Convert to reference", action: "convert-type" },
+        });
+      }
     }
   }
 
@@ -176,37 +211,47 @@ export function runGovernor(cards: Card[], edges: Edge[]): GovernorWarning[] {
     return maxDepth;
   }
 
-  for (const card of cards) {
-    const chainDepth = getRefChainDepth(card.id, new Set());
-    if (chainDepth >= 3) {
-      warnings.push({
-        id: uuid(),
-        severity: "info",
-        cardId: card.id,
-        message: `"${card.title}" starts a reference chain ${chainDepth} levels deep`,
-        detail: "Agent follows all references recursively. Consider direct references instead of chains.",
-      });
+  if (!disabledRules.has("deep-reference-chain")) {
+    for (const card of cards) {
+      const chainDepth = getRefChainDepth(card.id, new Set());
+      if (chainDepth >= referenceChainDepthThreshold) {
+        warnings.push({
+          id: uuid(),
+          severity: "info",
+          cardId: card.id,
+          message: `"${card.title}" starts a reference chain ${chainDepth} levels deep`,
+          detail: "Agent follows all references recursively. Consider direct references instead of chains.",
+        });
+      }
     }
   }
 
   // Rule 8: Orphan cards
-  const connectedIds = new Set(edges.flatMap((e) => [e.source, e.target]));
-  for (const card of cards) {
-    if (!connectedIds.has(card.id) && cards.length > 1) {
-      warnings.push({
-        id: uuid(),
-        severity: "info",
-        cardId: card.id,
-        message: `"${card.title}" has no connections`,
-        detail: "This card is isolated. Is it intentional, or should it be connected to the project?",
-      });
+  if (!disabledRules.has("orphan-card")) {
+    const connectedIds = new Set(edges.flatMap((e) => [e.source, e.target]));
+    for (const card of cards) {
+      if (!connectedIds.has(card.id) && cards.length > 1) {
+        warnings.push({
+          id: uuid(),
+          severity: "info",
+          cardId: card.id,
+          message: `"${card.title}" has no connections`,
+          detail: "This card is isolated. Is it intentional, or should it be connected to the project?",
+        });
+      }
     }
   }
 
   return warnings;
 }
 
-export function estimateContextWords(card: Card, cards: Card[], edges: Edge[]): number {
+export function estimateContextWords(
+  card: Card,
+  cards: Card[],
+  edges: Edge[],
+  options?: { sectionWordCap?: number }
+): number {
+  const sectionWordCap = options?.sectionWordCap ?? DEFAULT_SECTION_REFERENCE_WORD_CAP;
   let words = (card.title + " " + card.body).split(/\s+/).length;
 
   const children = edges
@@ -232,7 +277,7 @@ export function estimateContextWords(card: Card, cards: Card[], edges: Edge[]): 
       case "section":
         words += Math.min(
           (target.docContent || "").split(/\s+/).length,
-          200
+          sectionWordCap
         );
         break;
       case "full":

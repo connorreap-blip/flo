@@ -5,7 +5,7 @@ import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { exportContext, loadProject, saveProject } from "../lib/file-ops";
+import { exportContext, loadProject, saveProject, saveProjectAs } from "../lib/file-ops";
 import { buildWorkspaceCommandItems } from "../lib/workspace-search";
 import { useCanvasStore } from "../store/canvas-store";
 import { useProjectStore } from "../store/project-store";
@@ -39,6 +39,8 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
   const toggleShowGrid = useCanvasStore((s) => s.toggleShowGrid);
   const toggleMinimap = useCanvasStore((s) => s.toggleMinimap);
   const toggleSnapToGrid = useCanvasStore((s) => s.toggleSnapToGrid);
+  const spellCheck = useCanvasStore((s) => s.spellCheck);
+  const showWordCount = useCanvasStore((s) => s.showWordCount);
   const setActiveTab = useProjectStore((s) => s.setActiveTab);
   const setActiveView = useProjectStore((s) => s.setActiveView);
 
@@ -64,6 +66,18 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
     const token = `[[${card.title}]]`;
     return cards.filter((candidate) => candidate.id !== cardId && candidate.docContent.includes(token));
   }, [card?.title, cardId, cards]);
+  const docWordCount = useMemo(() => {
+    const plainText = (card?.docContent ?? "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (!plainText) {
+      return 0;
+    }
+
+    return plainText.split(" ").length;
+  }, [card?.docContent]);
 
   const editor = useEditor({
     extensions: EDITOR_EXTENSIONS,
@@ -162,6 +176,7 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
         focusCard: (targetId) => focusCard(targetId, false),
         openDocument: (targetId) => focusCard(targetId, true),
         saveProject,
+        saveProjectAs,
         loadProject,
         exportContext,
         toggleShowGrid,
@@ -190,6 +205,14 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
     editorEl.addEventListener("keydown", handleKeyDown);
     return () => editorEl.removeEventListener("keydown", handleKeyDown);
   }, [editor, slashMenu]);
+
+  useEffect(() => {
+    if (!editor) {
+      return;
+    }
+
+    editor.view.dom.setAttribute("spellcheck", String(spellCheck));
+  }, [editor, spellCheck]);
 
   // Drag handlers
   const handleMouseDown = useCallback(
@@ -515,6 +538,19 @@ export function EditorBubble({ cardId, initialPosition }: Props) {
           />
         )}
       </div>
+      {showWordCount ? (
+        <div
+          className="border-t px-3 py-1.5 text-[10px]"
+          style={{
+            borderColor: "var(--color-card-border)",
+            background: "var(--color-surface-lowest)",
+            color: "var(--color-text-muted)",
+            fontFamily: "var(--font-mono)",
+          }}
+        >
+          {docWordCount.toLocaleString()} words
+        </div>
+      ) : null}
 
       <div
         className="border-t px-3 py-2"

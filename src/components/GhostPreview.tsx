@@ -123,25 +123,41 @@ export function GhostPreview() {
   const setGhostPreviewMode = useCanvasStore((state) => state.setGhostPreviewMode);
 
   const agentHintExportMode = useCanvasStore((state) => state.agentHintExportMode);
+  const exportIncludeAgentHints = useCanvasStore((state) => state.exportIncludeAgentHints);
   const exportIncludeBrainstorm = useCanvasStore((state) => state.exportIncludeBrainstorm);
   const exportIncludeCardDocs = useCanvasStore((state) => state.exportIncludeCardDocs);
+  const exportGoalOverride = useCanvasStore((state) => state.exportGoalOverride);
   const excludedTags = useCanvasStore((state) => state.excludedTags);
+  const sectionReferenceWordCap = useCanvasStore((state) => state.sectionReferenceWordCap);
 
   const contextMd = useMemo(
     () => generateContextMd(project.name, cards, edges, project.goal, {
       agentHintExportMode,
+      includeAgentHints: exportIncludeAgentHints,
       includeBrainstorm: exportIncludeBrainstorm,
       includeCardDocs: exportIncludeCardDocs,
       excludedTags,
+      goalOverride: exportGoalOverride,
     }),
-    [project.name, project.goal, cards, edges, agentHintExportMode, exportIncludeBrainstorm, exportIncludeCardDocs, excludedTags]
+    [
+      agentHintExportMode,
+      cards,
+      edges,
+      excludedTags,
+      exportGoalOverride,
+      exportIncludeAgentHints,
+      exportIncludeBrainstorm,
+      exportIncludeCardDocs,
+      project.goal,
+      project.name,
+    ]
   );
 
   const cardCosts = useMemo(() => {
     const costs = cards.map((card) => ({
       id: card.id,
       title: card.title,
-      words: estimateContextWords(card, cards, edges),
+      words: estimateContextWords(card, cards, edges, { sectionWordCap: sectionReferenceWordCap }),
       position: card.position,
       width: card.width ?? CARD_DEFAULTS.width,
       height: card.collapsed ? CARD_DEFAULTS.collapsedHeight : (card.height ?? CARD_DEFAULTS.height),
@@ -155,7 +171,7 @@ export function GhostPreview() {
       })),
       totalWords: costs.reduce((sum, cost) => sum + cost.words, 0),
     };
-  }, [cards, edges]);
+  }, [cards, edges, sectionReferenceWordCap]);
 
   if (!ghostPreviewMode) {
     return null;

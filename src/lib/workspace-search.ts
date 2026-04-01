@@ -17,6 +17,7 @@ interface BuildWorkspaceCommandItemsArgs {
   focusCard: (cardId: string) => void;
   openDocument: (cardId: string) => void;
   saveProject: () => void | Promise<void>;
+  saveProjectAs: () => void | Promise<void>;
   loadProject: () => void | Promise<void>;
   exportContext: () => void | Promise<void>;
   toggleShowGrid: () => void;
@@ -30,6 +31,7 @@ export function buildWorkspaceCommandItems({
   focusCard,
   openDocument,
   saveProject,
+  saveProjectAs,
   loadProject,
   exportContext,
   toggleShowGrid,
@@ -102,6 +104,14 @@ export function buildWorkspaceCommandItems({
       keywords: "open load workspace folder project",
       hint: "folder",
       run: () => loadProject(),
+    },
+    {
+      id: "action:save-as",
+      label: "Save Workspace As",
+      category: "action",
+      keywords: "save as workspace folder project duplicate",
+      hint: "new path",
+      run: () => saveProjectAs(),
     },
     {
       id: "action:export",

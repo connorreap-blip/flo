@@ -6,11 +6,18 @@ import { useCanvasStore } from "../store/canvas-store";
 import { useProjectStore } from "../store/project-store";
 import { serializeCardToMarkdown, deserializeMarkdown } from "./markdown";
 import { generateContextMd } from "./export-context";
-import type { CardComment, EdgeType, ReferenceScope } from "./types";
+import type { CardComment, EdgeType, ProjectMeta, ReferenceScope } from "./types";
 
 export interface LoadedProjectPayload {
   dir_path: string;
-  meta: { name: string; created: string; format_version: number; goal?: string | null };
+  meta: {
+    name: string;
+    workspace_id?: string | null;
+    created_at?: string | null;
+    updated_at?: string | null;
+    format_version: number;
+    goal?: string | null;
+  };
   cards: Array<{
     id: string;
     type: string;
@@ -40,20 +47,48 @@ export interface LoadedProjectPayload {
   viewport: { x: number; y: number; zoom: number };
 }
 
-export async function saveProject(): Promise<void> {
+function getDefaultWorkspacePath(projectName: string, dirPath: string | null): string {
+  return dirPath ?? `${projectName}.flo`;
+}
+
+async function chooseWorkspacePath(projectName: string, dirPath: string | null): Promise<string | null> {
+  const selected = await save({
+    title: "Save flo Workspace",
+    defaultPath: getDefaultWorkspacePath(projectName, dirPath),
+  });
+
+  return typeof selected === "string" ? selected : null;
+}
+
+function buildProjectMeta(project: ProjectMeta, savedAt: string): LoadedProjectPayload["meta"] {
+  return {
+    name: project.name,
+    workspace_id: project.workspaceId ?? crypto.randomUUID(),
+    created_at: project.createdAt ?? project.updatedAt ?? savedAt,
+    updated_at: savedAt,
+    format_version: 3,
+    goal: project.goal ?? null,
+  };
+}
+
+async function saveProjectInternal(forcePrompt: boolean): Promise<void> {
   const canvasStore = useCanvasStore.getState();
   const projectStore = useProjectStore.getState();
-  let dirPath = projectStore.project.dirPath;
+  const dirPath =
+    forcePrompt || !projectStore.project.dirPath
+      ? await chooseWorkspacePath(projectStore.project.name, projectStore.project.dirPath)
+      : projectStore.project.dirPath;
+  if (!dirPath) return;
 
-  if (!dirPath) {
-    const selected = await save({
-      title: "Save flo Workspace",
-      defaultPath: `${projectStore.project.name}.flo`,
-    });
-    if (!selected) return;
-    dirPath = selected;
-    projectStore.setProject({ ...projectStore.project, dirPath });
-  }
+  const savedAt = new Date().toISOString();
+  const meta = buildProjectMeta(projectStore.project, savedAt);
+  const nextProject: ProjectMeta = {
+    ...projectStore.project,
+    dirPath,
+    workspaceId: meta.workspace_id ?? undefined,
+    createdAt: meta.created_at ?? undefined,
+    updatedAt: meta.updated_at ?? undefined,
+  };
 
   const cardsForSave = canvasStore.cards.map((card) => ({
     id: card.id,
@@ -90,20 +125,17 @@ export async function saveProject(): Promise<void> {
     projectStore.project.goal,
     {
       agentHintExportMode: canvasStore.agentHintExportMode,
+      includeAgentHints: canvasStore.exportIncludeAgentHints,
       includeBrainstorm: canvasStore.exportIncludeBrainstorm,
       includeCardDocs: canvasStore.exportIncludeCardDocs,
       excludedTags: canvasStore.excludedTags,
+      goalOverride: canvasStore.exportGoalOverride,
     }
   );
 
   const payload = {
     dir_path: dirPath,
-    meta: {
-      name: projectStore.project.name,
-      created: new Date().toISOString(),
-      format_version: 2,
-      goal: projectStore.project.goal ?? null,
-    },
+    meta,
     cards: cardsForSave,
     edges: edgesForSave,
     viewport: canvasStore.viewport,
@@ -111,46 +143,49 @@ export async function saveProject(): Promise<void> {
   };
 
   await invoke("save_project_v2", { state: payload });
-  projectStore.addRecentProject(projectStore.project.name, dirPath);
+  projectStore.setProject(nextProject);
+  projectStore.addRecentProject(nextProject.name, dirPath);
 
   // Auto-snapshot after save
-  try {
-    const prevSnapshots = await invoke<
-      Array<{ filename: string; timestamp: string; summary: string; card_count: number; edge_count: number }>
-    >("list_snapshots", { dirPath });
+  if (canvasStore.autoSnapshot) {
+    try {
+      const prevSnapshots = await invoke<
+        Array<{ filename: string; timestamp: string; summary: string; card_count: number; edge_count: number }>
+      >("list_snapshots", { dirPath });
 
-    let summary = `${payload.cards.length} cards, ${payload.edges.length} edges`;
-    if (prevSnapshots.length > 0) {
-      const prev = await invoke<{
-        cards: Array<{ id: string }>;
-        edges: Array<{ id: string }>;
-      }>("load_snapshot", { dirPath, filename: prevSnapshots[0].filename });
+      let summary = `${payload.cards.length} cards, ${payload.edges.length} edges`;
+      if (prevSnapshots.length > 0) {
+        const prev = await invoke<{
+          cards: Array<{ id: string }>;
+          edges: Array<{ id: string }>;
+        }>("load_snapshot", { dirPath, filename: prevSnapshots[0].filename });
 
-      const prevCardIds = new Set(prev.cards.map((c) => c.id));
-      const currCardIds = new Set(payload.cards.map((c) => c.id));
-      const added = payload.cards.filter((c) => !prevCardIds.has(c.id)).length;
-      const removed = prev.cards.filter((c) => !currCardIds.has(c.id)).length;
-      const parts: string[] = [];
-      if (added > 0) parts.push(`+${added} card${added > 1 ? "s" : ""}`);
-      if (removed > 0) parts.push(`-${removed} card${removed > 1 ? "s" : ""}`);
-      const modified = payload.cards.filter((c) => prevCardIds.has(c.id)).length;
-      if (modified > 0 && added === 0 && removed === 0) parts.push(`${modified} cards unchanged`);
-      if (parts.length > 0) summary = parts.join(", ");
+        const prevCardIds = new Set(prev.cards.map((c) => c.id));
+        const currCardIds = new Set(payload.cards.map((c) => c.id));
+        const added = payload.cards.filter((c) => !prevCardIds.has(c.id)).length;
+        const removed = prev.cards.filter((c) => !currCardIds.has(c.id)).length;
+        const parts: string[] = [];
+        if (added > 0) parts.push(`+${added} card${added > 1 ? "s" : ""}`);
+        if (removed > 0) parts.push(`-${removed} card${removed > 1 ? "s" : ""}`);
+        const modified = payload.cards.filter((c) => prevCardIds.has(c.id)).length;
+        if (modified > 0 && added === 0 && removed === 0) parts.push(`${modified} cards unchanged`);
+        if (parts.length > 0) summary = parts.join(", ");
+      }
+
+      await invoke("save_snapshot", {
+        dirPath,
+        snapshot: {
+          timestamp: savedAt,
+          meta: payload.meta,
+          cards: payload.cards,
+          edges: payload.edges,
+          viewport: payload.viewport,
+          summary,
+        },
+      });
+    } catch {
+      // Snapshot failure should not block save
     }
-
-    await invoke("save_snapshot", {
-      dirPath,
-      snapshot: {
-        timestamp: new Date().toISOString(),
-        meta: payload.meta,
-        cards: payload.cards,
-        edges: payload.edges,
-        viewport: payload.viewport,
-        summary,
-      },
-    });
-  } catch {
-    // Snapshot failure should not block save
   }
 
   canvasStore.markClean();
@@ -162,6 +197,14 @@ export async function saveProject(): Promise<void> {
       },
     })
   );
+}
+
+export async function saveProject(): Promise<void> {
+  await saveProjectInternal(false);
+}
+
+export async function saveProjectAs(): Promise<void> {
+  await saveProjectInternal(true);
 }
 
 export async function loadProject(): Promise<void> {
@@ -215,6 +258,9 @@ export function applyLoadedProject(result: LoadedProjectPayload): void {
     name: result.meta.name,
     dirPath: result.dir_path,
     goal: result.meta.goal ?? undefined,
+    workspaceId: result.meta.workspace_id ?? undefined,
+    createdAt: result.meta.created_at ?? undefined,
+    updatedAt: result.meta.updated_at ?? undefined,
   });
   useCanvasStore.getState().loadState(cards, mappedEdges, result.viewport);
 }
@@ -229,9 +275,11 @@ export async function exportContext(): Promise<void> {
     projectStore.project.goal,
     {
       agentHintExportMode: store.agentHintExportMode,
+      includeAgentHints: store.exportIncludeAgentHints,
       includeBrainstorm: store.exportIncludeBrainstorm,
       includeCardDocs: store.exportIncludeCardDocs,
       excludedTags: store.excludedTags,
+      goalOverride: store.exportGoalOverride,
     }
   );
 

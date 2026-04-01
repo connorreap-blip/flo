@@ -21,11 +21,9 @@ pub fn extract_file_text(file_path: String) -> Result<String, String> {
         // Plain text formats — read directly
         "txt" | "md" | "markdown" | "csv" | "tsv" | "json" | "xml" | "html" | "htm" | "css"
         | "js" | "jsx" | "ts" | "tsx" | "rs" | "py" | "go" | "yaml" | "yml" | "toml" | "ini"
-        | "cfg" | "log" | "sh" | "bash" | "zsh" | "sql" | "r" | "rb" | "java" | "kt"
-        | "swift" | "c" | "cpp" | "h" | "hpp" | "cs" | "php" | "lua" | "dart" | "svelte"
-        | "vue" | "astro" => {
-            fs::read_to_string(path).map_err(|e| format!("Failed to read text file: {e}"))
-        }
+        | "cfg" | "log" | "sh" | "bash" | "zsh" | "sql" | "r" | "rb" | "java" | "kt" | "swift"
+        | "c" | "cpp" | "h" | "hpp" | "cs" | "php" | "lua" | "dart" | "svelte" | "vue"
+        | "astro" => fs::read_to_string(path).map_err(|e| format!("Failed to read text file: {e}")),
 
         // DOCX — zip containing word/document.xml
         "docx" => extract_docx(path),
@@ -53,7 +51,9 @@ fn extract_pdf(path: &Path) -> Result<String, String> {
 
     let trimmed = text.trim().to_string();
     if trimmed.is_empty() {
-        return Err("No readable text found in the PDF. It may be image-based (scanned).".to_string());
+        return Err(
+            "No readable text found in the PDF. It may be image-based (scanned).".to_string(),
+        );
     }
 
     Ok(trimmed)
@@ -62,7 +62,8 @@ fn extract_pdf(path: &Path) -> Result<String, String> {
 /// Extract text from a .docx file by reading word/document.xml from the zip archive.
 fn extract_docx(path: &Path) -> Result<String, String> {
     let file = fs::File::open(path).map_err(|e| format!("Failed to open DOCX: {e}"))?;
-    let mut archive = zip::ZipArchive::new(file).map_err(|e| format!("Invalid DOCX archive: {e}"))?;
+    let mut archive =
+        zip::ZipArchive::new(file).map_err(|e| format!("Invalid DOCX archive: {e}"))?;
 
     let mut xml_content = String::new();
     {

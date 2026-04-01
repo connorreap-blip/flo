@@ -1,5 +1,6 @@
 import type { Card, Edge } from "./types";
 import type { CardType } from "./constants";
+import { DEFAULT_CARD_SUMMARY_MAX_LENGTH } from "./native-settings";
 
 function stripHtml(html: string): string {
   return html
@@ -43,7 +44,10 @@ export function resolveDefaultCardType(edgeType: Edge["edgeType"]): CardType {
   return "process";
 }
 
-export function suggestCardSummary(card: Pick<Card, "title" | "body" | "docContent" | "hasDoc">): string | null {
+export function suggestCardSummary(
+  card: Pick<Card, "title" | "body" | "docContent" | "hasDoc">,
+  options?: { maxLength?: number }
+): string | null {
   if (!card.hasDoc || !card.docContent.trim()) {
     return null;
   }
@@ -59,7 +63,7 @@ export function suggestCardSummary(card: Pick<Card, "title" | "body" | "docConte
     return null;
   }
 
-  return truncate(normalizedLead, 180);
+  return truncate(normalizedLead, options?.maxLength ?? DEFAULT_CARD_SUMMARY_MAX_LENGTH);
 }
 
 function countByType(cards: Card[]): Record<CardType, number> {

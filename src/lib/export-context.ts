@@ -1,6 +1,6 @@
 import type { Card, Edge } from "./types";
 import { CARD_TYPE_LABELS } from "./constants";
-import type { AgentHintExportMode } from "../store/canvas-store";
+import type { AgentHintExportMode, ExportGoalOverride } from "../store/canvas-store";
 
 /**
  * Generate context.md following Claude's optimal reading pattern:
@@ -19,12 +19,16 @@ export function generateContextMd(
   goal?: string,
   options?: {
     agentHintExportMode?: AgentHintExportMode;
+    includeAgentHints?: boolean;
     includeBrainstorm?: boolean;
     includeCardDocs?: boolean;
     excludedTags?: string[];
+    goalOverride?: ExportGoalOverride;
   },
 ): string {
-  const hintMode = options?.agentHintExportMode ?? "inline";
+  const hintMode = options?.includeAgentHints === false
+    ? "hidden"
+    : (options?.agentHintExportMode ?? "inline");
   const includeBrainstorm = options?.includeBrainstorm ?? false;
   const includeCardDocs = options?.includeCardDocs ?? true;
   const excludedTags = new Set(options?.excludedTags ?? []);
@@ -38,7 +42,7 @@ export function generateContextMd(
   const hierarchyEdges = edges.filter((e) => e.edgeType === "hierarchy");
   const flowEdges = edges.filter((e) => e.edgeType === "flow");
   const refEdges = edges.filter((e) => e.edgeType === "reference");
-  const goalProfile = resolveGoalProfile(goal);
+  const goalProfile = resolveGoalProfile(goal, options?.goalOverride);
   const collectedHints: { cardTitle: string; hint: string }[] = [];
 
   const lines: string[] = [];
@@ -225,11 +229,35 @@ export function generateContextMd(
   return lines.join("\n");
 }
 
-function resolveGoalProfile(goal?: string): {
+function resolveGoalProfile(
+  goal?: string,
+  goalOverride: ExportGoalOverride = "auto"
+): {
   prompt: string;
   priority: Record<Card["type"], number>;
 } {
   const normalized = goal?.toLowerCase() ?? "";
+
+  if (goalOverride === "implementation") {
+    return {
+      prompt: "Prioritize execution order, implementation details, and blockers over broad theory.",
+      priority: { process: 4, project: 3, reference: 2, brainstorm: 1 },
+    };
+  }
+
+  if (goalOverride === "review") {
+    return {
+      prompt: "Prioritize constraints, architecture, and evidence before proposed changes.",
+      priority: { project: 4, reference: 3, process: 2, brainstorm: 1 },
+    };
+  }
+
+  if (goalOverride === "brainstorm") {
+    return {
+      prompt: "Surface possibilities first, then supporting references and implementation details.",
+      priority: { brainstorm: 4, project: 3, process: 2, reference: 1 },
+    };
+  }
 
   if (/(implement|build|ship|code|fix|deliver)/.test(normalized)) {
     return {

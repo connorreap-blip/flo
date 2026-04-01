@@ -41,8 +41,6 @@ pub fn save_project_v2(state: SavePayload) -> Result<(), String> {
 
     fs::write(base.join("context.md"), &state.context_md).map_err(|e| e.to_string())?;
 
-    write_card_docs(base, &state.cards)?;
-
     Ok(())
 }
 

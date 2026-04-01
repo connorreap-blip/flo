@@ -20,9 +20,10 @@ fn load_project_data(dir_path: String) -> Result<LoadResult, String> {
 
     let meta_path = base.join("meta.json");
     if meta_path.exists() {
-        let meta: ProjectMeta =
+        let mut meta: ProjectMeta =
             serde_json::from_str(&fs::read_to_string(&meta_path).map_err(|e| e.to_string())?)
                 .map_err(|e| e.to_string())?;
+        normalize_project_meta(&mut meta);
 
         let cards: Vec<CardData> = serde_json::from_str(
             &fs::read_to_string(base.join("cards.json")).map_err(|e| e.to_string())?,
@@ -55,8 +56,10 @@ fn load_project_data(dir_path: String) -> Result<LoadResult, String> {
                 .map_err(|e| e.to_string())?;
 
         let meta = ProjectMeta {
+            workspace_id: None,
             name: canvas.map_name,
-            created: String::new(),
+            created_at: None,
+            updated_at: None,
             format_version: 1,
             goal: None,
         };
@@ -71,6 +74,16 @@ fn load_project_data(dir_path: String) -> Result<LoadResult, String> {
     }
 
     Err("No flo project found in selected directory".to_string())
+}
+
+fn normalize_project_meta(meta: &mut ProjectMeta) {
+    if meta.created_at.is_none() {
+        meta.created_at = meta.updated_at.clone();
+    }
+
+    if meta.updated_at.is_none() {
+        meta.updated_at = meta.created_at.clone();
+    }
 }
 
 #[derive(Debug, Serialize)]

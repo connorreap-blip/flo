@@ -26,6 +26,7 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
   const updateCard = useCanvasStore((s) => s.updateCard);
   const openEditor = useCanvasStore((s) => s.openEditor);
   const removeCard = useCanvasStore((s) => s.removeCard);
+  const cardSummaryMaxLength = useCanvasStore((s) => s.cardSummaryMaxLength);
   const [editingTitle, setEditingTitle] = useState(false);
   const [editingBody, setEditingBody] = useState(false);
   const [showBranch, setShowBranch] = useState(false);
@@ -120,9 +121,9 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
         body: data.body,
         hasDoc: data.hasDoc,
         docContent: data.docContent,
-      })
+      }, { maxLength: cardSummaryMaxLength })
     );
-  }, [data.body, data.docContent, data.hasDoc, data.title]);
+  }, [cardSummaryMaxLength, data.body, data.docContent, data.hasDoc, data.title]);
 
   const handles = (
     <>

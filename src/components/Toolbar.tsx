@@ -3,7 +3,7 @@ import { Search, Settings, ChevronDown } from "lucide-react";
 import { useCanvasStore } from "../store/canvas-store";
 import { useProjectStore, type TabId } from "../store/project-store";
 import { HealthCheckDialog } from "./HealthCheckDialog";
-import { saveProject, loadProject, loadProjectFromPath, exportContext } from "../lib/file-ops";
+import { saveProject, saveProjectAs, loadProject, loadProjectFromPath, exportContext } from "../lib/file-ops";
 import { CommandPalette } from "./CommandPalette";
 import { SettingsPanel } from "./SettingsPanel";
 import {
@@ -20,6 +20,14 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "assets", label: "Files" },
   { id: "history", label: "History" },
 ];
+
+function formatWorkspacePath(dirPath: string | null): string {
+  if (!dirPath) {
+    return "Unsaved workspace";
+  }
+
+  return dirPath.replace(/^\/Users\/[^/]+/, "~");
+}
 
 export function Toolbar() {
   const [editingName, setEditingName] = useState(false);
@@ -51,49 +59,58 @@ export function Toolbar() {
   return (
     <>
       <header
-        className="h-12 flex items-center justify-between px-4 shrink-0 z-50 border-b"
+        className="min-h-14 flex items-center justify-between gap-4 px-4 py-2 shrink-0 z-50 border-b"
         style={{
           background: "var(--color-surface)",
           borderColor: "var(--color-card-border)",
         }}
       >
-        <div className="flex items-center gap-4">
+        <div className="flex min-w-0 items-center gap-4">
           <span
             className="text-lg font-bold tracking-tighter text-white"
             style={{ fontFamily: "var(--font-headline)" }}
           >
             flo
           </span>
-          {editingName ? (
-            <input
-              className="bg-transparent text-xs outline-none border-b"
-              style={{
-                color: "var(--color-text-muted)",
-                borderColor: "var(--color-text-muted)",
-                fontFamily: "var(--font-mono)",
-                width: "140px",
-              }}
-              defaultValue={project.name}
-              autoFocus
-              onBlur={(e) => {
-                setProject({ ...project, name: e.target.value.trim() || project.name });
-                setEditingName(false);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === "Escape") e.currentTarget.blur();
-              }}
-            />
-          ) : (
-            <span
-              className="text-xs cursor-pointer hover:opacity-70"
+          <div className="min-w-0">
+            {editingName ? (
+              <input
+                className="bg-transparent text-xs outline-none border-b"
+                style={{
+                  color: "var(--color-text-muted)",
+                  borderColor: "var(--color-text-muted)",
+                  fontFamily: "var(--font-mono)",
+                  width: "140px",
+                }}
+                defaultValue={project.name}
+                autoFocus
+                onBlur={(e) => {
+                  setProject({ ...project, name: e.target.value.trim() || project.name });
+                  setEditingName(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === "Escape") e.currentTarget.blur();
+                }}
+              />
+            ) : (
+              <span
+                className="block text-xs cursor-pointer hover:opacity-70"
+                style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+                onClick={() => setEditingName(true)}
+                title="Click to rename"
+              >
+                {project.name}{isDirty && " *"}
+              </span>
+            )}
+            <div
+              className="max-w-[260px] truncate text-[10px]"
               style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
-              onClick={() => setEditingName(true)}
-              title="Click to rename"
+              title={project.dirPath ?? "Unsaved workspace"}
             >
-              {project.name}{isDirty && " *"}
-            </span>
-          )}
-          <div className="flex items-center gap-1 ml-2">
+              {formatWorkspacePath(project.dirPath)}
+            </div>
+          </div>
+          <div className="ml-2 flex items-center gap-1">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
@@ -110,7 +127,7 @@ export function Toolbar() {
             ))}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -221,6 +238,18 @@ export function Toolbar() {
           >
             <Settings size={12} />
             <span>Settings</span>
+          </button>
+          <button
+            onClick={() => saveProjectAs()}
+            className="text-xs px-3 py-1.5 border"
+            style={{
+              background: "var(--color-surface-high)",
+              color: "var(--color-text-primary)",
+              borderColor: "var(--color-card-border)",
+              fontFamily: "var(--font-mono)",
+            }}
+          >
+            Save As
           </button>
           <button
             onClick={() => saveProject()}

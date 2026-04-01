@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useCanvasStore } from "../store/canvas-store";
 import { runGovernor, estimateContextWords } from "../lib/governor";
 import type { GovernorWarning } from "../lib/types";
+import { resolveContextTier } from "../lib/native-settings";
 
 interface Props {
   open: boolean;
@@ -20,20 +21,35 @@ export function HealthCheckDialog({ open, onClose, onSave }: Props) {
   const edges = useCanvasStore((s) => s.edges);
   const updateEdge = useCanvasStore((s) => s.updateEdge);
   const updateCard = useCanvasStore((s) => s.updateCard);
+  const disabledGovernorRules = useCanvasStore((s) => s.disabledGovernorRules);
+  const governorBodyLineThreshold = useCanvasStore((s) => s.governorBodyLineThreshold);
+  const governorHierarchyDepthThreshold = useCanvasStore((s) => s.governorHierarchyDepthThreshold);
+  const governorReferenceChainDepthThreshold = useCanvasStore((s) => s.governorReferenceChainDepthThreshold);
+  const governorRedundantOverlapThreshold = useCanvasStore((s) => s.governorRedundantOverlapThreshold);
+  const sectionReferenceWordCap = useCanvasStore((s) => s.sectionReferenceWordCap);
+  const contextLeanWordThreshold = useCanvasStore((s) => s.contextLeanWordThreshold);
+  const contextStandardWordThreshold = useCanvasStore((s) => s.contextStandardWordThreshold);
+  const contextRichWordThreshold = useCanvasStore((s) => s.contextRichWordThreshold);
 
-  const warnings = runGovernor(cards, edges);
+  const warnings = runGovernor(cards, edges, {
+    disabledRules: disabledGovernorRules,
+    bodyLineThreshold: governorBodyLineThreshold,
+    hierarchyDepthThreshold: governorHierarchyDepthThreshold,
+    referenceChainDepthThreshold: governorReferenceChainDepthThreshold,
+    redundantBodyOverlapThreshold: governorRedundantOverlapThreshold,
+  });
   const errors = warnings.filter((w) => w.severity === "error");
   const warns = warnings.filter((w) => w.severity === "warning");
   const infos = warnings.filter((w) => w.severity === "info");
 
   const totalWords = cards
     .filter((c) => c.type !== "brainstorm")
-    .reduce((sum, c) => sum + estimateContextWords(c, cards, edges), 0);
-
-  const contextLevel =
-    totalWords < 2000 ? "Lean" : totalWords < 5000 ? "Standard" : totalWords < 10000 ? "Rich" : "Heavy";
-  const contextColor =
-    totalWords < 2000 ? "#44FF44" : totalWords < 5000 ? "#FFFFFF" : totalWords < 10000 ? "#FFAA00" : "#FF4444";
+    .reduce((sum, c) => sum + estimateContextWords(c, cards, edges, { sectionWordCap: sectionReferenceWordCap }), 0);
+  const contextTier = resolveContextTier(totalWords, {
+    lean: contextLeanWordThreshold,
+    standard: contextStandardWordThreshold,
+    rich: contextRichWordThreshold,
+  });
 
   const handleFix = (warning: GovernorWarning) => {
     if (warning.fix?.action === "set-scope" && warning.edgeId) {
@@ -104,8 +120,8 @@ export function HealthCheckDialog({ open, onClose, onSave }: Props) {
           <span className="text-[10px]" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>
             EXPORT ESTIMATE
           </span>
-          <span className="text-xs font-semibold" style={{ color: contextColor, fontFamily: "var(--font-mono)" }}>
-            ~{totalWords.toLocaleString()} words ({contextLevel})
+          <span className="text-xs font-semibold" style={{ color: contextTier.color, fontFamily: "var(--font-mono)" }}>
+            ~{totalWords.toLocaleString()} words ({contextTier.label})
           </span>
         </div>
 

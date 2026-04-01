@@ -1,8 +1,24 @@
 import { create } from "zustand";
 import { temporal } from "zundo";
 import { v4 as uuid } from "uuid";
-import type { Card, Edge, CanvasViewport, EditorState } from "../lib/types";
+import type { Card, Edge, CanvasViewport, EditorState, ReferenceScope } from "../lib/types";
 import type { CardType } from "../lib/constants";
+import type { GovernorRuleId } from "../lib/native-settings";
+import {
+  DEFAULT_CARD_SUMMARY_MAX_LENGTH,
+  DEFAULT_CONTEXT_LEAN_WORD_THRESHOLD,
+  DEFAULT_CONTEXT_RICH_WORD_THRESHOLD,
+  DEFAULT_CONTEXT_STANDARD_WORD_THRESHOLD,
+  DEFAULT_GOVERNOR_BODY_LINE_THRESHOLD,
+  DEFAULT_GOVERNOR_HIERARCHY_DEPTH_THRESHOLD,
+  DEFAULT_GOVERNOR_REDUNDANT_OVERLAP_THRESHOLD,
+  DEFAULT_GOVERNOR_REFERENCE_CHAIN_THRESHOLD,
+  DEFAULT_HELPER_UNSCOPED_REFERENCE_THRESHOLD,
+  DEFAULT_REFERENCE_SCOPE,
+  DEFAULT_SECTION_REFERENCE_WORD_CAP,
+  clampFloat,
+  clampInteger,
+} from "../lib/native-settings";
 
 export type AgentHintExportMode = "inline" | "section" | "hidden";
 export type ExportGoalOverride = "auto" | "implementation" | "review" | "brainstorm";
@@ -86,14 +102,38 @@ interface CanvasStore {
   toggleTagExclusion: (tag: string) => void;
 
   // Settings — Governor
-  disabledGovernorRules: string[];
-  toggleGovernorRule: (rule: string) => void;
+  disabledGovernorRules: GovernorRuleId[];
+  toggleGovernorRule: (rule: GovernorRuleId) => void;
+  governorBodyLineThreshold: number;
+  setGovernorBodyLineThreshold: (value: number) => void;
+  governorHierarchyDepthThreshold: number;
+  setGovernorHierarchyDepthThreshold: (value: number) => void;
+  governorReferenceChainDepthThreshold: number;
+  setGovernorReferenceChainDepthThreshold: (value: number) => void;
+  governorRedundantOverlapThreshold: number;
+  setGovernorRedundantOverlapThreshold: (value: number) => void;
 
   // Settings — History
   autoSnapshot: boolean;
   toggleAutoSnapshot: () => void;
   maxSnapshots: number;
   setMaxSnapshots: (n: number) => void;
+
+  // Settings — Native UX
+  defaultReferenceScope: ReferenceScope;
+  setDefaultReferenceScope: (scope: ReferenceScope) => void;
+  sectionReferenceWordCap: number;
+  setSectionReferenceWordCap: (value: number) => void;
+  contextLeanWordThreshold: number;
+  setContextLeanWordThreshold: (value: number) => void;
+  contextStandardWordThreshold: number;
+  setContextStandardWordThreshold: (value: number) => void;
+  contextRichWordThreshold: number;
+  setContextRichWordThreshold: (value: number) => void;
+  cardSummaryMaxLength: number;
+  setCardSummaryMaxLength: (value: number) => void;
+  helperUnscopedReferenceThreshold: number;
+  setHelperUnscopedReferenceThreshold: (value: number) => void;
 
   // Bulk load (for loading from disk)
   loadState: (cards: Card[], edges: Edge[], viewport: CanvasViewport) => void;
@@ -106,6 +146,7 @@ export const useCanvasStore = create<CanvasStore>()(
   cards: [],
   addCard: (type, title, position) => {
     const id = uuid();
+    const defaultAgentHint = get().defaultAgentHint.trim();
     const card: Card = {
       id,
       type,
@@ -115,6 +156,7 @@ export const useCanvasStore = create<CanvasStore>()(
       collapsed: false,
       hasDoc: false,
       docContent: "",
+      agentHint: defaultAgentHint ? defaultAgentHint : undefined,
     };
     set((s) => ({ cards: [...s.cards, card], isDirty: true }));
     return id;
@@ -136,6 +178,7 @@ export const useCanvasStore = create<CanvasStore>()(
   edges: [],
   addEdge: (source, target, edgeType = "hierarchy", referenceScope, referenceSectionHint) => {
     const id = uuid();
+    const defaultReferenceScope = get().defaultReferenceScope;
     const edge: Edge = {
       id,
       source,
@@ -143,7 +186,7 @@ export const useCanvasStore = create<CanvasStore>()(
       edgeType,
       sourceArrow: edgeType === "reference" ? false : undefined,
       targetArrow: edgeType === "reference" ? false : true,
-      referenceScope: edgeType === "reference" ? (referenceScope ?? "summary") : undefined,
+      referenceScope: edgeType === "reference" ? (referenceScope ?? defaultReferenceScope) : undefined,
       referenceSectionHint: edgeType === "reference" ? referenceSectionHint : undefined,
     };
     set((s) => ({ edges: [...s.edges, edge], isDirty: true }));
@@ -231,12 +274,116 @@ export const useCanvasStore = create<CanvasStore>()(
         ? s.disabledGovernorRules.filter((r) => r !== rule)
         : [...s.disabledGovernorRules, rule],
     })),
+  governorBodyLineThreshold: DEFAULT_GOVERNOR_BODY_LINE_THRESHOLD,
+  setGovernorBodyLineThreshold: (value) =>
+    set({
+      governorBodyLineThreshold: clampInteger(
+        value,
+        1,
+        12,
+        DEFAULT_GOVERNOR_BODY_LINE_THRESHOLD
+      ),
+    }),
+  governorHierarchyDepthThreshold: DEFAULT_GOVERNOR_HIERARCHY_DEPTH_THRESHOLD,
+  setGovernorHierarchyDepthThreshold: (value) =>
+    set({
+      governorHierarchyDepthThreshold: clampInteger(
+        value,
+        2,
+        8,
+        DEFAULT_GOVERNOR_HIERARCHY_DEPTH_THRESHOLD
+      ),
+    }),
+  governorReferenceChainDepthThreshold: DEFAULT_GOVERNOR_REFERENCE_CHAIN_THRESHOLD,
+  setGovernorReferenceChainDepthThreshold: (value) =>
+    set({
+      governorReferenceChainDepthThreshold: clampInteger(
+        value,
+        2,
+        8,
+        DEFAULT_GOVERNOR_REFERENCE_CHAIN_THRESHOLD
+      ),
+    }),
+  governorRedundantOverlapThreshold: DEFAULT_GOVERNOR_REDUNDANT_OVERLAP_THRESHOLD,
+  setGovernorRedundantOverlapThreshold: (value) =>
+    set({
+      governorRedundantOverlapThreshold: clampFloat(
+        value,
+        0.2,
+        0.95,
+        DEFAULT_GOVERNOR_REDUNDANT_OVERLAP_THRESHOLD
+      ),
+    }),
 
   // Settings — History
   autoSnapshot: true,
   toggleAutoSnapshot: () => set((s) => ({ autoSnapshot: !s.autoSnapshot })),
   maxSnapshots: 50,
   setMaxSnapshots: (n) => set({ maxSnapshots: n }),
+
+  // Settings — Native UX
+  defaultReferenceScope: DEFAULT_REFERENCE_SCOPE,
+  setDefaultReferenceScope: (scope) => set({ defaultReferenceScope: scope }),
+  sectionReferenceWordCap: DEFAULT_SECTION_REFERENCE_WORD_CAP,
+  setSectionReferenceWordCap: (value) =>
+    set({
+      sectionReferenceWordCap: clampInteger(
+        value,
+        50,
+        1000,
+        DEFAULT_SECTION_REFERENCE_WORD_CAP
+      ),
+    }),
+  contextLeanWordThreshold: DEFAULT_CONTEXT_LEAN_WORD_THRESHOLD,
+  setContextLeanWordThreshold: (value) =>
+    set({
+      contextLeanWordThreshold: clampInteger(
+        value,
+        500,
+        20000,
+        DEFAULT_CONTEXT_LEAN_WORD_THRESHOLD
+      ),
+    }),
+  contextStandardWordThreshold: DEFAULT_CONTEXT_STANDARD_WORD_THRESHOLD,
+  setContextStandardWordThreshold: (value) =>
+    set({
+      contextStandardWordThreshold: clampInteger(
+        value,
+        1000,
+        30000,
+        DEFAULT_CONTEXT_STANDARD_WORD_THRESHOLD
+      ),
+    }),
+  contextRichWordThreshold: DEFAULT_CONTEXT_RICH_WORD_THRESHOLD,
+  setContextRichWordThreshold: (value) =>
+    set({
+      contextRichWordThreshold: clampInteger(
+        value,
+        1500,
+        40000,
+        DEFAULT_CONTEXT_RICH_WORD_THRESHOLD
+      ),
+    }),
+  cardSummaryMaxLength: DEFAULT_CARD_SUMMARY_MAX_LENGTH,
+  setCardSummaryMaxLength: (value) =>
+    set({
+      cardSummaryMaxLength: clampInteger(
+        value,
+        80,
+        400,
+        DEFAULT_CARD_SUMMARY_MAX_LENGTH
+      ),
+    }),
+  helperUnscopedReferenceThreshold: DEFAULT_HELPER_UNSCOPED_REFERENCE_THRESHOLD,
+  setHelperUnscopedReferenceThreshold: (value) =>
+    set({
+      helperUnscopedReferenceThreshold: clampInteger(
+        value,
+        1,
+        20,
+        DEFAULT_HELPER_UNSCOPED_REFERENCE_THRESHOLD
+      ),
+    }),
 
   dismissedHelpers: [],
   dismissHelper: (helperId) =>

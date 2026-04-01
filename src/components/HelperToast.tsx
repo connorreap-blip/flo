@@ -12,6 +12,8 @@ export function HelperToast() {
   const edges = useCanvasStore((s) => s.edges);
   const dismissedHelpers = useCanvasStore((s) => s.dismissedHelpers);
   const dismissHelper = useCanvasStore((s) => s.dismissHelper);
+  const helperUnscopedReferenceThreshold = useCanvasStore((s) => s.helperUnscopedReferenceThreshold);
+  const governorBodyLineThreshold = useCanvasStore((s) => s.governorBodyLineThreshold);
   const [activeHelper, setActiveHelper] = useState<HelperMessage | null>(null);
   const [prevCounts, setPrevCounts] = useState({ cards: 0, edges: 0 });
 
@@ -40,9 +42,9 @@ export function HelperToast() {
       });
     }
 
-    // Helper: 5+ unscoped references (only if nothing already showing)
+    // Helper: configurable unscoped-reference threshold (only if nothing already showing)
     if (
-      unscopedRefCount >= 5 &&
+      unscopedRefCount >= helperUnscopedReferenceThreshold &&
       !dismissedHelpers.includes("many-unscoped") &&
       !activeHelperRef.current
     ) {
@@ -56,7 +58,7 @@ export function HelperToast() {
 
     // Helper: long card body (only if nothing already showing)
     const longBodyCard = cards.find(
-      (c) => c.body.split("\n").filter((l) => l.trim()).length > 3
+      (c) => c.body.split("\n").filter((l) => l.trim()).length > governorBodyLineThreshold
     );
     if (
       longBodyCard &&
@@ -72,8 +74,16 @@ export function HelperToast() {
       });
     }
 
-    setPrevCounts({ cards: cards.length, edges: edges.length });
-  }, [cards.length, edges.length, dismissedHelpers]);
+    if (prevCounts.cards !== cards.length || prevCounts.edges !== edges.length) {
+      setPrevCounts({ cards: cards.length, edges: edges.length });
+    }
+  }, [
+    cards,
+    dismissedHelpers,
+    edges,
+    governorBodyLineThreshold,
+    helperUnscopedReferenceThreshold,
+  ]);
 
   // Auto-dismiss after 8s
   useEffect(() => {

@@ -76,7 +76,9 @@ pub fn read_project_file_preview(
         let mut truncated = false;
         let preview = if text.chars().count() > MAX_TEXT_PREVIEW_CHARS {
             truncated = true;
-            text.chars().take(MAX_TEXT_PREVIEW_CHARS).collect::<String>()
+            text.chars()
+                .take(MAX_TEXT_PREVIEW_CHARS)
+                .collect::<String>()
         } else {
             text
         };
@@ -96,7 +98,9 @@ pub fn read_project_file_preview(
         relative_path,
         kind: "unsupported".to_string(),
         mime_type: mime_type_for_extension(extension.as_deref()),
-        content: Some("This file type can be opened from flo, but not previewed here yet.".to_string()),
+        content: Some(
+            "This file type can be opened from flo, but not previewed here yet.".to_string(),
+        ),
         data_url: None,
         truncated: false,
         size,
@@ -136,7 +140,11 @@ pub fn import_project_files(
     Ok(imported)
 }
 
-fn collect_files(base: &Path, current: &Path, entries: &mut Vec<ProjectFileEntry>) -> Result<(), String> {
+fn collect_files(
+    base: &Path,
+    current: &Path,
+    entries: &mut Vec<ProjectFileEntry>,
+) -> Result<(), String> {
     let read_dir = fs::read_dir(current).map_err(|e| e.to_string())?;
     for entry in read_dir {
         let entry = entry.map_err(|e| e.to_string())?;
@@ -191,7 +199,11 @@ fn build_entry(base: &Path, path: &Path) -> Result<ProjectFileEntry, String> {
 fn compare_entries(left: &ProjectFileEntry, right: &ProjectFileEntry) -> Ordering {
     category_rank(&left.category)
         .cmp(&category_rank(&right.category))
-        .then_with(|| left.relative_path.to_lowercase().cmp(&right.relative_path.to_lowercase()))
+        .then_with(|| {
+            left.relative_path
+                .to_lowercase()
+                .cmp(&right.relative_path.to_lowercase())
+        })
 }
 
 fn category_rank(category: &str) -> u8 {
@@ -228,8 +240,8 @@ fn normalized_extension(path: &Path) -> Option<String> {
 fn mime_type_for_extension(extension: Option<&str>) -> Option<String> {
     let mime = match extension {
         Some("md") | Some("txt") | Some("rs") | Some("ts") | Some("tsx") | Some("js")
-        | Some("jsx") | Some("json") | Some("css") | Some("html") | Some("yml")
-        | Some("yaml") | Some("toml") | Some("csv") => "text/plain",
+        | Some("jsx") | Some("json") | Some("css") | Some("html") | Some("yml") | Some("yaml")
+        | Some("toml") | Some("csv") => "text/plain",
         Some("svg") => "image/svg+xml",
         Some("png") => "image/png",
         Some("jpg") | Some("jpeg") => "image/jpeg",

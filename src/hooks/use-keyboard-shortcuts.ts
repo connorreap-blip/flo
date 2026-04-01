@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useCanvasStore } from "../store/canvas-store";
 import { useProjectStore, type TabId } from "../store/project-store";
-import { saveProject, loadProject, exportContext } from "../lib/file-ops";
+import { saveProject, saveProjectAs, loadProject, exportContext } from "../lib/file-ops";
 
 export function useKeyboardShortcuts() {
   const toggleShowGrid = useCanvasStore((s) => s.toggleShowGrid);
@@ -13,9 +13,15 @@ export function useKeyboardShortcuts() {
       const meta = e.metaKey || e.ctrlKey;
 
       // Cmd+S — Save
-      if (meta && e.key === "s") {
+      if (meta && e.key.toLowerCase() === "s" && !e.shiftKey) {
         e.preventDefault();
         saveProject();
+      }
+
+      // Cmd+Shift+S — Save As
+      if (meta && e.key.toLowerCase() === "s" && e.shiftKey) {
+        e.preventDefault();
+        saveProjectAs();
       }
 
       // Cmd+O — Open

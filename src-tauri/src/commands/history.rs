@@ -8,10 +8,7 @@ pub fn save_snapshot(dir_path: String, snapshot: SnapshotData) -> Result<String,
     fs::create_dir_all(&history_dir).map_err(|e| e.to_string())?;
 
     // Filename from timestamp: replace colons for filesystem safety
-    let filename = format!(
-        "{}.json",
-        snapshot.timestamp.replace(':', "-")
-    );
+    let filename = format!("{}.json", snapshot.timestamp.replace(':', "-"));
     let filepath = history_dir.join(&filename);
 
     let json = serde_json::to_string_pretty(&snapshot).map_err(|e| e.to_string())?;

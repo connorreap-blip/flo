@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { exportContext, loadProject, saveProject } from "../lib/file-ops";
+import { exportContext, loadProject, saveProject, saveProjectAs } from "../lib/file-ops";
 import {
   buildWorkspaceCommandItems,
   filterWorkspaceCommandItems,
@@ -59,6 +59,7 @@ export function CommandPalette({ open, onClose, onOpenSettings }: Props) {
         focusCard: (cardId) => focusCard(cardId, false),
         openDocument: (cardId) => focusCard(cardId, true),
         saveProject,
+        saveProjectAs,
         loadProject,
         exportContext,
         toggleShowGrid,
