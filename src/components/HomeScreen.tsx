@@ -102,45 +102,67 @@ export function HomeScreen({ onNew, onOpenSample, onOpenTemplates }: Props) {
             }}
           >
             <div className="flex flex-col gap-3">
-              <button
-                type="button"
-                onClick={onOpenSample}
-                className="w-full border px-4 py-3 text-left text-sm font-semibold transition-opacity hover:opacity-90"
-                style={{
-                  background: "#FFFFFF",
-                  borderColor: "#FFFFFF",
-                  color: "#000000",
-                  fontFamily: "var(--font-headline)",
-                }}
-              >
-                Explore Sample
-              </button>
+              {isFirstRun ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={onOpenSample}
+                    className="w-full border px-4 py-3 text-left text-sm font-semibold transition-opacity hover:opacity-90"
+                    style={{
+                      background: "#FFFFFF",
+                      borderColor: "#FFFFFF",
+                      color: "#000000",
+                      fontFamily: "var(--font-headline)",
+                    }}
+                  >
+                    Explore Sample
+                  </button>
 
-              <button
-                type="button"
-                onClick={onOpenTemplates}
-                className="w-full border px-4 py-3 text-left text-sm transition-colors hover:opacity-90"
-                style={{
-                  background: "transparent",
-                  borderColor: "var(--color-card-border)",
-                  color: "var(--color-text-primary)",
-                  fontFamily: "var(--font-headline)",
-                }}
-              >
-                Start from Template
-              </button>
+                  <button
+                    type="button"
+                    onClick={onOpenTemplates}
+                    className="w-full border px-4 py-3 text-left text-sm transition-colors hover:opacity-90"
+                    style={{
+                      background: "transparent",
+                      borderColor: "var(--color-card-border)",
+                      color: "var(--color-text-primary)",
+                      fontFamily: "var(--font-headline)",
+                    }}
+                  >
+                    Start from Template
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setShowNewWorkspaceForm(true)}
+                    className="w-full border px-4 py-3 text-left text-sm font-semibold transition-opacity hover:opacity-90"
+                    style={{
+                      background: "#FFFFFF",
+                      borderColor: "#FFFFFF",
+                      color: "#000000",
+                      fontFamily: "var(--font-headline)",
+                    }}
+                  >
+                    New Workspace
+                  </button>
 
-              <button
-                type="button"
-                onClick={() => setShowNewWorkspaceForm((current) => !current)}
-                className="w-full px-1 py-2 text-left text-[11px] uppercase tracking-[0.28em] transition-opacity hover:opacity-80"
-                style={{
-                  color: "var(--color-text-secondary)",
-                  fontFamily: "var(--font-mono)",
-                }}
-              >
-                New Empty Workspace
-              </button>
+                  <button
+                    type="button"
+                    onClick={onOpenTemplates}
+                    className="w-full border px-4 py-3 text-left text-sm transition-colors hover:opacity-90"
+                    style={{
+                      background: "transparent",
+                      borderColor: "var(--color-card-border)",
+                      color: "var(--color-text-primary)",
+                      fontFamily: "var(--font-headline)",
+                    }}
+                  >
+                    Start from Template
+                  </button>
+                </>
+              )}
 
               {showNewWorkspaceForm ? (
                 <div className="border px-3 py-3" style={{ borderColor: "var(--color-card-border)" }}>
@@ -178,22 +200,49 @@ export function HomeScreen({ onNew, onOpenSample, onOpenTemplates }: Props) {
                       fontFamily: "var(--font-headline)",
                     }}
                   >
-                    Create Empty Workspace
+                    Create
                   </button>
                 </div>
               ) : null}
 
-              <button
-                type="button"
-                onClick={handleLoad}
-                className="w-full px-1 py-2 text-left text-[11px] uppercase tracking-[0.28em] transition-opacity hover:opacity-80"
-                style={{
-                  color: "var(--color-text-secondary)",
-                  fontFamily: "var(--font-mono)",
-                }}
-              >
-                Open Existing Folder
-              </button>
+              <div className="flex items-center gap-3">
+                {!isFirstRun ? (
+                  <button
+                    type="button"
+                    onClick={onOpenSample}
+                    className="px-1 py-2 text-left text-[11px] uppercase tracking-[0.28em] transition-opacity hover:opacity-80"
+                    style={{
+                      color: "var(--color-text-secondary)",
+                      fontFamily: "var(--font-mono)",
+                    }}
+                  >
+                    Explore Sample
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowNewWorkspaceForm((current) => !current)}
+                    className="px-1 py-2 text-left text-[11px] uppercase tracking-[0.28em] transition-opacity hover:opacity-80"
+                    style={{
+                      color: "var(--color-text-secondary)",
+                      fontFamily: "var(--font-mono)",
+                    }}
+                  >
+                    New Empty Workspace
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleLoad}
+                  className="px-1 py-2 text-left text-[11px] uppercase tracking-[0.28em] transition-opacity hover:opacity-80"
+                  style={{
+                    color: "var(--color-text-secondary)",
+                    fontFamily: "var(--font-mono)",
+                  }}
+                >
+                  Open Existing
+                </button>
+              </div>
             </div>
           </section>
         </div>

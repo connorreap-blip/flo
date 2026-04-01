@@ -15,13 +15,15 @@ import { useProjectStore } from "./store/project-store";
 import { useKeyboardShortcuts } from "./hooks/use-keyboard-shortcuts";
 import { useThemeInit } from "./hooks/use-theme";
 import { HelperToast } from "./components/HelperToast";
+import { UndoToast } from "./components/UndoToast";
+import { SaveToast } from "./components/SaveToast";
 import { BottomActionBar } from "./components/BottomActionBar";
 import { HomeDashboard } from "./components/HomeDashboard";
 import { HistoryTab } from "./components/HistoryTab";
 import { FilesTab } from "./components/FilesTab";
 import { TemplateChooser } from "./components/TemplateChooser";
 import { parseContextMd } from "./lib/context-parser";
-import { applyLoadedProject, saveProject, type LoadedProjectPayload } from "./lib/file-ops";
+import { applyLoadedProject, saveProject, exportContextToTarget, type LoadedProjectPayload } from "./lib/file-ops";
 import { sampleWorkspaceTemplate, type WorkspaceTemplate } from "./lib/templates";
 import { cn } from "./lib/utils";
 import type { Card, Edge, ProjectMeta } from "./lib/types";
@@ -197,7 +199,14 @@ export default function App() {
     }
 
     const timer = window.setTimeout(() => {
-      void saveProject().catch((error) => {
+      void saveProject().then(() => {
+        const targetPath = useCanvasStore.getState().exportTargetPath.trim();
+        if (targetPath) {
+          exportContextToTarget().catch((error) => {
+            console.error("Auto-export to target failed", error);
+          });
+        }
+      }).catch((error) => {
         console.error("Auto-save failed", error);
       });
     }, 1500);
@@ -428,6 +437,8 @@ export default function App() {
           <span>{isDirty ? "unsaved" : "saved"}</span>
         </footer>
         <HelperToast />
+        <UndoToast />
+        <SaveToast />
       </div>
 
       <Dialog

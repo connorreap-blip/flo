@@ -80,9 +80,15 @@ export const Wikilink = Node.create({
     return {
       title: {
         default: null,
+        parseHTML: (element: HTMLElement) => element.getAttribute("data-wikilink"),
+        renderHTML: (attributes: { title?: string | null }) =>
+          attributes.title ? { "data-wikilink": attributes.title } : {},
       },
       cardId: {
         default: null,
+        parseHTML: (element: HTMLElement) => element.getAttribute("data-card-id"),
+        renderHTML: (attributes: { cardId?: string | null }) =>
+          attributes.cardId ? { "data-card-id": attributes.cardId } : {},
       },
     };
   },
@@ -101,7 +107,6 @@ export const Wikilink = Node.create({
     return [
       "span",
       mergeAttributes(HTMLAttributes, {
-        "data-wikilink": title,
         class: "wikilink",
       }),
       `[[${title}]]`,

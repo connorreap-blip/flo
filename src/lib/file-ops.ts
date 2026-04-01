@@ -6,7 +6,7 @@ import { useCanvasStore } from "../store/canvas-store";
 import { useProjectStore } from "../store/project-store";
 import { serializeCardToMarkdown, deserializeMarkdown } from "./markdown";
 import { generateContextMd } from "./export-context";
-import type { CardComment, EdgeType, ProjectMeta, ReferenceScope } from "./types";
+import type { CardAttachment, CardComment, EdgeType, ProjectMeta, ReferenceScope } from "./types";
 
 export interface LoadedProjectPayload {
   dir_path: string;
@@ -32,6 +32,7 @@ export interface LoadedProjectPayload {
     doc_content: string;
     agent_hint?: string | null;
     comments?: CardComment[] | null;
+    attachments?: CardAttachment[] | null;
   }>;
   edges: Array<{
     id: string;
@@ -140,6 +141,7 @@ async function saveProjectInternal(forcePrompt: boolean): Promise<void> {
     doc_content: card.hasDoc ? serializeCardToMarkdown(card) : "",
     agent_hint: card.agentHint ?? null,
     comments: Array.isArray(card.comments) ? card.comments : null,
+    attachments: Array.isArray(card.attachments) ? card.attachments : null,
   }));
 
   const edgesForSave = canvasStore.edges.map((edge) => ({
@@ -229,6 +231,7 @@ async function saveProjectInternal(forcePrompt: boolean): Promise<void> {
   }
 
   canvasStore.markClean();
+  canvasStore.showToast("Workspace saved");
   window.dispatchEvent(
     new CustomEvent("flo:project-saved", {
       detail: {
@@ -280,6 +283,7 @@ export function applyLoadedProject(result: LoadedProjectPayload): void {
     docContent: c.has_doc && c.doc_content ? deserializeMarkdown(c.doc_content).htmlContent : "",
     agentHint: c.agent_hint ?? undefined,
     comments: c.comments ?? undefined,
+    attachments: c.attachments ?? undefined,
   }));
 
   const mappedEdges = result.edges.map((e) => ({
@@ -323,6 +327,8 @@ export async function exportContext(): Promise<void> {
     }
   );
 
+  useCanvasStore.getState().setLastExportedContextMd(contextMd);
+
   const selected = await save({
     title: "Export for AI",
     defaultPath: resolveExportFileName(projectStore.project.name, store.exportFileNamePattern),
@@ -331,4 +337,63 @@ export async function exportContext(): Promise<void> {
   if (!selected) return;
 
   await writeTextFile(selected, contextMd);
+  useCanvasStore.getState().showToast("Context exported");
+}
+
+export async function exportContextToTarget(): Promise<void> {
+  const projectStore = useProjectStore.getState();
+  const store = useCanvasStore.getState();
+  const targetPath = store.exportTargetPath.trim();
+
+  if (!targetPath) {
+    return exportContext();
+  }
+
+  const contextMd = generateContextMd(
+    projectStore.project.name,
+    store.cards,
+    store.edges,
+    projectStore.project.goal,
+    {
+      agentHintExportMode: store.agentHintExportMode,
+      includeAgentHints: store.exportIncludeAgentHints,
+      includeBrainstorm: store.exportIncludeBrainstorm,
+      includeCardDocs: store.exportIncludeCardDocs,
+      excludedTags: store.excludedTags,
+      goalOverride: store.exportGoalOverride,
+    }
+  );
+
+  useCanvasStore.getState().setLastExportedContextMd(contextMd);
+
+  await writeTextFile(targetPath, contextMd);
+  store.showToast(`Written to ${targetPath.split("/").pop()}`);
+}
+
+export async function copyContextToClipboard(): Promise<boolean> {
+  const projectStore = useProjectStore.getState();
+  const store = useCanvasStore.getState();
+  const contextMd = generateContextMd(
+    projectStore.project.name,
+    store.cards,
+    store.edges,
+    projectStore.project.goal,
+    {
+      agentHintExportMode: store.agentHintExportMode,
+      includeAgentHints: store.exportIncludeAgentHints,
+      includeBrainstorm: store.exportIncludeBrainstorm,
+      includeCardDocs: store.exportIncludeCardDocs,
+      excludedTags: store.excludedTags,
+      goalOverride: store.exportGoalOverride,
+    }
+  );
+
+  useCanvasStore.getState().setLastExportedContextMd(contextMd);
+
+  try {
+    await navigator.clipboard.writeText(contextMd);
+    return true;
+  } catch {
+    return false;
+  }
 }

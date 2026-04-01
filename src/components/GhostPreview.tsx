@@ -5,6 +5,7 @@ import { generateContextMd } from "../lib/export-context";
 import { estimateContextWords } from "../lib/governor";
 import { useProjectStore } from "../store/project-store";
 import { useCanvasStore } from "../store/canvas-store";
+import { diffLines, summarizeDiff } from "../lib/export-diff";
 
 const AGENT_PROMPTS = [
   {
@@ -150,6 +151,7 @@ export function GhostPreview() {
   const sectionReferenceWordCap = useCanvasStore((state) => state.sectionReferenceWordCap);
   const [showAgentPrompts, setShowAgentPrompts] = useState(false);
   const [copiedPromptId, setCopiedPromptId] = useState<string | null>(null);
+  const lastExported = useCanvasStore((state) => state.lastExportedContextMd);
 
   const contextMd = useMemo(
     () => generateContextMd(project.name, cards, edges, project.goal, {
@@ -173,6 +175,12 @@ export function GhostPreview() {
       project.name,
     ]
   );
+
+  const diff = useMemo(() => {
+    if (!lastExported) return null;
+    return diffLines(lastExported, contextMd);
+  }, [lastExported, contextMd]);
+  const diffSummary = useMemo(() => diff ? summarizeDiff(diff) : null, [diff]);
 
   const cardCosts = useMemo(() => {
     const costs = cards.map((card) => ({
@@ -240,6 +248,17 @@ export function GhostPreview() {
         >
           Cost View
         </button>
+        {lastExported ? (
+          <button
+            type="button"
+            className="border px-2 py-1 text-[10px] uppercase tracking-[0.24em]"
+            aria-pressed={ghostPreviewMode === "diff"}
+            style={modeButtonStyle(ghostPreviewMode === "diff")}
+            onClick={() => setGhostPreviewMode("diff")}
+          >
+            Diff {diffSummary ? `+${diffSummary.added} -${diffSummary.removed}` : ""}
+          </button>
+        ) : null}
         <div
           className="px-2 text-[10px] uppercase tracking-[0.24em]"
           style={{ color: "var(--color-text-secondary)", fontFamily: "var(--font-mono)" }}
@@ -368,6 +387,48 @@ export function GhostPreview() {
                 </div>
               ) : null}
             </section>
+          </div>
+        </div>
+      ) : ghostPreviewMode === "diff" && diff ? (
+        <div
+          className="pointer-events-auto absolute overflow-hidden border"
+          style={{
+            top: 72,
+            right: 24,
+            bottom: 24,
+            width: "min(42rem, calc(100% - 3rem))",
+            borderColor: "var(--color-card-border)",
+            background: "rgba(12, 12, 12, 0.96)",
+            boxShadow: "0 24px 80px rgba(0, 0, 0, 0.35)",
+          }}
+        >
+          <div
+            className="border-b px-4 py-3"
+            style={{ borderColor: "var(--color-card-border)", background: "var(--color-surface-lowest)" }}
+          >
+            <div className="text-[10px] uppercase tracking-[0.3em]" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>
+              Changes since last export
+            </div>
+          </div>
+          <div className="h-full overflow-y-auto px-5 py-4 space-y-0">
+            {diff.filter((line) => line.type !== "unchanged").map((line, i) => (
+              <div
+                key={i}
+                className="text-xs py-0.5 px-2"
+                style={{
+                  background: line.type === "added" ? "rgba(74, 222, 128, 0.1)" : "rgba(248, 113, 113, 0.1)",
+                  color: line.type === "added" ? "#4ade80" : "#f87171",
+                  fontFamily: "var(--font-mono)",
+                }}
+              >
+                {line.type === "added" ? "+ " : "- "}{line.text}
+              </div>
+            ))}
+            {diff.every((line) => line.type === "unchanged") ? (
+              <div className="text-sm py-8 text-center" style={{ color: "var(--color-text-secondary)" }}>
+                No changes since last export.
+              </div>
+            ) : null}
           </div>
         </div>
       ) : (

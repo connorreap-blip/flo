@@ -13,6 +13,16 @@ pub struct CardComment {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct CardAttachment {
+    pub id: String,
+    pub relative_path: String,
+    pub name: String,
+    pub extension: Option<String>,
+    pub size: Option<u64>,
+    pub added_at: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CardData {
     pub id: String,
     #[serde(rename = "type")]
@@ -28,6 +38,7 @@ pub struct CardData {
     pub doc_content: String,
     pub agent_hint: Option<String>,
     pub comments: Option<Vec<CardComment>>,
+    pub attachments: Option<Vec<CardAttachment>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

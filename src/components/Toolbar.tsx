@@ -3,7 +3,7 @@ import { Search, Settings, ChevronDown } from "lucide-react";
 import { useCanvasStore } from "../store/canvas-store";
 import { useProjectStore, type TabId } from "../store/project-store";
 import { HealthCheckDialog } from "./HealthCheckDialog";
-import { saveProject, saveProjectAs, loadProject, loadProjectFromPath, exportContext } from "../lib/file-ops";
+import { saveProject, saveProjectAs, loadProject, loadProjectFromPath, copyContextToClipboard, exportContextToTarget } from "../lib/file-ops";
 import { CommandPalette } from "./CommandPalette";
 import { SettingsPanel } from "./SettingsPanel";
 import {
@@ -34,6 +34,7 @@ export function Toolbar() {
   const [showHealthCheck, setShowHealthCheck] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [copyFeedback, setCopyFeedback] = useState(false);
   const project = useProjectStore((s) => s.project);
   const setProject = useProjectStore((s) => s.setProject);
   const activeTab = useProjectStore((s) => s.activeTab);
@@ -127,137 +128,169 @@ export function Toolbar() {
             ))}
           </div>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                className="flex items-center gap-1 text-xs px-3 py-1.5 border"
+        <div className="flex flex-wrap items-center justify-end gap-1">
+          {/* File operations group */}
+          <div className="flex items-center gap-1">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="flex items-center gap-1 text-xs px-3 py-1.5 border"
+                  style={{
+                    background: "var(--color-surface-high)",
+                    color: "var(--color-text-primary)",
+                    borderColor: "var(--color-card-border)",
+                    fontFamily: "var(--font-mono)",
+                  }}
+                >
+                  Open
+                  <ChevronDown size={10} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="start"
+                className="min-w-[220px]"
                 style={{
-                  background: "var(--color-surface-high)",
-                  color: "var(--color-text-primary)",
+                  background: "var(--color-surface)",
                   borderColor: "var(--color-card-border)",
-                  fontFamily: "var(--font-mono)",
                 }}
               >
-                Open
-                <ChevronDown size={10} />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="start"
-              className="min-w-[220px]"
+                <DropdownMenuItem
+                  onClick={() => loadProject()}
+                  className="text-xs"
+                  style={{ fontFamily: "var(--font-mono)" }}
+                >
+                  Open Folder...
+                </DropdownMenuItem>
+                {recentProjects.length > 0 && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <div
+                      className="px-2 py-1.5 text-[10px] uppercase tracking-[0.2em]"
+                      style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+                    >
+                      Recent
+                    </div>
+                    {recentProjects.slice(0, 5).map((rp) => (
+                      <DropdownMenuItem
+                        key={rp.dirPath}
+                        onClick={() => loadProjectFromPath(rp.dirPath)}
+                        className="flex flex-col items-start gap-0.5 text-xs"
+                      >
+                        <span style={{ color: "var(--color-text-primary)" }}>{rp.name}</span>
+                        <span
+                          className="text-[10px] truncate max-w-[200px]"
+                          style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+                        >
+                          {rp.dirPath}
+                        </span>
+                      </DropdownMenuItem>
+                    ))}
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <button
+              onClick={() => saveProject()}
+              className="text-xs font-bold px-3 py-1.5 uppercase tracking-wider bg-white text-black hover:opacity-90"
+              style={{ fontFamily: "var(--font-headline)" }}
+            >
+              Save
+            </button>
+            <button
+              onClick={() => saveProjectAs()}
+              className="text-xs px-2 py-1.5 border"
               style={{
-                background: "var(--color-surface)",
+                background: "var(--color-surface-high)",
+                color: "var(--color-text-muted)",
                 borderColor: "var(--color-card-border)",
+                fontFamily: "var(--font-mono)",
               }}
             >
-              <DropdownMenuItem
-                onClick={() => loadProject()}
-                className="text-xs"
-                style={{ fontFamily: "var(--font-mono)" }}
-              >
-                Open Folder...
-              </DropdownMenuItem>
-              {recentProjects.length > 0 && (
-                <>
-                  <DropdownMenuSeparator />
-                  <div
-                    className="px-2 py-1.5 text-[10px] uppercase tracking-[0.2em]"
-                    style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
-                  >
-                    Recent
-                  </div>
-                  {recentProjects.slice(0, 5).map((rp) => (
-                    <DropdownMenuItem
-                      key={rp.dirPath}
-                      onClick={() => loadProjectFromPath(rp.dirPath)}
-                      className="flex flex-col items-start gap-0.5 text-xs"
-                    >
-                      <span style={{ color: "var(--color-text-primary)" }}>{rp.name}</span>
-                      <span
-                        className="text-[10px] truncate max-w-[200px]"
-                        style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
-                      >
-                        {rp.dirPath}
-                      </span>
-                    </DropdownMenuItem>
-                  ))}
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <button
-            onClick={() => setShowHealthCheck(true)}
-            className="text-xs px-3 py-1.5 border"
-            style={{
-              background: "var(--color-surface-high)",
-              color: "var(--color-text-primary)",
-              borderColor: "var(--color-card-border)",
-              fontFamily: "var(--font-mono)",
-            }}
-          >
-            AI Check
-          </button>
-          <button
-            onClick={() => exportContext()}
-            className="text-xs px-3 py-1.5 border"
-            style={{
-              background: "var(--color-surface-high)",
-              color: "var(--color-text-primary)",
-              borderColor: "var(--color-card-border)",
-              fontFamily: "var(--font-mono)",
-            }}
-          >
-            Export for AI
-          </button>
-          <button
-            onClick={() => setShowCommandPalette(true)}
-            className="flex items-center gap-2 text-xs px-3 py-1.5 border"
-            style={{
-              background: "var(--color-surface-high)",
-              color: "var(--color-text-primary)",
-              borderColor: "var(--color-card-border)",
-              fontFamily: "var(--font-mono)",
-            }}
-            title="Search work and actions"
-          >
-            <Search size={12} />
-            <span>Search</span>
-            <span style={{ color: "var(--color-text-muted)" }}>Cmd+K</span>
-          </button>
-          <button
-            onClick={() => setShowSettings(true)}
-            className="flex items-center gap-2 text-xs px-3 py-1.5 border"
-            style={{
-              background: "var(--color-surface-high)",
-              color: "var(--color-text-primary)",
-              borderColor: "var(--color-card-border)",
-              fontFamily: "var(--font-mono)",
-            }}
-            title="Open settings"
-          >
-            <Settings size={12} />
-            <span>Settings</span>
-          </button>
-          <button
-            onClick={() => saveProjectAs()}
-            className="text-xs px-3 py-1.5 border"
-            style={{
-              background: "var(--color-surface-high)",
-              color: "var(--color-text-primary)",
-              borderColor: "var(--color-card-border)",
-              fontFamily: "var(--font-mono)",
-            }}
-          >
-            Save As
-          </button>
-          <button
-            onClick={() => saveProject()}
-            className="text-xs font-bold px-3 py-1.5 uppercase tracking-wider bg-white text-black hover:opacity-90"
-            style={{ fontFamily: "var(--font-headline)" }}
-          >
-            Save
-          </button>
+              Save As
+            </button>
+          </div>
+
+          {/* Separator */}
+          <div className="h-5 w-px mx-1" style={{ background: "var(--color-card-border)" }} />
+
+          {/* AI operations group */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={async () => {
+                const success = await copyContextToClipboard();
+                if (success) {
+                  setCopyFeedback(true);
+                  setTimeout(() => setCopyFeedback(false), 1800);
+                }
+              }}
+              className="text-xs px-3 py-1.5 border"
+              style={{
+                background: copyFeedback ? "var(--color-text-primary)" : "var(--color-surface-high)",
+                color: copyFeedback ? "var(--color-canvas-bg)" : "var(--color-text-primary)",
+                borderColor: copyFeedback ? "var(--color-text-primary)" : "var(--color-card-border)",
+                fontFamily: "var(--font-mono)",
+              }}
+            >
+              {copyFeedback ? "COPIED!" : "Copy for AI"}
+            </button>
+            <button
+              onClick={() => exportContextToTarget()}
+              className="text-xs px-3 py-1.5 border"
+              style={{
+                background: "var(--color-surface-high)",
+                color: "var(--color-text-muted)",
+                borderColor: "var(--color-card-border)",
+                fontFamily: "var(--font-mono)",
+              }}
+            >
+              Export
+            </button>
+            <button
+              onClick={() => setShowHealthCheck(true)}
+              className="text-xs px-3 py-1.5 border"
+              style={{
+                background: "var(--color-surface-high)",
+                color: "var(--color-text-muted)",
+                borderColor: "var(--color-card-border)",
+                fontFamily: "var(--font-mono)",
+              }}
+            >
+              AI Check
+            </button>
+          </div>
+
+          {/* Separator */}
+          <div className="h-5 w-px mx-1" style={{ background: "var(--color-card-border)" }} />
+
+          {/* Navigation group */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setShowCommandPalette(true)}
+              className="flex items-center gap-2 text-xs px-3 py-1.5 border"
+              style={{
+                background: "var(--color-surface-high)",
+                color: "var(--color-text-primary)",
+                borderColor: "var(--color-card-border)",
+                fontFamily: "var(--font-mono)",
+              }}
+              title="Search work and actions"
+            >
+              <Search size={12} />
+              <span style={{ color: "var(--color-text-muted)" }}>Cmd+K</span>
+            </button>
+            <button
+              onClick={() => setShowSettings(true)}
+              className="flex items-center text-xs p-1.5 border"
+              style={{
+                background: "var(--color-surface-high)",
+                color: "var(--color-text-muted)",
+                borderColor: "var(--color-card-border)",
+              }}
+              title="Open settings"
+            >
+              <Settings size={14} />
+            </button>
+          </div>
         </div>
       </header>
       <HealthCheckDialog

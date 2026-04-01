@@ -224,7 +224,11 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
 
       {/* Delete button */}
       <button
-        onClick={() => removeCard(id)}
+        onClick={() => {
+          if (window.confirm(`Delete "${data.title || "Untitled"}" and all its connections?`)) {
+            removeCard(id);
+          }
+        }}
         className="w-8 h-8 flex items-center justify-center transition-colors"
         style={{
           background: "var(--color-surface-high)",
@@ -284,7 +288,11 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
         </ContextMenuSubContent>
       </ContextMenuSub>
       <ContextMenuItem
-        onClick={() => removeCard(id)}
+        onClick={() => {
+          if (window.confirm(`Delete "${data.title || "Untitled"}" and all its connections?`)) {
+            removeCard(id);
+          }
+        }}
         className="text-xs"
         style={{ color: "var(--color-accent-error)" }}
       >
@@ -415,11 +423,20 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
                 />
               ) : (
                 <div
-                  className="text-sm font-semibold cursor-text truncate"
-                  style={{ color: data.type === "project" ? "#C9A84C" : "var(--color-text-primary)" }}
-                  onDoubleClick={() => setEditingTitle(true)}
+                  className="group/title flex items-center gap-1.5 cursor-text"
+                  onClick={() => setEditingTitle(true)}
                 >
-                  {data.title || "Untitled"}
+                  <span
+                    className="text-sm font-semibold truncate flex-1"
+                    style={{ color: data.type === "project" ? "#C9A84C" : "var(--color-text-primary)" }}
+                  >
+                    {data.title || "Untitled"}
+                  </span>
+                  <Pencil
+                    size={10}
+                    className="shrink-0 opacity-0 group-hover/title:opacity-40 transition-opacity nodrag"
+                    style={{ color: "var(--color-text-muted)" }}
+                  />
                 </div>
               )}
             </div>
@@ -464,10 +481,10 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
                 />
               ) : (
                 <div
-                  className="text-[var(--color-text-secondary)] text-xs cursor-text min-h-[2rem] line-clamp-3"
-                  onDoubleClick={() => setEditingBody(true)}
+                  className="text-[var(--color-text-secondary)] text-xs cursor-text min-h-[2rem] line-clamp-3 hover:opacity-80 transition-opacity"
+                  onClick={() => setEditingBody(true)}
                 >
-                  {data.body || <span className="opacity-30 italic">double-click to add summary</span>}
+                  {data.body || <span className="opacity-30 italic">click to add summary</span>}
                 </div>
               )}
               {bodySuggestion ? (
@@ -518,9 +535,11 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
 
             <div
               className="px-3 pb-3 pt-1 nodrag"
-              onDoubleClick={(event) => {
-                event.stopPropagation();
-                setEditingTags(true);
+              onClick={(event) => {
+                if (tags.length === 0) {
+                  event.stopPropagation();
+                  setEditingTags(true);
+                }
               }}
             >
               <div className="flex flex-wrap items-center gap-1.5">
@@ -568,10 +587,11 @@ function CardNodeComponent({ data, id, selected }: NodeProps<CardNodeType>) {
 
                 {!editingTags && tags.length === 0 ? (
                   <span
-                    className="text-[9px]"
+                    className="text-[9px] cursor-pointer hover:opacity-60"
                     style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+                    onClick={() => setEditingTags(true)}
                   >
-                    double-click to tag
+                    + add tag
                   </span>
                 ) : null}
               </div>

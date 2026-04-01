@@ -15,6 +15,7 @@ export interface Card extends Record<string, unknown> {
   docContent: string;
   agentHint?: string;
   comments?: CardComment[];
+  attachments?: CardAttachment[];
 }
 
 export type EdgeType = "hierarchy" | "flow" | "reference";
@@ -59,6 +60,15 @@ export interface CardComment {
   text: string;
   timestamp: number;
   author?: string;
+}
+
+export interface CardAttachment {
+  id: string;
+  relativePath: string;
+  name: string;
+  extension?: string;
+  size?: number;
+  addedAt: number;
 }
 
 export interface CanvasViewport {

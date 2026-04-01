@@ -40,6 +40,13 @@ export function BottomActionBar() {
         <div style={{ width: 1, height: 20, background: "var(--color-card-border)" }} />
 
         <button
+          onClick={() => {
+            window.dispatchEvent(new KeyboardEvent("keydown", {
+              key: "k",
+              metaKey: true,
+              bubbles: true,
+            }));
+          }}
           className="flex items-center gap-2 px-4 py-2 transition-colors"
           style={{
             color: "var(--color-text-muted)",
@@ -47,7 +54,7 @@ export function BottomActionBar() {
             fontSize: "11px",
             letterSpacing: "0.05em",
           }}
-          title="Search cards (Cmd+F)"
+          title="Search cards (Cmd+K)"
           onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-primary)"; }}
           onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-muted)"; }}
         >

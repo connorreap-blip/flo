@@ -85,8 +85,8 @@ interface CanvasStore {
   openEditors: EditorState[];
   openEditor: (cardId: string, position: { x: number; y: number }) => void;
   closeEditor: (cardId: string) => void;
-  ghostPreviewMode: null | "read" | "cost";
-  setGhostPreviewMode: (mode: null | "read" | "cost") => void;
+  ghostPreviewMode: null | "read" | "cost" | "diff";
+  setGhostPreviewMode: (mode: null | "read" | "cost" | "diff") => void;
   hasUsedGhostPreview: boolean;
 
   // Viewport
@@ -112,8 +112,13 @@ interface CanvasStore {
   resetHelpers: () => void;
   checklistDismissed: boolean;
   dismissChecklist: () => void;
+  lastExportedContextMd: string | null;
+  setLastExportedContextMd: (md: string) => void;
   addComment: (cardId: string, text: string, author?: string) => void;
   removeComment: (cardId: string, commentId: string) => void;
+  toastMessage: string | null;
+  showToast: (message: string) => void;
+  dismissToast: () => void;
 
   // Settings — Editor
   editorFontSize: number;
@@ -136,6 +141,8 @@ interface CanvasStore {
   setExportGoalOverride: (value: ExportGoalOverride) => void;
   exportFileNamePattern: string;
   setExportFileNamePattern: (value: string) => void;
+  exportTargetPath: string;
+  setExportTargetPath: (path: string) => void;
   saveBehaviorPreference: SaveBehaviorPreference;
   setSaveBehaviorPreference: (value: SaveBehaviorPreference) => void;
 
@@ -225,6 +232,7 @@ type PersistedCanvasSettings = Pick<
   | "exportIncludeAgentHints"
   | "exportGoalOverride"
   | "exportFileNamePattern"
+  | "exportTargetPath"
   | "saveBehaviorPreference"
   | "defaultAgentHint"
   | "agentHintExportMode"
@@ -311,6 +319,9 @@ function parseStoredSettings(): Partial<PersistedCanvasSettings> {
     }
     if (typeof parsed.exportFileNamePattern === "string") {
       settings.exportFileNamePattern = parsed.exportFileNamePattern.trim() || DEFAULT_EXPORT_FILENAME_PATTERN;
+    }
+    if (typeof parsed.exportTargetPath === "string") {
+      settings.exportTargetPath = parsed.exportTargetPath;
     }
     if (SAVE_BEHAVIOR_PREFERENCES.includes(parsed.saveBehaviorPreference as SaveBehaviorPreference)) {
       settings.saveBehaviorPreference = parsed.saveBehaviorPreference as SaveBehaviorPreference;
@@ -504,6 +515,7 @@ function extractPersistedCanvasSettings(state: CanvasStore): PersistedCanvasSett
     exportIncludeAgentHints: state.exportIncludeAgentHints,
     exportGoalOverride: state.exportGoalOverride,
     exportFileNamePattern: state.exportFileNamePattern,
+    exportTargetPath: state.exportTargetPath,
     saveBehaviorPreference: state.saveBehaviorPreference,
     defaultAgentHint: state.defaultAgentHint,
     agentHintExportMode: state.agentHintExportMode,
@@ -683,6 +695,8 @@ export const useCanvasStore = create<CanvasStore>()(
       resetHelpers: () => set({ dismissedHelpers: [] }),
       checklistDismissed: persistedSettings.checklistDismissed ?? false,
       dismissChecklist: () => set({ checklistDismissed: true }),
+      lastExportedContextMd: null,
+      setLastExportedContextMd: (md) => set({ lastExportedContextMd: md }),
       addComment: (cardId, text, author) =>
         set((state) => ({
           cards: state.cards.map((card) =>
@@ -717,6 +731,9 @@ export const useCanvasStore = create<CanvasStore>()(
           isDirty: true,
           editVersion: state.editVersion + 1,
         })),
+      toastMessage: null,
+      showToast: (message) => set({ toastMessage: message }),
+      dismissToast: () => set({ toastMessage: null }),
 
       // Settings — Editor
       editorFontSize: persistedSettings.editorFontSize ?? 14,
@@ -748,6 +765,8 @@ export const useCanvasStore = create<CanvasStore>()(
         set({
           exportFileNamePattern: sanitizeExportFileNamePattern(value),
         }),
+      exportTargetPath: persistedSettings.exportTargetPath ?? "",
+      setExportTargetPath: (path) => set({ exportTargetPath: path }),
       saveBehaviorPreference: persistedSettings.saveBehaviorPreference ?? DEFAULT_SAVE_BEHAVIOR_PREFERENCE,
       setSaveBehaviorPreference: (value) => set({ saveBehaviorPreference: value }),
 

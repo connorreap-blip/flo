@@ -1,42 +1,36 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Editor } from "@tiptap/react";
 import { clampFloatingPosition } from "../lib/floating-position";
-import { filterWorkspaceCommandItems, type WorkspaceCommandItem } from "../lib/workspace-search";
+import { filterDocSlashItems, type DocSlashItem } from "../lib/workspace-search";
 
 interface SlashCommandMenuProps {
   editor: Editor;
   position: { top: number; left: number };
-  items: WorkspaceCommandItem[];
+  items: DocSlashItem[];
   onClose: () => void;
 }
 
-function categoryIcon(item: WorkspaceCommandItem): string {
+function categoryIcon(item: DocSlashItem): string {
   switch (item.category) {
     case "card":
       return "[]";
     case "doc":
       return "DOC";
-    case "action":
-      return ">";
-    case "setting":
-      return "CFG";
+    case "file":
+      return "FILE";
     default:
       return "?";
   }
 }
 
-function executeCommand(editor: Editor, cmd: WorkspaceCommandItem, filterLen: number, onClose: () => void) {
+function executeCommand(editor: Editor, cmd: DocSlashItem, filterLen: number, onClose: () => void) {
   // Delete the "/" trigger and any filter text typed into the editor
   const from = editor.state.selection.from - filterLen - 1;
   const to = editor.state.selection.from;
   if (from >= 0) {
     editor.chain().focus().deleteRange({ from, to }).run();
   }
-  if (cmd.insertValue) {
-    editor.chain().focus().insertContent(cmd.insertValue).run();
-  } else {
-    void cmd.run();
-  }
+  void cmd.run();
   onClose();
 }
 
@@ -47,7 +41,7 @@ export function SlashCommandMenu({ editor, position, items, onClose }: SlashComm
   const listRef = useRef<HTMLDivElement>(null);
   const [displayPosition, setDisplayPosition] = useState(position);
 
-  const filtered = filterWorkspaceCommandItems(items, filter);
+  const filtered = filterDocSlashItems(items, filter);
 
   useLayoutEffect(() => {
     if (!ref.current) {
