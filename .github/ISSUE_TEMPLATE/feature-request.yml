@@ -1,0 +1,26 @@
+name: Feature request
+description: Suggest a product improvement for flo.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Start with the workflow breakdown, not the proposed UI.
+      placeholder: I lose track of which cards were added since the last export.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What should flo do?
+      description: Describe the outcome you want and the smallest version that would help.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Share examples, screenshots, competitor references, or constraints.

@@ -1,0 +1,39 @@
+name: Bug report
+description: Report a reproducible issue in flo.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the bug clearly and include what you expected instead.
+      placeholder: Saving a workspace creates the folder, but reopening it fails with an error.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Provide the shortest path to reproduce the issue.
+      placeholder: |
+        1. Open flo
+        2. Create a new workspace
+        3. Save it to a new folder
+        4. Reopen the folder
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include OS, app version, and any relevant workspace details.
+      placeholder: macOS 15, commit abc123, workspace with 12 cards and 8 edges
+    validations:
+      required: true
+  - type: textarea
+    id: artifacts
+    attributes:
+      label: Logs, screenshots, or workspace samples
+      description: Add anything that will help confirm the issue quickly.

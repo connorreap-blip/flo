@@ -57,7 +57,7 @@ export function HomeScreen({ onNew, onOpenSample, onOpenTemplates }: Props) {
                   background: "rgba(255,255,255,0.03)",
                 }}
               >
-                flō workspace
+                flo workspace
               </div>
 
               <div>
